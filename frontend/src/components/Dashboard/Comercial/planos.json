@@ -1,0 +1,312 @@
+[
+    {
+        "Codigo": "101",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 1000MB - 129,90",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "1024m",
+        "Vel. Up": "524m",
+        "Valor": "129.9",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "9",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 1000MB EMPRESARIAL - 349,90",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "1024m",
+        "Vel. Up": "1024m",
+        "Valor": "349.9",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "150",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 1000MB GAMER - 349,90",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "1024m",
+        "Vel. Up": "1024m",
+        "Valor": "349.9",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "160",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 1000MB MESH - 169,90",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "1024m",
+        "Vel. Up": "524m",
+        "Valor": "169.9",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "90",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 1000MB REPETIDOR - 149,90",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "1024m",
+        "Vel. Up": "524m",
+        "Valor": "149.9",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "91",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 1000MB WIFI 6 - 169,90",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "1024m",
+        "Vel. Up": "524m",
+        "Valor": "169.9",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "100",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 100MB - 119,90",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "107520K",
+        "Vel. Up": "56320K",
+        "Valor": "119.9",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "98",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 100MB EMPRESARIAL",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "105m",
+        "Vel. Up": "105m",
+        "Valor": "619.9",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "48",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 150MB - 99,90",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "155m",
+        "Vel. Up": "75m",
+        "Valor": "99.9",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "121",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 150MB EMPRESARIAL - 199,90",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "160m",
+        "Vel. Up": "160m",
+        "Valor": "199.9",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "163",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 200MB ESCOLAR",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "215m",
+        "Vel. Up": "115m",
+        "Valor": "204.25",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "97",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 20MB EMPRESARIAL",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "25m",
+        "Vel. Up": "25m",
+        "Valor": "149.9",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "84",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 22MB DEDICADO",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "25m",
+        "Vel. Up": "25m",
+        "Valor": "199.9",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "118",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 300MB DEDICADO",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "300m",
+        "Vel. Up": "300m",
+        "Valor": "199.9",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "40",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 300MB DEDICADO /29",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "300m",
+        "Vel. Up": "300m",
+        "Valor": "580",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "110",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 300MB EMPRESARIAL - 149,90",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "337920K",
+        "Vel. Up": "337920K",
+        "Valor": "149.9",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "88",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 350MB - 83,90",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "350m",
+        "Vel. Up": "175m",
+        "Valor": "83.9",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "89",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 500MB - 99,90",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "510m",
+        "Vel. Up": "260m",
+        "Valor": "99.9",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "177",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 500MB - 99,90 COM RETENÇÃO",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "510K",
+        "Vel. Up": "260K",
+        "Valor": "99.9",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "106",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 500MB EMPRESARIAL - 199,90",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "542720K",
+        "Vel. Up": "542720K",
+        "Valor": "199.9",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "156",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 500MB ESCOLAR",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "500m",
+        "Vel. Up": "500m",
+        "Valor": "204.25",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "63",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 500MB ESCOLAR 100% SCM",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "257m",
+        "Vel. Up": "507m",
+        "Valor": "209.9",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "149",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 500MB GAMER - 199.90",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "512m",
+        "Vel. Up": "512m",
+        "Valor": "199.9",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "151",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 50MB - 69,90",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "55m",
+        "Vel. Up": "28m",
+        "Valor": "69.9",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "14",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 700MB - 109,90",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "720m",
+        "Vel. Up": "370m",
+        "Valor": "109.9",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "93",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 700MB - 379,90",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "710m",
+        "Vel. Up": "360m",
+        "Valor": "379.9",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "109",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 800MB EMPRESARIAL - 299,90",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "225280K",
+        "Vel. Up": "225280K",
+        "Valor": "299.9",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "103",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 90MB EMPRESARIAL - 149,90",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "97m",
+        "Vel. Up": "97m",
+        "Valor": "149.9",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "10",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 90MB ESCOLAR",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "97m",
+        "Vel. Up": "50m",
+        "Valor": "205",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "174",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA 90MB ESCOLAR - 100% SCM",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "97m",
+        "Vel. Up": "50m",
+        "Valor": "209.9",
+        "Ativo": "Sim"
+    },
+    {
+        "Codigo": "107",
+        "Exclusivo CRM": "Não",
+        "Nome do Plano": "FIBRA TESTE FULL",
+        "Tipo de plano": "Internet",
+        "Vel. Down": "1GBPSK",
+        "Vel. Up": "1GBPSK",
+        "Valor": "649.9",
+        "Ativo": "Sim"
+    }
+]

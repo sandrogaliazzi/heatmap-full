@@ -1,0 +1,25 @@
+version: "3"
+services:
+  node-api:
+    build: ./backend
+    ports:
+      - "5005:5005"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+
+  vue-app:
+    build: ./frontend
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - PORT=5000
+    stdin_open: true
+    tty: true
+    depends_on:
+      - node-api

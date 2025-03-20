@@ -1,0 +1,10 @@
+# Ignora qualquer node_modules em qualquer lugar
+**/node_modules/
+
+# Ignora arquivos .env em qualquer subpasta
+**/.env
+
+# Outras coisas que quiser ignorar
+.DS_Store
+dist/
+build/

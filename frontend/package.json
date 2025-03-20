@@ -1,0 +1,34 @@
+{
+  "name": "HeatMap",
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@fawmi/vue-google-maps": "^0.9.79",
+    "@googlemaps/markerclusterer": "^2.5.3",
+    "@mdi/font": "7.0.96",
+    "axios": "^1.4.0",
+    "chart.js": "^4.4.0",
+    "jwt-decode": "^4.0.0",
+    "moment-timezone": "^0.5.45",
+    "pinia": "^2.1.3",
+    "roboto-fontface": "*",
+    "vue": "^3.4.36",
+    "vue-chartjs": "^5.2.0",
+    "vue-google-maps-community-fork": "^0.3.1",
+    "vue-router": "^4.2.2",
+    "vue-virtual-list-v3": "^1.5.1",
+    "vue-window-size": "^2.0.0",
+    "vuetify": "^3.4.7",
+    "webfontloader": "^1.0.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-basic-ssl": "^1.0.1",
+    "@vitejs/plugin-vue": "^4.0.0",
+    "vite": "^4.2.0",
+    "vite-plugin-vuetify": "^1.0.0"
+  }
+}
