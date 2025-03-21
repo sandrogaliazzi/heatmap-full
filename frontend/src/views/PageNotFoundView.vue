@@ -1,5 +1,5 @@
 <script setup>
-import AppBar from "@/components/Appbar/AppBar";
+import AppBar from "@/components/AppBar/AppBar";
 import PageNotFound from "@/components/NotFound/PageNotFound";
 </script>
 <template>
