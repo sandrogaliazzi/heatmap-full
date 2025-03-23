@@ -1,10 +1,8 @@
 import express from "express";
-import cors from "cors";
 import routes from "./routes/index.js";
 import db from "./config/dbConnect.js";
 import path from "path";
 import { fileURLToPath } from "url";
-import reqMonitor from "./middleware/reqMonitor.js";
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -17,22 +15,6 @@ db.once("open", () => {
   let now = new Date().toLocaleString("PT-br");
   console.log(`conexão com o banco em: ${now}`);
 });
-
-app.use(
-  cors({
-    origin: "https://heatmap.conectnet.net",
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: [
-      "Origin",
-      "X-Requested-With",
-      "Content-Type",
-      "Accept",
-      "Authorization",
-      "x-access-token",
-    ],
-    credentials: true,
-  })
-);
 
 app.get("/docapi", (req, res) => {
   res.sendFile(path.join(__dirname, "/index.html"));
