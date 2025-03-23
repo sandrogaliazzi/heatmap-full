@@ -12,12 +12,12 @@ export default {
       sellerClass: 0,
       goal: 25,
     },
-    // {
-    //   name: "EDIANA",
-    //   avatar: "../src/assets/SELLERS/EDIANA.jpg",
-    //   sellerClass: 0,
-    //   goal: 15,
-    // },
+    {
+      name: "DOUGLAS",
+      avatar: "../src/assets/SELLERS/DOUGLAS.jpg",
+      sellerClass: 0,
+      goal: 15,
+    },
   ],
   internos: [
     {

@@ -55,8 +55,8 @@ const sellersName = ref([
   "NADINE",
   "JANICE",
   "JESSICA",
-  "EDIANA",
   "EQUIPE CONECT",
+  "DOUGLAS",
 ]);
 
 const findClass = (name) => {
@@ -187,7 +187,7 @@ const handleSubmit = async () => {
                 'GLORINHA',
                 'NOVO HAMBURGO',
                 'SAPIRANGA',
-                'TRÊS COROAS'
+                'TRÊS COROAS',
               ]"
               :rules="inputRules"
               v-model="city"
