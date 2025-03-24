@@ -1,7 +1,6 @@
 import { ref, computed, watch } from "vue";
 import { defineStore } from "pinia";
 import fetchApi from "@/api/index.js";
-import mock from "./mock";
 
 export const useTomodatStore = defineStore("tomodat", () => {
   const ctoList = ref([]);
