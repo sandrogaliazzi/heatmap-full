@@ -90,7 +90,6 @@ const viabilityModal = ref(false);
 const dot = ref({});
 
 const showViability = (val) => {
-  console.log(val);
   dot.value = val;
   viabilityModal.value = true;
 };

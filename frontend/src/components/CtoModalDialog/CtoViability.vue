@@ -24,7 +24,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <v-card :loading="true">
+  <v-card :loading="cardLoader">
     <v-card-text>
       <v-sheet
         max-width="600"
@@ -43,9 +43,10 @@ onMounted(async () => {
 
         <ul>
           <li>
-            <p class="text-medium-emphasis text-body-2">
+            <p class="text-medium-emphasis text-body-2" v-if="!cardLoader">
               PORTAS DISPONÍVEIS: {{ portsAvailable }}
             </p>
+            <p class="text-medium-emphasis text-body-2" v-else>Aguarde</p>
           </li>
         </ul>
 
