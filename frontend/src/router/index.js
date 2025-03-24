@@ -15,77 +15,74 @@ import { storeToRefs } from "pinia";
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    {
-      path: "/login",
-      name: "Login",
-      component: LoginView,
-    },
+    { path: "/login", name: "Login", component: LoginView },
 
-    {
-      path: "/heatmap",
-      name: "HeatMap",
-      component: HeatMapView,
-    },
-    {
-      path: "/",
-      redirect: "/heatmap",
-    },
+    { path: "/heatmap", name: "HeatMap", component: HeatMapView },
+
+    { path: "/", redirect: "/heatmap" },
+
     {
       path: "/dashboard",
       component: DashboardView,
       children: [
-        {
-          path: "",
-          component: AdminPanel,
-        },
+        { path: "", component: AdminPanel },
+
         {
           path: "/users",
           name: "user-list",
           component: UserList,
+          meta: { requiresAuth: true, allowedRoles: ["adm"] },
         },
         {
           path: "/logs",
           name: "logs-list",
           component: LogsList,
+          meta: { requiresAuth: true, allowedRoles: ["adm"] },
         },
         {
           path: "/camera",
           name: "camera-list",
           component: CameraList,
+          meta: { requiresAuth: true, allowedRoles: ["adm", "tecnico"] },
         },
       ],
     },
-    {
-      path: "/comercial",
-      name: "Comercial",
-      component: DashboardComercial,
-    },
-    {
-      path: "/:pathMatch(.*)*",
-      component: PageNotFoundView,
-    },
+
+    { path: "/comercial", name: "Comercial", component: DashboardComercial },
+
+    { path: "/:pathMatch(.*)*", component: PageNotFoundView },
   ],
 });
 
+// Middleware para autenticação e controle de role
 router.beforeEach((to, from) => {
-  const user = useUserStore();
-  const { isAuthenticated } = storeToRefs(user);
+  const userStore = useUserStore();
+  const { isAuthenticated, user } = storeToRefs(userStore);
 
-  //if (to.name == "Comercial") return { name: "Comercial" };
+  const localUser = localStorage.getItem("user");
+  const parsedUser = localUser ? JSON.parse(localUser) : null;
+  const userCategory = user.value?.category || parsedUser?.category;
 
+  // Redireciona para login se não estiver autenticado
   if (
-    // make sure the user is authenticated
     !isAuthenticated.value &&
-    !localStorage.getItem("user") &&
-    // ❗️ Avoid an infinite redirect
+    !localUser &&
     to.name !== "Login" &&
     to.name !== "Comercial"
   ) {
-    // redirect the user to the login page
     return { name: "Login" };
   }
 
-  //if (to.name === "Login" && user.isAuthenticated) return { name: "HeatMap" };
+  // Valida role se necessário
+  if (to.meta.requiresAuth && to.meta.allowedRoles) {
+    if (!userCategory || !to.meta.allowedRoles.includes(userCategory)) {
+      // Pode redirecionar para uma página de acesso negado ou home
+      return { name: "HeatMap" };
+    }
+  }
+
+  // Exemplo de impedir ir para login se já estiver logado
+  if (to.name === "Login" && isAuthenticated.value) return { name: "HeatMap" };
 });
 
 export default router;

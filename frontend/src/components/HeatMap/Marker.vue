@@ -25,19 +25,25 @@ const props = defineProps({
 
 const isICon = (ap) => {
   if (ap.category == 4) return ceIcon;
-  else if(ap.color == "#ffff00") return ctoWarning;
   else {
     if (ap.percentage_free == 0) return ctoFullIcon;
     else return ctoIcon;
   }
 };
 
-const emit = defineEmits(["open:ctoDialog", "open:sideBar", "open:ceDialog"]);
+const emit = defineEmits([
+  "open:ctoDialog",
+  "open:sideBar",
+  "open:ceDialog",
+  "open:viabilityDialog",
+]);
 
 const handleMarkerClick = (event, marker) => {
-  if (marker.category == 4) {
-    emit("open:ctoDialog", marker.id);
+  if (marker.category) {
+    emit("open:ctoDialog", marker);
     return;
+  } else {
+    emit("open:viabilityDialog", marker);
   }
   if (!event.domEvent.altKey) {
     emit("open:ctoDialog", marker.id);

@@ -79,6 +79,7 @@ const onCloseDialog = (value) => {
         title="Pesquisa avançada"
         value="search"
         color="orange"
+        v-role="['adm', 'tecnico', 'vendas']"
         @click="openDialog = !openDialog"
       ></v-list-item>
       <v-list-item

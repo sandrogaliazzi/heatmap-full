@@ -44,7 +44,7 @@ const saveUser = async (reqBody) => {
 };
 
 const editUser = async (reqBody) => {
-  console.log(reqBody)
+  console.log(reqBody);
   // try {
   //   await fetchApi.put(`users/${user._id}`, reqBody);
   //   notification.setNotification({
@@ -100,7 +100,11 @@ const handleSubmit = async () => {
       <v-container>
         <v-row>
           <v-col cols="12">
-            <v-form ref="formRef" @submit.prevent="handleSubmit" autocomplete="off">
+            <v-form
+              ref="formRef"
+              @submit.prevent="handleSubmit"
+              autocomplete="off"
+            >
               <v-col cols="12">
                 <v-text-field
                   prepend-icon="mdi-account"
@@ -136,6 +140,11 @@ const handleSubmit = async () => {
                   <v-radio
                     label="Vendas"
                     value="vendas"
+                    color="orange"
+                  ></v-radio>
+                  <v-radio
+                    label="Convidado"
+                    value="convidado"
                     color="orange"
                   ></v-radio>
                 </v-radio-group>

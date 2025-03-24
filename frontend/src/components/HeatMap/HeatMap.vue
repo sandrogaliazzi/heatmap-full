@@ -2,6 +2,7 @@
 import { ref, watch, onMounted } from "vue";
 import { useTomodatStore } from "@/stores/tomodat.js";
 import { useHeatMapStore } from "@/stores/heatmap";
+import { useUserStore } from "@/stores/user.js";
 import { storeToRefs } from "pinia";
 import { getNewRadius } from "./HeatMap.js";
 import warningIcon from "@/assets/warning-icon.png";
@@ -14,6 +15,7 @@ import Marker from "./Marker.vue";
 import EventMarker from "./eventMarker.vue";
 import RightSideBar from "./RightSidebar.vue";
 import Cables from "./Cables.vue";
+import CtoViability from "../CtoModalDialog/CtoViability.vue";
 
 const store = useTomodatStore();
 const {
@@ -31,6 +33,10 @@ const { getCto, getTomodatData } = store;
 
 const heatmapStore = useHeatMapStore();
 const { isHeatMapVisible } = storeToRefs(heatmapStore);
+
+const userStore = useUserStore();
+
+const { user } = storeToRefs(userStore);
 
 const mapRef = ref(null);
 const heatMapRadius = ref(5);
@@ -69,20 +75,31 @@ const onCloseDialog = (value) => {
   openModal.value = value;
   openEventModal.value = value;
   openClientSignalModal.value = value;
+  viabilityModal.value = value;
 };
 
 const ctoKey = ref(1);
 
-const getCtoById = (id) => {
-  cto.value = getCto(id);
+const getCtoById = (ctoMarker) => {
+  if (ctoMarker.category == null) return;
+  cto.value = getCto(ctoMarker.id);
   openModal.value = true;
 };
 
-const changeCto = (newCtoData) => {
-  const ctoData = JSON.parse(newCtoData);
-  cto.value = getCto(ctoData.id);
-  ctoKey.value++;
+const viabilityModal = ref(false);
+const dot = ref({});
+
+const showViability = (val) => {
+  console.log(val);
+  dot.value = val;
+  viabilityModal.value = true;
 };
+
+// const changeCto = (newCtoData) => {
+//   const ctoData = JSON.parse(newCtoData);
+//   cto.value = getCto(ctoData.id);
+//   ctoKey.value++;
+// };
 
 const getCeById = async (id) => {
   const response = await fetchApi("connections/" + id);
@@ -135,7 +152,7 @@ watch(setPolygonDrawMode, (mode) => {
 watch(mapRef, (googleMap) => {
   if (googleMap) {
     googleMap.$mapPromise.then((map) => {
-      getTomodatData();
+      getTomodatData(user.value);
 
       setupContainsLatLng();
 
@@ -146,10 +163,12 @@ watch(mapRef, (googleMap) => {
         heatMapRadius.value = getNewRadius(zoom, center);
       });
 
-      map.addListener("rightclick", (mapsMouseEvent) => {
-        eventWindowLocation.value = mapsMouseEvent.latLng.toJSON();
-        eventWindow.value = true;
-      });
+      if (user.value.category !== "convidado") {
+        map.addListener("rightclick", (mapsMouseEvent) => {
+          eventWindowLocation.value = mapsMouseEvent.latLng.toJSON();
+          eventWindow.value = true;
+        });
+      }
 
       map.addListener("click", (mapsMouseEvent) => {
         if (setPolygonDrawMode.value) {
@@ -198,6 +217,10 @@ onMounted(async () => {
     />
   </DialogBox>
 
+  <DialogBox :isOpen="viabilityModal" @update:modalValue="onCloseDialog">
+    <CtoViability :dot="dot" />
+  </DialogBox>
+
   <DialogBox :isOpen="openEventModal" @update:modalValue="onCloseDialog">
     <EventForm
       :event-locale="eventWindowLocation"
@@ -244,7 +267,7 @@ onMounted(async () => {
     </GMapMarker>
 
     <EventMarker
-      v-if="events.length"
+      v-if="events.length && user.category !== 'convidado'"
       :visible="isEventMarkerVisible"
       :event-markers="events"
       @update-event="(event) => onUpdateEvent(event)"
@@ -255,6 +278,7 @@ onMounted(async () => {
       @open:cto-dialog="getCtoById"
       @open:side-bar="(cto) => showSideBar(cto)"
       @open:ce-dialog="(id) => getCeById(id)"
+      @open:viability-dialog="(cto) => showViability(cto)"
     />
 
     <Cables

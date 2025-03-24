@@ -102,6 +102,7 @@ const handleUserLocation = () => {
       :setPolygonDrawMode="setPolygonDrawMode"
       @toggleMarkers="toggleCtoMarkers"
       @toggleDrawMode="() => (setPolygonDrawMode = !setPolygonDrawMode)"
+      v-role="['adm', 'tecnico', 'vendas']"
     />
     <SideNavList @logout:user="logout" :user="userStore.user" />
   </v-navigation-drawer>

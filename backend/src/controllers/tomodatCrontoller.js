@@ -1,5 +1,9 @@
 import { fetchTomodat } from "../scripts/fetchApiTomodat.js";
-import { getAllAcessPointsByCity, getAccessPointConnections } from "../scripts/fetchApiTomodat.js";
+import {
+  getAllAcessPointsByCity,
+  getAccessPointConnections,
+  checkViability,
+} from "../scripts/fetchApiTomodat.js";
 import { addClient } from "../scripts/fetchApiTomodat.js";
 import tomodatcompleto16052023 from "../models/tomodatcompleto.js";
 import needle from "needle";
@@ -20,32 +24,53 @@ const reqConfig = {
 
 class TomodatController {
   static ListarClients = (req, res) => {
-    fetchTomodat().then((data) => {
+    fetchTomodat().then(data => {
       res.json(data);
     });
   };
 
   static getAPcon = (req, res) => {
     const id = req.params.id;
-  
-    getAccessPointConnections(id).then(data => {
-      res.status(200).json(data);
-    })
-    .catch(error => {
-      console.error(error); // Log the error for debugging
-      res.status(500).json({ error: "Internal Server Error" }); // Send a generic error response
-    });
+
+    getAccessPointConnections(id)
+      .then(data => {
+        res.status(200).json(data);
+      })
+      .catch(error => {
+        console.error(error); // Log the error for debugging
+        res.status(500).json({ error: "Internal Server Error" }); // Send a generic error response
+      });
   };
-  
 
   static ListarCtos = (req, res) => {
-    getAllAcessPointsByCity().then((data) => {
+    getAllAcessPointsByCity().then(data => {
       res.json(data);
     });
   };
 
   static CadastrarClient = (req, res) => {
     addClient(req, res);
+  };
+
+  static CheckTomodatViability = (req, res) => {
+    const { lat, lng } = req.params;
+    checkViability(lat, lng)
+      .then(data => {
+        res.status(200).json(data.filter(d => d.dot));
+      })
+      .catch(error => {
+        res.status(500).json(error);
+      });
+  };
+
+  static ListarApenasCaixas = (_, res) => {
+    getAllAcessPointsByCity()
+      .then(data => {
+        res.status(200).json(data);
+      })
+      .catch(error => {
+        res.status(500).json(error);
+      });
   };
 
   static DeleteClient = (req, res) => {
@@ -57,7 +82,7 @@ class TomodatController {
         reqConfig,
         (err, response) => {
           if (!err) {
-            res.status(200).json({status:200});
+            res.status(200).json({ status: 200 });
           }
         }
       );
@@ -77,7 +102,7 @@ class TomodatController {
 
   static SalvarRota = (req, res) => {
     let novaRota = new tomodatcompleto16052023(req.body);
-    novaRota.save((err) => {
+    novaRota.save(err => {
       if (err) {
         res
           .status(500)

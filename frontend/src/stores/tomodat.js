@@ -1,12 +1,13 @@
 import { ref, computed, watch } from "vue";
 import { defineStore } from "pinia";
 import fetchApi from "@/api/index.js";
+import mock from "./mock";
 
 export const useTomodatStore = defineStore("tomodat", () => {
   const ctoList = ref([]);
   const cableList = ref([]);
   const ctoListByCity = ref({});
-  const queryCto = ref("123456");
+  const queryCto = ref("R");
   const locatedClients = ref([]);
   const selectedCto = ref("");
   const loadingData = ref(true);
@@ -16,29 +17,17 @@ export const useTomodatStore = defineStore("tomodat", () => {
   const isCableVisible = ref(true);
   const setPolygonDrawMode = ref(false);
 
-  // async function getTomodatData() {
-  //   try {
-  //     const [cableResponse, ctoResponse] = await Promise.all([
-  //       fetchApi.get("/cables"),
-  //       fetchApi.get("/newfetch"),
-  //     ]);
-
-  //     loadingData.value = false;
-
-  //     cableList.value = cableResponse.data;
-  //     ctoList.value = ctoResponse.data;
-  //   } catch (error) {
-  //     console.error("Error fetching Tomodat data:", error);
-  //   }
-  // }
-
-  async function getTomodatData() {
+  async function getTomodatData(user) {
     try {
-      const ctoResponse = await fetchApi.get("/newfetch");
-      ctoList.value = ctoResponse.data;
+      if (user.category !== "convidado") {
+        const ctoResponse = await fetchApi.get("/newfetch");
+        ctoList.value = ctoResponse.data;
 
-      const cableResponse = await fetchApi.get("/cables");
-      cableList.value = cableResponse.data;
+        const cableResponse = await fetchApi.get("/cables");
+        cableList.value = cableResponse.data;
+      } else {
+        ctoList.value = await fetchApi.get("/tomodat-basico");
+      }
 
       loadingData.value = false;
     } catch (error) {
@@ -140,7 +129,7 @@ export const useTomodatStore = defineStore("tomodat", () => {
 
   const getMarkersData = computed(() => {
     return ctoList.value.map((cto) => {
-      const { lat, lng } = cto.coord;
+      const { lat, lng } = cto.coord ?? cto.dot;
 
       return {
         position: {
@@ -149,7 +138,7 @@ export const useTomodatStore = defineStore("tomodat", () => {
         },
         percentage_free: cto.percentage_free,
         title: cto.name,
-        color: cto.color,
+        color: cto.color ?? null,
         id: cto.id,
         category: cto.category,
       };
@@ -166,7 +155,7 @@ export const useTomodatStore = defineStore("tomodat", () => {
 
   const getHeatMapData = computed(() => {
     return ctoList.value.map((cto) => {
-      const { lat, lng } = cto.coord;
+      const { lat, lng } = cto.coord ?? cto.dot ?? { lat: 0, lng: 0 };
 
       return new google.maps.LatLng(parseFloat(lat), parseFloat(lng));
     });
