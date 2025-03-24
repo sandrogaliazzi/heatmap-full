@@ -56,7 +56,7 @@ class TomodatController {
     const { lat, lng } = req.params;
     checkViability(lat, lng)
       .then(data => {
-        res.status(200).json(data.filter(d => d.dot));
+        res.status(200).json(data);
       })
       .catch(error => {
         res.status(500).json(error);

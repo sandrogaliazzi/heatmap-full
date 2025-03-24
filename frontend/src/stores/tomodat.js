@@ -17,15 +17,17 @@ export const useTomodatStore = defineStore("tomodat", () => {
   const setPolygonDrawMode = ref(false);
 
   async function getTomodatData(user) {
+    let ctoResponse = [];
     try {
       if (user.category !== "convidado") {
-        const ctoResponse = await fetchApi.get("/newfetch");
+        ctoResponse = await fetchApi.get("/newfetch");
         ctoList.value = ctoResponse.data;
 
         const cableResponse = await fetchApi.get("/cables");
         cableList.value = cableResponse.data;
       } else {
-        ctoList.value = await fetchApi.get("/tomodat-basico");
+        ctoResponse = await fetchApi.get("/tomodat-basico");
+        ctoList.value = ctoResponse.data.filter((d) => d.dot !== null);
       }
 
       loadingData.value = false;
