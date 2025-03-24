@@ -57,6 +57,10 @@ const fetchSales = async () => {
     weekRef: getWeekNumber(),
   });
 
+  response.data.dailySales = response.data.sales.filter(
+    (s) => s.date === "2025-03-24"
+  );
+
   sales.value = response.data;
 };
 
