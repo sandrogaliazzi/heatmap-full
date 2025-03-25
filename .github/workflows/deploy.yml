@@ -16,11 +16,13 @@ jobs:
       - name: Instalar sshpass
         run: sudo apt-get install sshpass
 
-      - name: Acessar o servidor e atualizar a aplicação
+      - name: Acessar o servidor e configurar sudo sem senha
         run: |
           sshpass -p "${{ secrets.SERVER_PASSWORD }}" ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-            cd heatmap-full/heatmap-full/
+            # Adicionando a permissão para o usuário sem senha
+            echo "$USER ALL=(ALL) NOPASSWD: ALL" | sudo tee /etc/sudoers.d/${{ secrets.SSH_USER }}
+            cd /heatmap-full/heatmap-full/
             git pull origin main
-            docker compose down
-            docker compose up -d --build
+            sudo docker-compose down
+            sudo docker-compose up -d --build
           EOF
