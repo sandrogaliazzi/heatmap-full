@@ -130,7 +130,7 @@ export async function fetchTomodat() {
   }
 }
 
-export async function checkViability(lat, lng, range = 50) {
+export async function checkViability(lat, lng, range = 10) {
   try {
     const response = await fetch(
       `${baseURL}/clients/viability/${lat}/${lng}/${range}`,
