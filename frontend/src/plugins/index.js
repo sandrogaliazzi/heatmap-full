@@ -25,7 +25,7 @@ export function registerPlugins(app) {
     load: {
       version: 3.52,
       key: import.meta.env.VITE_GOOGLE_API_KEY,
-      libraries: ["visualization", "geometry"],
+      libraries: ["visualization", "geometry", "places"],
     },
   });
 }

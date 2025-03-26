@@ -148,6 +148,20 @@ watch(setPolygonDrawMode, (mode) => {
   }
 });
 
+const setPlace = (place) => {
+  if (selectedUserLocation.value === null) selectedUserLocation.value = {};
+  selectedUserLocation.value.coords = {
+    latitude: place.geometry.location.lat(),
+    longitude: place.geometry.location.lng(),
+  };
+};
+
+const copyPosition = () => {
+  const { latitude, longitude } = selectedUserLocation.value.coords;
+  navigator.clipboard.writeText(`${latitude} ${longitude}`);
+  alert("Copiado coordenadas!");
+};
+
 watch(mapRef, (googleMap) => {
   if (googleMap) {
     googleMap.$mapPromise.then((map) => {
@@ -236,17 +250,26 @@ onMounted(async () => {
     v-model="sideBar"
     @clear-cto-list="sideBarCtoList = []"
   />
+  <GMapAutocomplete
+    style="width: 100%; padding: 10px; background-color: #212121"
+    placeholder="Buscar Endereço"
+    @place_changed="setPlace"
+  >
+  </GMapAutocomplete>
 
   <GMapMap
     :center="getSelectedUserPosition || getSelectedCtoPosition"
     :zoom="mapZoom"
-    class="w-100 h-100"
+    class="w-100"
+    style="height: 90vh"
     ref="mapRef"
   >
     <GMapMarker
       v-if="getSelectedUserPosition"
       :animation="2"
       title="Você está aqui"
+      @click="copyPosition"
+      :clickable="true"
       :position="getSelectedUserPosition"
     ></GMapMarker>
 

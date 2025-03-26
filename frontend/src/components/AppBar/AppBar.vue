@@ -60,7 +60,7 @@ const handleUserLocation = () => {
   <v-app-bar>
     <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
     <v-app-bar-title>
-      <v-btn variant="text" href="/heatmap">HMap</v-btn>
+      <v-btn variant="text" href="/heatmap">HeatMap</v-btn>
     </v-app-bar-title>
 
     <v-spacer></v-spacer>
