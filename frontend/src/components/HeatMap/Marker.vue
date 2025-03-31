@@ -40,15 +40,11 @@ const emit = defineEmits([
 
 const handleMarkerClick = (event, marker) => {
   if (marker.category) {
-    emit("open:ctoDialog", marker);
+    if (event.domEvent.altKey) emit("open:sideBar", [marker]);
+    else emit("open:ctoDialog", marker);
     return;
   } else {
     emit("open:viabilityDialog", marker);
-  }
-  if (!event.domEvent.altKey) {
-    emit("open:ctoDialog", marker.id);
-  } else {
-    emit("open:sideBar", [marker]);
   }
 };
 </script>
