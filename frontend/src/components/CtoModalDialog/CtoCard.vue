@@ -332,7 +332,7 @@ const onClientPositionSelected = async ({ client, position }) => {
 
     <v-window v-model="slideNumber" class="overflow-auto">
       <v-window-item :value="1">
-        <v-card-text class="pa-5">
+        <v-card-text class="pa-5" v-if="!showOnuCard">
           <CtoClientsList
             :clients="cto.clients"
             @adduser:location="(client) => createMarker(client)"

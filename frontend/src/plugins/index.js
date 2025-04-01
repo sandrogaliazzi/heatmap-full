@@ -9,7 +9,8 @@ import { loadFonts } from "./webfontloader";
 import vuetify from "./vuetify";
 import { createPinia } from "pinia";
 import router from "@/router";
-import VueGoogleMaps from "@fawmi/vue-google-maps";
+// import VueGoogleMaps from "@fawmi/vue-google-maps";
+import VueGoogleMaps from "vue-google-maps-community-fork";
 import { VueWindowSizePlugin } from "vue-window-size/plugin";
 import VirtualList from "vue-virtual-list-v3";
 
