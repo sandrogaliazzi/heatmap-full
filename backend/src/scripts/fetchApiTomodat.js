@@ -176,3 +176,9 @@ export async function newFetchTomodat() {
     console.log(err);
   }
 }
+
+// getAllAcessPointsByCity().then(data => {
+//   console.log(data.filter(d => d.tree.includes("ZREDE NÃO IMPLANTADA")));
+// });
+
+// //getAllAcessPoints().then(console.log);

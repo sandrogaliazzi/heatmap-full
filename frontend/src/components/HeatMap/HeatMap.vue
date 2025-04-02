@@ -154,6 +154,8 @@ const setPlace = (place) => {
     latitude: place.geometry.location.lat(),
     longitude: place.geometry.location.lng(),
   };
+
+  mapZoom.value = 18;
 };
 
 const copyPosition = () => {
@@ -171,6 +173,7 @@ watch(mapRef, (googleMap) => {
 
       map.addListener("zoom_changed", () => {
         const zoom = map.getZoom();
+        mapZoom.value = zoom;
         const center = map.getCenter();
 
         heatMapRadius.value = getNewRadius(zoom, center);

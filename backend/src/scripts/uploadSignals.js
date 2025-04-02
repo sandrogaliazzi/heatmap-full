@@ -30,7 +30,7 @@ async function isExecutionNeeded() {
 
       return lastLogDate !== today; // Só executa se não houver log de hoje
     }
-    
+
     return true; // Se não houver logs, executa
   } catch (error) {
     console.error("Erro ao verificar logs existentes:", error);
@@ -38,13 +38,27 @@ async function isExecutionNeeded() {
   }
 }
 
-function SaveRamalLog(logData) {
-  const newLog = new RamalLog(logData);
-  newLog.save((err) => {
-    if (err) {
-      console.error(`${err.message} - falha ao cadastrar Logs`);
+async function SaveRamalLog(logData) {
+  try {
+    const { id } = logData;
+    logData.date_time = new Date().toISOString(); // Garante que o novo registro usa o formato ISO
+
+    const logCount = await RamalLog.countDocuments({ id });
+
+    if (logCount >= 30) {
+      const oldestLog = await RamalLog.findOne({ id })
+        .sort({ date_time: 1 })
+        .exec();
+      if (oldestLog) {
+        await RamalLog.deleteOne({ _id: oldestLog._id });
+      }
     }
-  });
+
+    const newLog = new RamalLog(logData);
+    await newLog.save();
+  } catch (err) {
+    console.error(`${err.message} - falha ao cadastrar Logs`);
+  }
 }
 
 function calculateAverages(data) {
@@ -81,7 +95,7 @@ function VerificarSinalPon(oltIp, oltPon) {
               conn.end();
               resolve(jsonOutput);
             })
-            .on("data", (data) => {
+            .on("data", data => {
               dataBuffer += data.toString();
               if (dataBuffer.includes("\n")) {
                 const items = [];
@@ -92,7 +106,8 @@ function VerificarSinalPon(oltIp, oltPon) {
 
                   if (trimmedLine && !isNaN(parseInt(trimmedLine.charAt(0)))) {
                     const alias = trimmedLine.split(" ")[0];
-                    const statusMatch = lines[i + 1]?.match(/Status\s*:\s*(.*)/);
+                    const statusMatch =
+                      lines[i + 1]?.match(/Status\s*:\s*(.*)/);
                     const txMatch = lines[i + 2]?.match(
                       /Power Level\s*:\s*(-?\d+\.\d+)/
                     );
@@ -154,7 +169,6 @@ async function savePongSignals() {
 
 export default function startUpdateLoop() {
   savePongSignals();
-
   setInterval(async () => {
     await savePongSignals();
   }, 86400000);

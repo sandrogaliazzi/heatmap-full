@@ -7,6 +7,7 @@ const closeDialog = inject("closeDialog");
 const tomodatStore = useTomodatStore();
 
 const setCto = ({ ctoId, ctoName, id, name }) => {
+  tomodatStore.selectedUserLocation = null;
   tomodatStore.selectedCto = ctoId || id;
   tomodatStore.queryCto = ctoName || name;
   tomodatStore.mapZoom = 16;
