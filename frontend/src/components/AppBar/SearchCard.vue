@@ -22,13 +22,9 @@ const getClientsByName = (name) => {
   );
 };
 
-watch(query, () => {
-  if (!query.value) searchResults.value = [];
+const findResults = () => {
   if (query.value) {
-    if (
-      query.value.split(" ").length > 1 ||
-      query.value.split("-").length > 1
-    ) {
+    if (query.value.split("").length > 3) {
       const typeOfSearch = /^(R\d+-CA\d+|CE-\d+|CD-\d+)$/.test(
         query.value.toUpperCase()
       )
@@ -46,6 +42,12 @@ watch(query, () => {
       }
     }
   }
+};
+
+watch(query, () => {
+  if (!query.value) searchResults.value = [];
+  findResults();
+
   localStorage.setItem("lastQuery", query.value);
 });
 
@@ -53,6 +55,7 @@ const myInput = ref(null);
 
 onMounted(() => {
   myInput.value.focus();
+  findResults();
 });
 </script>
 
