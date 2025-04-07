@@ -8,6 +8,7 @@ const closeDialog = inject("closeDialog");
 const formRef = ref(null);
 const emailList = ref([]);
 const notification = useNotificationStore();
+const isLoading = ref(true);
 
 const emailValidation = [
   (value) => {
@@ -27,6 +28,8 @@ onMounted(async () => {
   const emails = await fetchApi("emailget");
 
   emailList.value = emails.data;
+
+  isLoading.value = false;
 });
 
 const openWebMail = () => {
@@ -57,7 +60,7 @@ const createEmail = async () => {
 </script>
 
 <template>
-  <v-card style="min-height: 600px">
+  <v-card style="min-height: 600px" :loading="isLoading">
     <v-card-title class="bg-orange">
       <div class="d-flex justify-space-between align-center">
         <div class="d-flex">
@@ -80,7 +83,7 @@ const createEmail = async () => {
       </div>
     </v-card-title>
     <v-card-text>
-      <v-row justify="center">
+      <v-row justify="center" v-if="!isLoading">
         <v-col cols="12" class="fixed-column">
           <v-form ref="formRef" @submit.prevent="createEmail">
             <v-text-field
@@ -101,7 +104,7 @@ const createEmail = async () => {
             </v-text-field>
           </v-form>
         </v-col>
-        <v-col cols="12" class="scrollable-column mt-4">
+        <v-col cols="12" class="scrollable-column">
           <v-list nav>
             <v-list-subheader>Lista de Emails</v-list-subheader>
             <div v-if="email && !emailListFilter.length">
@@ -131,6 +134,18 @@ const createEmail = async () => {
           </v-list>
         </v-col>
       </v-row>
+      <div
+        style="height: 300px"
+        class="d-flex justify-center align-center"
+        v-else
+      >
+        <v-progress-circular
+          color="orange"
+          indeterminate
+          :size="128"
+          :width="6"
+        ></v-progress-circular>
+      </div>
     </v-card-text>
   </v-card>
 </template>

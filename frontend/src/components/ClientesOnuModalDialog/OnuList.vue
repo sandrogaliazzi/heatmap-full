@@ -90,7 +90,7 @@ const checkAllSignal = async (onuList) => {
 <template>
   <v-list lines="two">
     <v-list-subheader>
-      <div>
+      <div class="d-flex flex-column flex-md-row ga-2">
         <v-btn
           color="success"
           rounded="xl"

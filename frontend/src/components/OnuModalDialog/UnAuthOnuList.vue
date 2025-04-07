@@ -50,8 +50,10 @@ const registerOnu = async (onu) => {
           :value="onu.onuMac"
           prepend-icon="mdi-circle-box"
         >
-          <v-list-item-subtitle class="mt-2">
-            <v-chip class="mr-2">{{ onu.onuModel }}</v-chip>
+          <v-list-item-subtitle
+            class="mt-2 d-flex flex-column flex-md-row ga-2"
+          >
+            <v-chip class="mr-2 d-none d-md-block">{{ onu.onuModel }}</v-chip>
             <v-chip>{{ onu.oltRamal }}</v-chip>
             <v-chip
               v-if="onuSignalDataList[onu.onuMac]"
@@ -66,20 +68,22 @@ const registerOnu = async (onu) => {
       </template>
       <v-list-item>
         <template #append>
-          <v-btn
-            color="success"
-            variant="tonal"
-            class="mr-2"
-            @click="registerOnu(onu)"
-            >Liberar</v-btn
-          >
-          <v-btn
-            color="warning"
-            variant="tonal"
-            @click="checkOnuSignal(onu)"
-            :loading="isLoadingSignal"
-            >Verificar Sinal</v-btn
-          >
+          <div class="d-flex flex-column flex-md-row ga-2">
+            <v-btn
+              color="success"
+              variant="tonal"
+              class="mr-2"
+              @click="registerOnu(onu)"
+              >Liberar</v-btn
+            >
+            <v-btn
+              color="warning"
+              variant="tonal"
+              @click="checkOnuSignal(onu)"
+              :loading="isLoadingSignal"
+              >Verificar Sinal</v-btn
+            >
+          </div>
         </template>
       </v-list-item>
     </v-list-group>

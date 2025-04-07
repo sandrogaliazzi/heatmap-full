@@ -136,7 +136,7 @@ onMounted(async () => {
         <template v-slot:text>
           <v-text-field
             v-model="search"
-            label="Search"
+            label="Pesquisar"
             prepend-inner-icon="mdi-magnify"
             single-line
             variant="outlined"

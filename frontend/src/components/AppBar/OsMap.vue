@@ -116,7 +116,7 @@ const closeDialog = inject("closeDialog");
     >
       <v-item-group
         v-model="model"
-        class="d-flex justify-sm-space-between px-6 pt-2 pb-6 mb-5"
+        class="d-flex justify-space-between px-6 pt-2 pb-6 mb-5"
       >
         <v-item v-for="n in 5" :key="n">
           <template v-slot:default="{ toggle }">

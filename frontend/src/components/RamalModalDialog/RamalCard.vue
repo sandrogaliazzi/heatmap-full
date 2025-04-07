@@ -104,7 +104,7 @@ onMounted(async () => {
           <v-col cols="12">
             <v-text-field
               variant="outlined"
-              label="Pesquisar cliente"
+              label="Pesquisar ramal"
               append-inner-icon="mdi-magnify"
               single-line
               v-model="query"
@@ -146,7 +146,7 @@ onMounted(async () => {
                 <v-card-text v-else-if="cardId == ramal._id">
                   <p>Não há clientes cadastrados neste ramal</p>
                 </v-card-text>
-                <v-card-text>
+                <v-card-text class="d-flex flex-column flex-md-row ga-2">
                   <v-btn
                     color="primary"
                     variant="tonal"
