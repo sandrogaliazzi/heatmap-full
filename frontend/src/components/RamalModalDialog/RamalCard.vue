@@ -16,13 +16,23 @@ const loading = ref(false);
 const closeDialog = inject("closeDialog");
 
 const filterRamal = computed(() => {
-  if (!query.value) return;
+  const q = query.value.toLowerCase();
 
-  return ramals.value.filter((ramal) => {
-    return ramal.oltRamal
-      .toLowerCase()
-      .includes(query.value.toLocaleLowerCase());
-  });
+  return ramals.value.filter(
+    (ramal) =>
+      ramal.oltRamal.toLowerCase().includes(q) ||
+      ramal.oltName.toLowerCase().includes(q)
+  );
+});
+
+const oltNames = computed(() => {
+  return ramals.value
+    .map((ramal) => ramal.oltName)
+    .reduce((acc, val) => {
+      if (!acc.includes(val)) acc.push(val);
+
+      return acc;
+    }, []);
 });
 
 const getRamals = async () => {
@@ -111,6 +121,17 @@ onMounted(async () => {
               hide-details
               class="mb-3"
             ></v-text-field>
+          </v-col>
+          <v-col cols="12">
+            <v-select
+              variant="outlined"
+              label="Pesquisar por olt"
+              v-model="query"
+              single-line
+              hide-details
+              class="mb-3"
+              :items="oltNames"
+            ></v-select>
           </v-col>
         </v-row>
         <v-row no-gutters>

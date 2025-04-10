@@ -30,6 +30,29 @@ class EventController {
     }
   }
 
+  static async ListEventsPaginated(req, res) {
+    const page = parseInt(req.query.page) || 1; // página atual
+    const limit = parseInt(req.query.limit) || 10; // itens por página
+
+    try {
+      const events = await Event.find()
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .sort({ startTime: -1 });
+
+      const total = await Event.countDocuments();
+
+      res.json({
+        page,
+        totalPages: Math.ceil(total / limit),
+        totalItems: total,
+        events,
+      });
+    } catch (err) {
+      res.status(500).json({ message: err.message });
+    }
+  }
+
   static ListEvent(_, res) {
     try {
       Event.find({}, (err, docs) => {
