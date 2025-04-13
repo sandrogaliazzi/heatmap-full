@@ -4,7 +4,6 @@ import fetchApi from "@/api";
 
 const { client } = defineProps(["client"]);
 
-
 const isColorActive = ref(false);
 const setSnackBar = ref(false);
 const pppoeClassStatus = ref("");

@@ -85,17 +85,20 @@ export async function getAllAcessPointsByCity() {
 
 export function addClient(req, res) {
   let client = req.body;
-  needle.post(`${baseURL}/clients/auto_connect/`, client, reqConfig, err => {
-    if (err) {
-      res
-        .status(500)
-        .send({ message: `${err.message} - falha ao cadastrar user.` });
-    } else {
-      res.status(201).send({
-        ApiTomodatCadastroOk: `${client.date_time}: Cliente ${client.name} cadastrado com sucesso na cto ${client.cto_name} pelo usuario: ${client.user}.`,
-      });
+  needle.post(
+    `${baseURL}/clients/auto_connect/`,
+    client,
+    reqConfig,
+    (err, resp, body) => {
+      if (err) {
+        res
+          .status(500)
+          .send({ message: `${err.message} - falha ao cadastrar user.` });
+      } else {
+        res.status(201).json(body);
+      }
     }
-  });
+  );
 }
 
 function getCtoCityById(aplist, id) {

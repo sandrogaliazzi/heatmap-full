@@ -24,10 +24,10 @@ const saveNote = async (note) => {
     const response = await fetchApi.post("/notes", note);
 
     const savedNote = response.data;
-    return savedNote; // Optionally return the saved note data
+    return savedNote;
   } catch (error) {
     console.error("Erro ao salvar nota:", error);
-    throw error; // Re-throw the error for potential handling in calling code
+    throw error;
   }
 };
 
@@ -74,14 +74,18 @@ const onNotesReload = async () => {
 };
 
 const getMkRetiradasDeConector = async (cto) => {
-  const response = await fetchApi(
-    `/listar-os-retiradas-conector/${cto.name}/${cto.city}`
-  );
+  try {
+    const response = await fetchApi(
+      `/listar-os-retiradas-conector/${cto.name}/${cto.city}`
+    );
 
-  return response.data;
+    return response.data;
+  } catch (error) {
+    return [];
+  }
 };
 
-onMounted(async () => {
+const loadCtoData = async (slide) => {
   conectors.value = await getMkRetiradasDeConector(cto);
 
   const response = await fetchApi("connections/" + cto.id);
@@ -91,6 +95,12 @@ onMounted(async () => {
   await processAndSaveTomodatNotes(response.data);
 
   ctoNotes.value = await fetchNotes();
+
+  if (slide) slideNumber.value--;
+};
+
+onMounted(async () => {
+  await loadCtoData();
 });
 
 const closeDialog = inject("closeDialog");
@@ -336,6 +346,7 @@ const onClientPositionSelected = async ({ client, position }) => {
           <CtoClientsList
             :clients="cto.clients"
             @adduser:location="(client) => createMarker(client)"
+            @delete-user="loadCtoData"
           />
           <CtoNotes
             :notes="ctoNotes"
@@ -351,7 +362,7 @@ const onClientPositionSelected = async ({ client, position }) => {
             :clientPosition="positionClicked"
             :cto="cto"
             :splitter="getSplitterPortStatus"
-            @slide-back="slideNumber--"
+            @update-cto-data="loadCtoData({ slide: true })"
           />
         </v-card-text>
 

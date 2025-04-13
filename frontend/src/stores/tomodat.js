@@ -43,12 +43,12 @@ export const useTomodatStore = defineStore("tomodat", () => {
   }
 
   function addNewClient(data) {
-    const { lat, lng, name, cto_id } = data;
+    const { lat, lng, name, cto_id, newClientId } = data;
 
     const newClient = {
       name,
       position: { value: { lat: +lat, lng: +lng } },
-      id: Date.now(),
+      id: newClientId,
     };
 
     console.log(newClient);

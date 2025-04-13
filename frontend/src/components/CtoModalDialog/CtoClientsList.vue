@@ -1,9 +1,10 @@
 <script setup>
 import { ref } from "vue";
 import { useNotificationStore } from "@/stores/notification";
+import fetchApi from "@/api";
 
 const { clients, notes, ctoId } = defineProps(["clients"]);
-const emit = defineEmits(["adduser:location"]);
+const emit = defineEmits(["adduser:location", "deleteUser"]);
 const selected = ref([]);
 
 const notification = useNotificationStore();
@@ -32,17 +33,20 @@ const copyNameWithHifen = async (name) => {
   triggerNotification("Nome copiado!");
 };
 
-// const deleteClient = async (id) => {
-//   if (confirm("deseja excluir este cliente?")) {
-//     try {
-//       const response = await fetchApi.delete(`deleteclientfromtomodat/${id}`);
+const deleteClient = async (id) => {
+  if (confirm("deseja excluir este cliente?")) {
+    try {
+      const response = await fetchApi.delete(`deleteclientfromtomodat/${id}`);
 
-//       console.log(response.data);
-//     } catch (error) {
-//       console.error("erro ao adicionar cliente " + error.message);
-//     }
-//   }
-// };
+      if (response.status === 200) {
+        triggerNotification("client excluido com sucesso!");
+        emit("deleteUser");
+      }
+    } catch (error) {
+      console.error("erro ao adicionar cliente " + error.message);
+    }
+  }
+};
 </script>
 
 <template>
@@ -92,14 +96,15 @@ const copyNameWithHifen = async (name) => {
           class="d-none d-md-flex"
           @click="copyNameWithHifen(client.name)"
         ></v-btn>
-        <!-- <v-btn
+        <v-btn
           color="grey-lighten-1"
           icon="mdi-delete"
           variant="text"
           size="small"
           class="d-none d-md-flex"
+          v-role="['adm']"
           @click="deleteClient(client.id)"
-        ></v-btn> -->
+        ></v-btn>
       </template>
     </v-list-item>
   </v-list>

@@ -25,7 +25,13 @@ ChartJS.register(
   Legend
 );
 
-const { rx, tx, labels, ramal } = defineProps(["rx", "tx", "labels", "ramal"]);
+const { rx, tx, labels, ramal, loaded } = defineProps([
+  "rx",
+  "tx",
+  "labels",
+  "ramal",
+  "loaded",
+]);
 
 const chartOptions = ref({
   responsive: true,
@@ -67,7 +73,12 @@ const chartData = ref({
     <v-card>
       <v-card-title>{{ ramal }}</v-card-title>
       <v-card-text class="ma-5">
-        <Line id="my-chart-id" :options="chartOptions" :data="chartData" />
+        <Line
+          v-if="loaded"
+          id="my-chart-id"
+          :options="chartOptions"
+          :data="chartData"
+        />
       </v-card-text>
     </v-card>
   </v-dialog>

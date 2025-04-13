@@ -98,7 +98,7 @@ onMounted(async () => {
     :rx="avgRxList"
     :labels="labels"
     :ramal="ramal.oltRamal"
-    v-if="labels"
+    :loaded="true"
   />
   <v-card>
     <v-card-text>

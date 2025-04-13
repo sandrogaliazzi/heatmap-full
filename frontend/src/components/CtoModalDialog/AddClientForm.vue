@@ -11,7 +11,7 @@ const tomodat = useTomodatStore();
 const userStore = useUserStore();
 
 const props = defineProps(["clientPosition", "cto", "splitter"]);
-const emit = defineEmits(["slideBack"]);
+const emit = defineEmits(["updateCtoData"]);
 
 const { clientPosition, cto } = toRefs(props);
 
@@ -47,13 +47,13 @@ const toggleLoading = () => (loading.value = !loading.value);
 
 const resetForm = () => formRef.value.reset();
 
-const slideBack = () => emit("slideBack");
+const updateCtoData = () => emit("updateCtoData");
 
 const sendNewClient = async (bodyRequest) => {
   try {
     const response = await fetchApi.post("client", bodyRequest);
 
-    return response;
+    return response.data;
   } catch (err) {
     notification.setNotification({
       msg: err.msg,
@@ -65,7 +65,12 @@ const sendNewClient = async (bodyRequest) => {
 const execFnList = (fnList) => fnList.forEach((fn) => fn());
 
 const handleAfterSubmitTasks = () => {
-  return execFnList([showNotification, toggleLoading, resetForm, slideBack]);
+  return execFnList([
+    showNotification,
+    toggleLoading,
+    resetForm,
+    updateCtoData,
+  ]);
 };
 
 const handleFormSubmit = async () => {
@@ -88,9 +93,9 @@ const handleFormSubmit = async () => {
       date_time: new Date().toLocaleString("pt-BR"),
     };
 
-    tomodat.addNewClient(bodyRequest);
+    const newClient = await sendNewClient(bodyRequest);
 
-    await sendNewClient(bodyRequest);
+    tomodat.addNewClient({ newClientId: newClient.id, ...bodyRequest });
 
     handleAfterSubmitTasks();
   }

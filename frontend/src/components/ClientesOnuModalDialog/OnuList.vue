@@ -1,11 +1,20 @@
 <script setup>
 import { ref, computed } from "vue";
 import fetchApi from "@/api";
+import signalChart from "../RamalModalDialog/signalChart.vue";
 
 const { onuList } = defineProps(["onuList"]);
 
 const isLoadingSignal = ref(false);
 const signalList = ref({});
+
+const avgRxList = ref(null);
+const avgTxList = ref(null);
+const labels = ref(null);
+const ramal = ref("");
+const showChart = ref(false);
+const isLoadingClientHistory = ref(false);
+const apiDataLoaded = ref(false);
 
 const checkOnuSignal = async (onu) => {
   isLoadingSignal.value = true;
@@ -85,9 +94,45 @@ const checkAllSignal = async (onuList) => {
 
   await Promise.all(signals);
 };
+
+const showClientSignalHistory = async (client) => {
+  isLoadingClientHistory.value = true;
+  try {
+    const response = await fetchApi(
+      `find-client-signal-logs?alias=${client.name}&mac=${client.mac}`
+    );
+    if (response.status === 200) {
+      avgRxList.value = response.data.map((data) => data.rx);
+      avgTxList.value = response.data.map((data) => data.tx);
+      labels.value = response.data.map((data) => data.date);
+      ramal.value = client.name;
+      showChart.value = true;
+      isLoadingClientHistory.value = false;
+      apiDataLoaded.value = true;
+    }
+
+    if (response.status === 404) {
+      alert("Histórico não encontrado");
+      isLoadingClientHistory.value = false;
+    }
+  } catch (error) {
+    isLoadingClientHistory.value = false;
+    alert("erro ao obter dados");
+    console.log(error);
+  }
+};
 </script>
 
 <template>
+  <signal-chart
+    v-model="showChart"
+    :tx="avgTxList"
+    :rx="avgRxList"
+    :labels="labels"
+    :ramal="ramal.oltRamal"
+    v-if="apiDataLoaded"
+    :loaded="apiDataLoaded"
+  />
   <v-list lines="two">
     <v-list-subheader>
       <div class="d-flex flex-column flex-md-row ga-2">
@@ -154,16 +199,28 @@ const checkAllSignal = async (onuList) => {
                 >TX: {{ formatSigal(signalList[item.mac]["Power Level"]) }} RX:
                 {{ formatSigal(signalList[item.mac]["RSSI"]) }}</v-chip
               >
-              <v-btn
-                color="warning"
-                variant="tonal"
-                size="small"
-                rounded="xl"
-                class="ml-2 mt-2 mt-sm-0"
-                @click="checkOnuSignal(item)"
-                :loading="isLoadingSignal"
-                >Verificar Sinal</v-btn
-              >
+              <div class="d-flex flex-column ga-2">
+                <v-btn
+                  color="warning"
+                  variant="tonal"
+                  size="small"
+                  rounded="xl"
+                  class="ml-2 mt-2 mt-sm-0"
+                  @click="checkOnuSignal(item)"
+                  :loading="isLoadingSignal"
+                  >Verificar Sinal</v-btn
+                >
+                <v-btn
+                  color="orange"
+                  variant="plain"
+                  size="small"
+                  rounded="xl"
+                  :loading="isLoadingClientHistory"
+                  prepend-icon="mdi-history"
+                  @click="showClientSignalHistory(item)"
+                  >histórico de sinal</v-btn
+                >
+              </div>
             </v-list-item-title>
           </v-list-item>
         </v-list-group>
