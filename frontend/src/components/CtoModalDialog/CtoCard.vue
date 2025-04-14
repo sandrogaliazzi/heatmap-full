@@ -85,10 +85,27 @@ const getMkRetiradasDeConector = async (cto) => {
   }
 };
 
+const clients = ref([]);
+
+const mapClients = (connections) => {
+  return connections
+    .filter((conn) => conn.client)
+    .map((client) => {
+      return {
+        id: client.client.id,
+        name: client.client.name,
+      };
+    });
+};
+
+const mapKey = ref(1);
+
 const loadCtoData = async (slide) => {
   conectors.value = await getMkRetiradasDeConector(cto);
 
   const response = await fetchApi("connections/" + cto.id);
+
+  clients.value = mapClients(response.data);
 
   apConnList.value = response.data;
 
@@ -96,7 +113,10 @@ const loadCtoData = async (slide) => {
 
   ctoNotes.value = await fetchNotes();
 
-  if (slide) slideNumber.value--;
+  if (slide) {
+    slideNumber.value--;
+    mapKey.value++;
+  }
 };
 
 onMounted(async () => {
@@ -227,15 +247,17 @@ const setMapCenter = (position) => {
 };
 
 const createMarker = (client) => {
-  if (client.position.value) {
-    setMapCenter(client.position.value);
-  } else {
-    const { lat, lng } = cto.coord;
-    cto.clients.find((c) => c === client).position.value = {
-      lat: +lat,
-      lng: +lng,
-    };
-  }
+  // if (client?.position?.value) {
+  //   setMapCenter(client.position.value);
+  // } else {
+  //   const { lat, lng } = cto.coord;
+  //   clients.value.find((c) => c.id === client.id).position.value = {
+  //     lat: +lat,
+  //     lng: +lng,
+  //   };
+  // }
+
+  console.log(clients.value.find((c) => c.id === client.id));
 };
 
 const deleteClientLocation = (id) => {
@@ -247,18 +269,16 @@ const deleteClientLocation = (id) => {
 };
 
 const onClientRemoved = async (id) => {
-  if (confirm("deseja remover a localização deste cliente?")) {
-    const client = cto.clients.find((c) => c.id === id);
-
-    const hasLocationId = client.position.value._id;
-
-    if (hasLocationId /*TEM LOCALIZAÇÃO NO BANCO*/) {
-      const isDeleted = await deleteClientLocation(hasLocationId);
-      client.position.value = false;
-      return isDeleted
-        ? alert("deleteado com sucesso")
-        : alert("erro ao deletar cliente");
-    } else client.position.value = false;
+  if (confirm("deseja remover a localizacao deste cliente?")) {
+    try {
+      const isDeleted = await deleteClientLocation(id);
+      if (isDeleted) {
+        alert("Localização removida com sucesso");
+        loadCtoData();
+      }
+    } catch (error) {
+      console.error(error);
+    }
   }
 };
 
@@ -329,6 +349,7 @@ const onClientPositionSelected = async ({ client, position }) => {
 
     <CtoMap
       :center="mapCenter"
+      :key="mapKey"
       :ctoPosition="center"
       :clients="cto.clients"
       :userLocation="userLocation"
@@ -344,7 +365,7 @@ const onClientPositionSelected = async ({ client, position }) => {
       <v-window-item :value="1">
         <v-card-text class="pa-5" v-if="!showOnuCard">
           <CtoClientsList
-            :clients="cto.clients"
+            :clients="clients"
             @adduser:location="(client) => createMarker(client)"
             @delete-user="loadCtoData"
           />

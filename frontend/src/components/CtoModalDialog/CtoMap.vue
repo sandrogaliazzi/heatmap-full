@@ -1,5 +1,6 @@
 <script setup>
 import { toRefs, ref, watch, computed, onMounted } from "vue";
+import fetchApi from "@/api";
 
 import ctoIcon from "@/assets/ctoconect.png";
 import personIcon from "@/assets/personIcon.png";
@@ -7,8 +8,9 @@ import { useTomodatStore } from "@/stores/tomodat";
 
 const tomodat = useTomodatStore();
 
-onMounted(() => {
+onMounted(async () => {
   tomodat.getAllLocatedClients();
+  newLocatedClients.value = await mapCtoClientsPosition();
 });
 
 const props = defineProps([
@@ -34,12 +36,38 @@ const infoWindowId = ref(null);
 const showAllInfoWindow = ref(true);
 const positionClicked = ref(null);
 const isDraggable = ref(false);
+const newLocatedClients = ref([]);
 
 const locatedClients = computed(() => {
-  return clients.value.filter((client) =>
-    client?.position?.value ? client.position.value : false
-  );
+  return newLocatedClients.value.map((client) => ({
+    id: client._id,
+    name: client.name,
+    position: { value: { lat: +client.lat, lng: +client.lng } },
+  }));
 });
+
+const getClientsWithLocation = async () => {
+  try {
+    const response = await fetchApi(`/ctoclient`);
+
+    return response.data;
+  } catch (error) {
+    console.log(error);
+    throw error;
+  }
+};
+
+const mapCtoClientsPosition = async () => {
+  try {
+    const clientsWithLocation = await getClientsWithLocation();
+
+    return clientsWithLocation.filter((client) => {
+      return clients.value.find((c) => c.name === client.name);
+    });
+  } catch (error) {
+    console.log(error);
+  }
+};
 
 const hasLocatedClients = computed(() => {
   return !locatedClients.value.length ? false : true;
