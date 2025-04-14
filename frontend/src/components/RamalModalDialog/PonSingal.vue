@@ -55,7 +55,7 @@ const headers = ref([
 const saveGponData = async () => {
   const save = await fetchApi.post("ramal-log-register", {
     id: ramal._id,
-    date_time: new Date().toLocaleString("pt-BR"),
+    date_time: new Date().toISOString(),
     gpon_data: onuList,
     avgSignal: calculateAverages(onuList),
   });
