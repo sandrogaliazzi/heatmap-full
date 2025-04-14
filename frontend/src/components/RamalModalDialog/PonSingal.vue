@@ -99,6 +99,7 @@ onMounted(async () => {
     :labels="labels"
     :ramal="ramal.oltRamal"
     :loaded="true"
+    v-if="labels"
   />
   <v-card>
     <v-card-text>
