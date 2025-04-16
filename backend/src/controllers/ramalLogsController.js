@@ -24,27 +24,62 @@ class RamalLogsController {
     }
 
     try {
-      const ramals = await ramalLogs.find();
-      const clientSignals = [];
+      const results = await ramalLogs.aggregate([
+        { $unwind: "$gpon_data" },
+        {
+          $addFields: {
+            gponAliasParts: { $split: ["$gpon_data.alias", "-"] },
+          },
+        },
+        {
+          $addFields: {
+            gponAlias: {
+              $cond: {
+                if: { $gt: [{ $size: "$gponAliasParts" }, 1] },
+                then: {
+                  $reduce: {
+                    input: {
+                      $slice: [
+                        "$gponAliasParts",
+                        1,
+                        { $size: "$gponAliasParts" },
+                      ],
+                    },
+                    initialValue: "",
+                    in: {
+                      $cond: [
+                        { $eq: ["$$value", ""] },
+                        "$$this",
+                        { $concat: ["$$value", "-", "$$this"] },
+                      ],
+                    },
+                  },
+                },
+                else: "$gpon_data.alias", // fallback se não tiver "-"
+              },
+            },
+          },
+        },
+        {
+          $match: {
+            $or: [{ gponAlias: alias }, { gponAlias: mac }],
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            date: "$date_time",
+            gpon_data: 1,
+          },
+        },
+        { $sort: { date: 1 } },
+      ]);
 
-      for (const ramal of ramals) {
-        for (const gpon of ramal.gpon_data || []) {
-          const fullAlias = gpon.alias || "";
-          const aliasParts = fullAlias.split("-");
-          const gponAlias = aliasParts.slice(1).join("-");
-
-          if (gponAlias && (gponAlias === alias || gponAlias === mac)) {
-            clientSignals.push({ date: ramal.date_time, ...gpon });
-          }
-        }
+      if (!results.length) {
+        return res.status(404).json({ msg: "Dados de sinal não encontrados" });
       }
 
-      if (clientSignals.length > 0) {
-        clientSignals.sort((a, b) => new Date(a.date) - new Date(b.date));
-        return res.status(200).json(clientSignals);
-      }
-
-      return res.status(404).json({ msg: "Dados de sinal não encontrados" });
+      return res.status(200).json(results);
     } catch (error) {
       console.error("Erro ao buscar sinais do cliente:", error);
       return res

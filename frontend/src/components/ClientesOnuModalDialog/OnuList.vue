@@ -102,8 +102,8 @@ const showClientSignalHistory = async (client) => {
       `find-client-signal-logs?alias=${client.name}&mac=${client.mac}`
     );
     if (response.status === 200) {
-      avgRxList.value = response.data.map((data) => data.rx);
-      avgTxList.value = response.data.map((data) => data.tx);
+      avgRxList.value = response.data.map((data) => data.gpon_data.rx);
+      avgTxList.value = response.data.map((data) => data.gpon_data.tx);
       labels.value = response.data.map((data) => data.date);
       ramal.value = client.name;
       showChart.value = true;

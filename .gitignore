@@ -3,6 +3,7 @@
 
 # Ignora arquivos .env em qualquer subpasta
 **/.env
+**/.env.local
 
 # Outras coisas que quiser ignorar
 .DS_Store
