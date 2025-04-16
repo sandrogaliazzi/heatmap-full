@@ -1,4 +1,4 @@
-import { ref, computed, watch } from "vue";
+import { ref, computed } from "vue";
 import { defineStore } from "pinia";
 import fetchApi from "@/api/index.js";
 
@@ -42,22 +42,6 @@ export const useTomodatStore = defineStore("tomodat", () => {
     locatedClients.value = response.data;
   }
 
-  function addNewClient(data) {
-    const { lat, lng, name, cto_id, newClientId } = data;
-
-    const newClient = {
-      name,
-      position: { value: { lat: +lat, lng: +lng } },
-      id: newClientId,
-    };
-
-    console.log(newClient);
-
-    const cto = ctoList.value.find((cto) => cto.id === cto_id);
-
-    if (cto) cto.clients.unshift(newClient);
-  }
-
   const getClients = computed(() => {
     const clientList = [];
 
@@ -78,28 +62,6 @@ export const useTomodatStore = defineStore("tomodat", () => {
 
   function getCto(id) {
     const cto = ctoList.value.find((cto) => cto.id == id);
-
-    const locatedClients = getLocatedClientesByCto(id);
-
-    cto.clients = cto.clients.map((client) => {
-      const { name, id } = client;
-      const position = {};
-
-      position.value = false;
-
-      const hasLocationRegistered = locatedClients.find((c) => c.name === name);
-
-      if (hasLocationRegistered) {
-        const { lat, lng, _id } = hasLocationRegistered;
-        position.value = { lat: +lat, lng: +lng, _id };
-      }
-
-      return {
-        name,
-        id,
-        position,
-      };
-    });
 
     return cto;
   }
@@ -149,10 +111,6 @@ export const useTomodatStore = defineStore("tomodat", () => {
   function toggleMarkers() {
     queryCto.value = queryCto.value ? "" : "123456";
   }
-
-  const getLocatedClientesByCto = (ctoId) => {
-    return locatedClients.value.filter((client) => client.cto_id == ctoId);
-  };
 
   const getHeatMapData = computed(() => {
     return ctoList.value.map((cto) => {

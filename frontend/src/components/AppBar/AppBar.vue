@@ -106,9 +106,9 @@ const handleUserLocation = () => {
     />
     <SideNavList @logout:user="logout" :user="userStore.user" />
   </v-navigation-drawer>
-  <v-progress-linear
+  <!-- <v-progress-linear
     v-if="tomodatStore.loadingData"
     color="primary"
     indeterminate
-  ></v-progress-linear>
+  ></v-progress-linear> -->
 </template>

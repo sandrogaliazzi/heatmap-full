@@ -1,26 +1,17 @@
 <script setup>
-import { toRefs, ref, watch, computed, onMounted } from "vue";
-import fetchApi from "@/api";
+import { toRefs, ref, watch, computed } from "vue";
 
 import ctoIcon from "@/assets/ctoconect.png";
 import personIcon from "@/assets/personIcon.png";
-import { useTomodatStore } from "@/stores/tomodat";
-
-const tomodat = useTomodatStore();
-
-onMounted(async () => {
-  tomodat.getAllLocatedClients();
-  newLocatedClients.value = await mapCtoClientsPosition();
-});
 
 const props = defineProps([
   "isMapVisible",
   "center",
-  "clients",
   "openGmapTab",
   "ctoPosition",
   "slideNumber",
   "userLocation",
+  "clients",
 ]);
 const emit = defineEmits([
   "positionSelected",
@@ -28,46 +19,29 @@ const emit = defineEmits([
   "clientRemoved",
 ]);
 
-const { isMapVisible, center, clients, openGmapTab, ctoPosition, slideNumber } =
-  toRefs(props);
+const {
+  isMapVisible,
+  center,
+  openGmapTab,
+  ctoPosition,
+  slideNumber,
+  userLocation,
+  clients,
+} = toRefs(props);
 
 const mapRef = ref(null);
 const infoWindowId = ref(null);
 const showAllInfoWindow = ref(true);
 const positionClicked = ref(null);
 const isDraggable = ref(false);
-const newLocatedClients = ref([]);
 
 const locatedClients = computed(() => {
-  return newLocatedClients.value.map((client) => ({
+  return clients.value.map((client) => ({
     id: client._id,
     name: client.name,
     position: { value: { lat: +client.lat, lng: +client.lng } },
   }));
 });
-
-const getClientsWithLocation = async () => {
-  try {
-    const response = await fetchApi(`/ctoclient`);
-
-    return response.data;
-  } catch (error) {
-    console.log(error);
-    throw error;
-  }
-};
-
-const mapCtoClientsPosition = async () => {
-  try {
-    const clientsWithLocation = await getClientsWithLocation();
-
-    return clientsWithLocation.filter((client) => {
-      return clients.value.find((c) => c.name === client.name);
-    });
-  } catch (error) {
-    console.log(error);
-  }
-};
 
 const hasLocatedClients = computed(() => {
   return !locatedClients.value.length ? false : true;
@@ -88,8 +62,6 @@ const handleMarkerDrop = (event, client) => {
       client,
       position: event.latLng.toJSON(),
     });
-
-    //tomodat.getAllLocatedClients();
   }
 };
 

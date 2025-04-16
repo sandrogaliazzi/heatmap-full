@@ -1,8 +1,8 @@
 import axios from "axios";
 import { useAuthStore } from "@/stores/auth";
 
-const BASE_URL = "https://api.heatmap.conectnet.net/";
-//const BASE_URL = "http://localhost:5005/";
+//const BASE_URL = "https://api.heatmap.conectnet.net/";
+const BASE_URL = "http://localhost:5005/";
 
 const headersConfig = {
   Accept: "application/json",

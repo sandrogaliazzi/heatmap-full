@@ -1,4 +1,3 @@
-const fs = import("fs");
 import dotenv from "dotenv";
 dotenv.config();
 import needle from "needle";
