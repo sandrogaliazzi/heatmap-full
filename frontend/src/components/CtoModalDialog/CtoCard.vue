@@ -368,30 +368,32 @@ const onClientLocationUpdated = async ({ client, position }) => {
     <v-window v-model="slideNumber" class="overflow-auto">
       <v-window-item :value="1">
         <v-card-text class="pa-5">
-          <template v-if="!showOnuCard && !isDataLoading">
-            <CtoClientsList
-              v-if="clients.length > 0"
-              :clients="clients"
-              :cto="cto.id"
-              :clients-with-location="clientsWithLocation"
-              @adduser:location="(client) => addUserLocation(client)"
-              @delete-user="loadCtoData"
-              @open:location="(location) => openNewGMapTab(location)"
-            />
-            <v-sheet
-              :height="400"
-              v-else
-              class="d-flex flex-column justify-center align-center"
-            >
-              <v-icon size="200px">mdi-account-group</v-icon>
-              <p class="text-button">Nenhum cliente cadastrado</p>
-            </v-sheet>
-            <CtoNotes
-              :notes="ctoNotes"
-              :ctoId="cto.id"
-              @reload-notes="onNotesReload"
-              :key="notesKey"
-            />
+          <template v-if="!isDataLoading">
+            <template v-if="!showOnuCard">
+              <CtoClientsList
+                v-if="clients.length > 0"
+                :clients="clients"
+                :cto="cto.id"
+                :clients-with-location="clientsWithLocation"
+                @adduser:location="(client) => addUserLocation(client)"
+                @delete-user="loadCtoData"
+                @open:location="(location) => openNewGMapTab(location)"
+              />
+              <v-sheet
+                :height="400"
+                v-else
+                class="d-flex flex-column justify-center align-center"
+              >
+                <v-icon size="200px">mdi-account-group</v-icon>
+                <p class="text-button">Nenhum cliente cadastrado</p>
+              </v-sheet>
+              <CtoNotes
+                :notes="ctoNotes"
+                :ctoId="cto.id"
+                @reload-notes="onNotesReload"
+                :key="notesKey"
+              />
+            </template>
           </template>
           <v-sheet
             v-else

@@ -132,7 +132,6 @@ export const useTomodatStore = defineStore("tomodat", () => {
     getCto,
     queryCto,
     toggleMarkers,
-    addNewClient,
     getClients,
     selectedCto,
     getSelectedCtoPosition,
