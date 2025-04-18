@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-app.use(cors());
+//app.use(cors());
 
 db.on("error", console.log.bind(console, "erro de conexão"));
 db.once("open", () => {

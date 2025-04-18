@@ -7,8 +7,8 @@ const port = process.env.PORT || 5005; //always 5005
 
 const server = http.createServer(app);
 
-//signalUpdateLoop();
-//tomodatUpdateLoop();
+signalUpdateLoop();
+tomodatUpdateLoop();
 
 server.listen(port, () => {
   let now = new Date().toLocaleString("PT-br");
