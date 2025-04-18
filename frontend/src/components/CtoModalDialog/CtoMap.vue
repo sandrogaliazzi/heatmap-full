@@ -1,24 +1,17 @@
 <script setup>
-import { toRefs, ref, watch, computed, onMounted } from "vue";
+import { toRefs, ref, watch, computed } from "vue";
 
 import ctoIcon from "@/assets/ctoconect.png";
 import personIcon from "@/assets/personIcon.png";
-import { useTomodatStore } from "@/stores/tomodat";
-
-const tomodat = useTomodatStore();
-
-onMounted(() => {
-  tomodat.getAllLocatedClients();
-});
 
 const props = defineProps([
   "isMapVisible",
   "center",
-  "clients",
   "openGmapTab",
   "ctoPosition",
   "slideNumber",
   "userLocation",
+  "clients",
 ]);
 const emit = defineEmits([
   "positionSelected",
@@ -26,8 +19,15 @@ const emit = defineEmits([
   "clientRemoved",
 ]);
 
-const { isMapVisible, center, clients, openGmapTab, ctoPosition, slideNumber } =
-  toRefs(props);
+const {
+  isMapVisible,
+  center,
+  openGmapTab,
+  ctoPosition,
+  slideNumber,
+  userLocation,
+  clients,
+} = toRefs(props);
 
 const mapRef = ref(null);
 const infoWindowId = ref(null);
@@ -36,9 +36,11 @@ const positionClicked = ref(null);
 const isDraggable = ref(false);
 
 const locatedClients = computed(() => {
-  return clients.value.filter((client) =>
-    client?.position?.value ? client.position.value : false
-  );
+  return clients.value.map((client) => ({
+    id: client._id,
+    name: client.name,
+    position: { value: { lat: +client.lat, lng: +client.lng } },
+  }));
 });
 
 const hasLocatedClients = computed(() => {
@@ -60,8 +62,6 @@ const handleMarkerDrop = (event, client) => {
       client,
       position: event.latLng.toJSON(),
     });
-
-    //tomodat.getAllLocatedClients();
   }
 };
 

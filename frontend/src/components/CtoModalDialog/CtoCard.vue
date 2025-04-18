@@ -9,6 +9,7 @@ import fetchApi from "@/api";
 import CeCard from "@/components/CeModalDialog/CeCard.vue";
 import CtoNotes from "./CtoNotes.vue";
 import CtoConectors from "./CtoConectors.vue";
+import { load } from "webfontloader";
 
 const { cto, tomodatView } = defineProps(["cto", "tomodatView"]);
 const emit = defineEmits(["setCtoFromChild"]);
@@ -16,7 +17,8 @@ const emit = defineEmits(["setCtoFromChild"]);
 const ctoNotes = ref(false);
 const conectors = ref([]);
 const apConnList = ref([]);
-
+const clientsWithLocation = ref([]);
+const isDataLoading = ref(true);
 const slideNumber = ref(1);
 
 const saveNote = async (note) => {
@@ -85,10 +87,29 @@ const getMkRetiradasDeConector = async (cto) => {
   }
 };
 
+const clients = ref([]);
+
+const mapClients = (connections) => {
+  return connections
+    .filter((conn) => conn.client)
+    .map((client) => {
+      return {
+        id: client.client.id,
+        name: client.client.name,
+      };
+    });
+};
+
+const mapKey = ref(1);
+
 const loadCtoData = async (slide) => {
   conectors.value = await getMkRetiradasDeConector(cto);
 
+  clientsWithLocation.value = await getClientsWithLocation();
+
   const response = await fetchApi("connections/" + cto.id);
+
+  clients.value = mapClients(response.data);
 
   apConnList.value = response.data;
 
@@ -96,7 +117,12 @@ const loadCtoData = async (slide) => {
 
   ctoNotes.value = await fetchNotes();
 
-  if (slide) slideNumber.value--;
+  isDataLoading.value = false;
+
+  if (slide) {
+    slideNumber.value--;
+    mapKey.value++;
+  }
 };
 
 onMounted(async () => {
@@ -191,19 +217,6 @@ const handleUserLocation = () => {
 
 const onPositionSelected = (position) => (positionClicked.value = position);
 
-const clientLocationExists = async (clientName) => {
-  try {
-    const response = await fetchApi.post("/ctoclientid", {
-      cto_id: cto.id,
-      name: clientName,
-    });
-
-    return response.status === 200 ? true : false;
-  } catch (e) {
-    return false;
-  }
-};
-
 const saveClientLocation = async (client, position) => {
   const bodyRequest = {
     name: client.name,
@@ -222,43 +235,44 @@ const saveClientLocation = async (client, position) => {
 
 const mapCenter = ref({ lat: +cto.coord.lat, lng: +cto.coord.lng });
 
-const setMapCenter = (position) => {
-  mapCenter.value = position;
-};
-
-const createMarker = (client) => {
-  if (client.position.value) {
-    setMapCenter(client.position.value);
-  } else {
-    const { lat, lng } = cto.coord;
-    cto.clients.find((c) => c === client).position.value = {
-      lat: +lat,
-      lng: +lng,
-    };
-  }
-};
-
-const deleteClientLocation = (id) => {
+const addUserLocation = async (client) => {
   try {
-    return fetchApi.delete(`/deletectoclient/${id}`);
+    const locationSaved = await saveClientLocation(client, cto.coord);
+
+    if (locationSaved.status === 201) {
+      alert("Localizacao adicionada com sucesso");
+      await loadCtoData();
+      isMapVisible.value = true;
+      //mapKey.value++;
+    }
   } catch (e) {
-    return false;
+    console.error(`Erro ao adicionar localizacao ${e.message}`);
   }
 };
 
-const onClientRemoved = async (id) => {
-  if (confirm("deseja remover a localização deste cliente?")) {
-    const client = cto.clients.find((c) => c.id === id);
+const getClientsWithLocation = async () => {
+  try {
+    const response = await fetchApi(`/ctoclient/${cto.id}`);
 
-    const hasLocationId = client.position.value._id;
+    return response.data;
+  } catch (error) {
+    console.log(error);
+    throw error;
+  }
+};
 
-    if (hasLocationId /*TEM LOCALIZAÇÃO NO BANCO*/) {
-      const isDeleted = await deleteClientLocation(hasLocationId);
-      client.position.value = false;
-      return isDeleted
-        ? alert("deleteado com sucesso")
-        : alert("erro ao deletar cliente");
-    } else client.position.value = false;
+const onClientLocationRemoved = async (id) => {
+  if (confirm("deseja remover a localizacao deste cliente?")) {
+    try {
+      const response = await fetchApi.delete(`/deletectoclient/${id}`);
+      if (response.status === 201) {
+        alert("Localização removida com sucesso");
+        await loadCtoData();
+        mapKey.value++;
+      }
+    } catch (error) {
+      console.error(error);
+    }
   }
 };
 
@@ -267,19 +281,29 @@ const setViewMode = () => {
   else slideNumber.value = 1;
 };
 
-const onClientPositionSelected = async ({ client, position }) => {
-  if (!(await clientLocationExists(client.name))) {
-    const locationSaved = await saveClientLocation(client, position);
+const onClientLocationUpdated = async ({ client, position }) => {
+  try {
+    const response = await fetchApi.post("/updatectoclient", {
+      _id: client.id,
+      data: {
+        lat: position.lat,
+        lng: position.lng,
+      },
+    });
 
-    if (locationSaved.status === 201)
-      alert("Localização adicionada com sucesso");
-    else alert("erro ao adicionar localização");
+    if (response.status === 200) {
+      alert("Localizacao atualizada com sucesso");
+      await loadCtoData();
+    }
+  } catch (error) {
+    console.error(error);
+    alert("Ocorreu um erro ao atualizar a localizacao");
   }
 };
 </script>
 
 <template>
-  <v-card class="rounded-md-lg">
+  <v-card class="rounded-md-lg" :loading="isDataLoading">
     <v-card-title
       class="d-flex justify-space-between align-center border-b bg-orange"
     >
@@ -329,31 +353,60 @@ const onClientPositionSelected = async ({ client, position }) => {
 
     <CtoMap
       :center="mapCenter"
+      :key="mapKey"
       :ctoPosition="center"
-      :clients="cto.clients"
+      :clients="clientsWithLocation"
       :userLocation="userLocation"
       :openGmapTab="openNewGMapTab"
       :slideNumber="slideNumber"
       :isMapVisible="isMapVisible || slideNumber == 2"
       @positionSelected="onPositionSelected"
-      @clientPositionSelected="onClientPositionSelected"
-      @clientRemoved="onClientRemoved"
+      @clientPositionSelected="onClientLocationUpdated"
+      @clientRemoved="onClientLocationRemoved"
     />
 
     <v-window v-model="slideNumber" class="overflow-auto">
       <v-window-item :value="1">
-        <v-card-text class="pa-5" v-if="!showOnuCard">
-          <CtoClientsList
-            :clients="cto.clients"
-            @adduser:location="(client) => createMarker(client)"
-            @delete-user="loadCtoData"
-          />
-          <CtoNotes
-            :notes="ctoNotes"
-            :ctoId="cto.id"
-            @reload-notes="onNotesReload"
-            :key="notesKey"
-          />
+        <v-card-text class="pa-5">
+          <template v-if="!isDataLoading">
+            <template v-if="!showOnuCard">
+              <CtoClientsList
+                v-if="clients.length > 0"
+                :clients="clients"
+                :cto="cto.id"
+                :clients-with-location="clientsWithLocation"
+                @adduser:location="(client) => addUserLocation(client)"
+                @delete-user="loadCtoData"
+                @open:location="(location) => openNewGMapTab(location)"
+              />
+              <v-sheet
+                :height="400"
+                v-else
+                class="d-flex flex-column justify-center align-center"
+              >
+                <v-icon size="200px">mdi-account-group</v-icon>
+                <p class="text-button">Nenhum cliente cadastrado</p>
+              </v-sheet>
+              <CtoNotes
+                :notes="ctoNotes"
+                :ctoId="cto.id"
+                @reload-notes="onNotesReload"
+                :key="notesKey"
+              />
+            </template>
+          </template>
+          <v-sheet
+            v-else
+            :height="400"
+            class="d-flex justify-center align-center"
+          >
+            <v-progress-circular
+              color="orange"
+              indeterminate
+              :size="128"
+              :width="6"
+            ></v-progress-circular>
+          </v-sheet>
         </v-card-text>
       </v-window-item>
       <v-window-item :value="2">
@@ -362,7 +415,7 @@ const onClientPositionSelected = async ({ client, position }) => {
             :clientPosition="positionClicked"
             :cto="cto"
             :splitter="getSplitterPortStatus"
-            @update-cto-data="loadCtoData({ slide: true })"
+            @update-cto-clietns="loadCtoData({ slide: true })"
           />
         </v-card-text>
 

@@ -1,17 +1,15 @@
 <script setup>
 import { defineProps, defineEmits, toRefs, ref, watch } from "vue";
 import { useNotificationStore } from "@/stores/notification";
-import { useTomodatStore } from "@/stores/tomodat";
 import { useUserStore } from "@/stores/user";
 import formValidationRules from "./formValidationRules";
 import fetchApi from "@/api";
 
 const notification = useNotificationStore();
-const tomodat = useTomodatStore();
 const userStore = useUserStore();
 
 const props = defineProps(["clientPosition", "cto", "splitter"]);
-const emit = defineEmits(["updateCtoData"]);
+const emit = defineEmits(["updateCtoClietns"]);
 
 const { clientPosition, cto } = toRefs(props);
 
@@ -47,7 +45,7 @@ const toggleLoading = () => (loading.value = !loading.value);
 
 const resetForm = () => formRef.value.reset();
 
-const updateCtoData = () => emit("updateCtoData");
+const updateCtoClietns = () => emit("updateCtoClietns");
 
 const sendNewClient = async (bodyRequest) => {
   try {
@@ -69,7 +67,7 @@ const handleAfterSubmitTasks = () => {
     showNotification,
     toggleLoading,
     resetForm,
-    updateCtoData,
+    updateCtoClietns,
   ]);
 };
 
@@ -93,9 +91,7 @@ const handleFormSubmit = async () => {
       date_time: new Date().toLocaleString("pt-BR"),
     };
 
-    const newClient = await sendNewClient(bodyRequest);
-
-    tomodat.addNewClient({ newClientId: newClient.id, ...bodyRequest });
+    await sendNewClient(bodyRequest);
 
     handleAfterSubmitTasks();
   }

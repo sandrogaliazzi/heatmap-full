@@ -3,7 +3,7 @@ import routes from "./routes/index.js";
 import db from "./config/dbConnect.js";
 import path from "path";
 import { fileURLToPath } from "url";
-//import cors from "cors";
+import cors from "cors";
 
 const __filename = fileURLToPath(import.meta.url);
 

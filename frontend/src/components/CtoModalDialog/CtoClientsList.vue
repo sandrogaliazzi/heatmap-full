@@ -1,10 +1,13 @@
 <script setup>
-import { ref } from "vue";
+import { ref, toRefs } from "vue";
 import { useNotificationStore } from "@/stores/notification";
 import fetchApi from "@/api";
 
-const { clients, notes, ctoId } = defineProps(["clients"]);
-const emit = defineEmits(["adduser:location", "deleteUser"]);
+const props = defineProps(["clients", "cto", "clientsWithLocation"]);
+
+const { clients, cto, clientsWithLocation } = toRefs(props);
+
+const emit = defineEmits(["adduser:location", "deleteUser", "open:location"]);
 const selected = ref([]);
 
 const notification = useNotificationStore();
@@ -33,6 +36,15 @@ const copyNameWithHifen = async (name) => {
   triggerNotification("Nome copiado!");
 };
 
+const findLocation = (client) =>
+  clientsWithLocation.value.find((item) => item.name === client.name);
+
+const handleClientLocation = (client) => {
+  const location = findLocation(client);
+  if (location) {
+    emit("open:location", { lat: location.lat, lng: location.lng });
+  } else emit("adduser:location", client);
+};
 const deleteClient = async (id) => {
   if (confirm("deseja excluir este cliente?")) {
     try {
@@ -74,11 +86,11 @@ const deleteClient = async (id) => {
       </template>
       <template #append>
         <v-btn
-          :color="client?.position?.value.lat ? 'green' : 'grey-lighten-1'"
+          :color="findLocation(client) ? 'green' : 'grey-lighten-1'"
           icon="mdi-map-marker-plus"
           variant="text"
           size="small"
-          @click="emit('adduser:location', client)"
+          @click="handleClientLocation(client)"
         ></v-btn>
         <v-btn
           color="grey-lighten-1"
