@@ -2,6 +2,10 @@
 
 Aplicação desenvolvida para mapear a infraestrutura de rede do provedor Conectnet Telecom, oferecendo aos técnicos uma visão clara e interativa da topologia da rede. Além de localizar caixas de atendimento, emendas e cabos, também permite consultar os clientes conectados, bem como os sinais RX/TX de suas ONUs, integrando diretamente com as OLTs GPON.
 
+<p align="center">
+  <img src="assets/heatmap.gif" width="1000" alt="Demonstração do Heatmap" />
+</p>
+
 ## 🚀 Funcionalidades
 
 - Visualização de caixas de atendimento, emendas e cabos no mapa
@@ -34,6 +38,3 @@ Aplicação desenvolvida para mapear a infraestrutura de rede do provedor Conect
 ## 🖥️ Implantação
 
 A aplicação é utilizada internamente na **Conectnet Telecom**, rodando em ambiente Linux com containers isolados para backend e frontend, e utilizando Nginx como proxy reverso.
-
-
-
