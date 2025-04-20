@@ -74,15 +74,12 @@ const selectRamal = async (ramal) => {
 
   const { oltIp, oltPon } = ramal;
 
-  console.log(oltIp, oltPon);
-
   const ponSignalsData = await fetchApi.post("verificar-pon", {
     oltIp,
     oltPon,
   });
 
   ponSignals.value = ponSignalsData.data;
-  console.log(ponSignalsData.data);
   average.value = calculateAverages(ponSignalsData.data);
 
   loading.value = false;

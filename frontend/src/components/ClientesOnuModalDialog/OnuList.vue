@@ -15,6 +15,7 @@ const ramal = ref("");
 const showChart = ref(false);
 const isLoadingClientHistory = ref(false);
 const apiDataLoaded = ref(false);
+const chartKey = ref(0);
 
 const checkOnuSignal = async (onu) => {
   isLoadingSignal.value = true;
@@ -109,6 +110,7 @@ const showClientSignalHistory = async (client) => {
       showChart.value = true;
       isLoadingClientHistory.value = false;
       apiDataLoaded.value = true;
+      chartKey.value++;
     }
 
     if (response.status === 404) {
@@ -129,9 +131,10 @@ const showClientSignalHistory = async (client) => {
     :tx="avgTxList"
     :rx="avgRxList"
     :labels="labels"
-    :ramal="ramal.oltRamal"
+    :ramal="ramal"
     v-if="apiDataLoaded"
     :loaded="apiDataLoaded"
+    :key="chartKey"
   />
   <v-list lines="two">
     <v-list-subheader>

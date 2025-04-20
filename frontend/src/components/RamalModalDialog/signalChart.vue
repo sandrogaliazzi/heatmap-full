@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { ref, toRefs } from "vue";
 import { Line } from "vue-chartjs";
 
 const showChart = defineModel();
@@ -25,13 +25,9 @@ ChartJS.register(
   Legend
 );
 
-const { rx, tx, labels, ramal, loaded } = defineProps([
-  "rx",
-  "tx",
-  "labels",
-  "ramal",
-  "loaded",
-]);
+const props = defineProps(["rx", "tx", "labels", "ramal", "loaded"]);
+
+const { rx, tx, labels, ramal, loaded } = toRefs(props);
 
 const chartOptions = ref({
   responsive: true,
@@ -50,19 +46,19 @@ const chartOptions = ref({
 });
 
 const chartData = ref({
-  labels,
+  labels: labels.value,
   datasets: [
     {
       label: "Sinais rx",
       backgroundColor: "#2196F3",
       borderColor: "#2196F3",
-      data: rx,
+      data: rx.value,
     },
     {
       label: "Sinais tx",
       backgroundColor: "#FF9800",
       borderColor: "#FF9800",
-      data: tx,
+      data: tx.value,
     },
   ],
 });
