@@ -39,6 +39,12 @@ export default {
       goal: 7,
     },
     {
+      name: "GIACOMO",
+      avatar: "../src/assets/SELLERS/GIACOMO.jpg",
+      sellerClass: 1,
+      goal: 7,
+    },
+    {
       name: "EQUIPE CONECT",
       avatar: "../src/assets/SELLERS/CONECTNET.png",
       sellerClass: 1,
