@@ -101,6 +101,21 @@ const mapClients = (connections) => {
 };
 
 const mapKey = ref(1);
+const freePorts = ref({});
+
+const calcFreePorts = (accessPoint) => {
+  const totalPorts = accessPoint
+    .filter((c) => c.splitter)
+    .filter((c) => c.splitter.name.startsWith(cto.name))
+    .map((c) => c.splitter)
+    .reduce((acc, cur) => acc + cur.ports_number, 0);
+
+  const totalClients = mapClients(accessPoint).length;
+
+  freePorts.value = totalPorts - totalClients;
+
+  return { totalPorts, freePorts: freePorts.value };
+};
 
 const loadCtoData = async (slide) => {
   conectors.value = await getMkRetiradasDeConector(cto);
@@ -110,6 +125,8 @@ const loadCtoData = async (slide) => {
   const response = await fetchApi("connections/" + cto.id);
 
   clients.value = mapClients(response.data);
+
+  freePorts.value = calcFreePorts(response.data);
 
   apConnList.value = response.data;
 
@@ -141,41 +158,6 @@ const center = computed(() => {
     lat: parseFloat(cto.coord.lat),
     lng: parseFloat(cto.coord.lng),
   };
-});
-
-const getSplitterPortStatus = computed(() => {
-  if (!cto || !cto.percentage_free) {
-    return { status: { error: true }, msg: "Erro ao calcular informações!" };
-  }
-
-  const percentageFree = parseInt(cto.percentage_free);
-
-  if (percentageFree === 100)
-    return { status: { isEmpty: true }, msg: "CTO vazia" };
-
-  const occupiedPortsPercentage = 100 - percentageFree;
-
-  if (occupiedPortsPercentage === 100)
-    return { status: { isFull: true }, msg: "CTO Lotada" };
-
-  const totalClients = cto.clients.length ? cto.clients.length : 0;
-
-  const totalPorts = Math.ceil((100 * totalClients) / occupiedPortsPercentage);
-  const freePorts = totalPorts - totalClients;
-
-  return { status: { hasFreePorts: true }, freePorts, totalPorts };
-});
-
-const handleSplliterStatus = computed(() => {
-  const { status, msg, freePorts, totalPorts } = getSplitterPortStatus.value;
-
-  const className =
-    status.error || status.isFull ? "text-error" : "text-success";
-  const statusMsg = status.hasFreePorts
-    ? `Portas: ${totalPorts} Vagas: ${freePorts}`
-    : msg;
-
-  return { className, statusMsg };
 });
 
 const openNewGMapTab = (position) => {
@@ -346,8 +328,9 @@ const onClientLocationUpdated = async ({ client, position }) => {
     <v-card-subtitle class="mt-3 font-weight-bold"
       >{{ cto.city == "ZCLIENTES NÃO VERIFICADOS" ? "ARARICA" : cto.city }}
       |
-      <span :class="handleSplliterStatus.className">
-        {{ handleSplliterStatus.statusMsg.toLocaleUpperCase() }}
+      <span :class="freePorts.freePorts <= 0 ? 'text-error' : 'text-success'">
+        PORTAS {{ freePorts.totalPorts }} VAGAS
+        {{ freePorts.freePorts < 0 ? 0 : freePorts.freePorts }}
       </span>
     </v-card-subtitle>
 
