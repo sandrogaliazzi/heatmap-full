@@ -49,13 +49,13 @@ const chartData = ref({
   labels: labels.value,
   datasets: [
     {
-      label: "Sinais rx",
+      label: "Sinais Tx",
       backgroundColor: "#2196F3",
       borderColor: "#2196F3",
       data: rx.value,
     },
     {
-      label: "Sinais tx",
+      label: "Sinais Rx",
       backgroundColor: "#FF9800",
       borderColor: "#FF9800",
       data: tx.value,

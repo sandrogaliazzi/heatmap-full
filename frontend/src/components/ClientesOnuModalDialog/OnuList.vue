@@ -187,8 +187,8 @@ const showClientSignalHistory = async (client) => {
                   "
                   class="d-none d-md-inline-flex"
                   v-if="signalList[item.mac]"
-                  >TX:
-                  {{ formatSigal(signalList[item.mac]["Power Level"]) }} RX:
+                  >RX:
+                  {{ formatSigal(signalList[item.mac]["Power Level"]) }} TX:
                   {{ formatSigal(signalList[item.mac]["RSSI"]) }}</v-chip
                 >
               </v-list-item-subtitle>

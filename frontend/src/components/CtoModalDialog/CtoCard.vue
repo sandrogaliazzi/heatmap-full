@@ -9,7 +9,6 @@ import fetchApi from "@/api";
 import CeCard from "@/components/CeModalDialog/CeCard.vue";
 import CtoNotes from "./CtoNotes.vue";
 import CtoConectors from "./CtoConectors.vue";
-import { load } from "webfontloader";
 
 const { cto, tomodatView } = defineProps(["cto", "tomodatView"]);
 const emit = defineEmits(["setCtoFromChild"]);
