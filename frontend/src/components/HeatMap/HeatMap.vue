@@ -149,11 +149,18 @@ watch(setPolygonDrawMode, (mode) => {
 });
 
 const setPlace = (place) => {
+  const isCoordinates = /^(-?\d+(\.\d+)?)(?:,\s*|\s+)(-?\d+(\.\d+)?)$/;
+
   if (selectedUserLocation.value === null) selectedUserLocation.value = {};
-  selectedUserLocation.value.coords = {
-    latitude: place.geometry.location.lat(),
-    longitude: place.geometry.location.lng(),
-  };
+  selectedUserLocation.value.coords = isCoordinates.test(place.name)
+    ? {
+        latitude: Number.parseFloat(place.name.split(" ")[0]),
+        longitude: Number.parseFloat(place.name.split(" ")[1]),
+      }
+    : {
+        latitude: place.geometry.location.lat(),
+        longitude: place.geometry.location.lng(),
+      };
 
   mapZoom.value = 18;
 };
