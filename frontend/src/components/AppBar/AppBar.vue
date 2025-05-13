@@ -96,7 +96,7 @@ const handleUserLocation = () => {
   </v-app-bar>
 
   <!-- DRAWER -->
-  <v-navigation-drawer v-model="drawer" temporary>
+  <v-navigation-drawer v-model="drawer" expand-on-hover rail>
     <ButtonGroup
       :isCtoMarkerVisible="isCtoMarkerVisible"
       :setPolygonDrawMode="setPolygonDrawMode"
