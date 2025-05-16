@@ -61,7 +61,7 @@ const citys = ref([
   "GLORINHA",
   "NOVO HAMBURGO",
   "SAPIRANGA",
-  "TRÊS COROAS"
+  "TRÊS COROAS",
 ]);
 
 const sellers = ref([
@@ -70,6 +70,8 @@ const sellers = ref([
   "NADINE",
   "JANICE",
   "JESSICA",
+  "GIACOMO",
+  "DIEGO",
   "EQUIPE CONECT",
 ]);
 
@@ -81,7 +83,8 @@ const colors = {
   NADINE: "#ff006e",
   JANICE: "#FF9800",
   JESSICA: "#ccff33",
-  YAN: "#03ffa2",
+  GIACOMO: "#A020F0",
+  DIEGO: "#03ffa2",
   "EQUIPE CONECT": "#00296b",
 };
 
@@ -91,7 +94,7 @@ const byCurrentMonth = (sale) => {
   const currentMonth = String(new Date().getMonth() + 1).padStart(2, "0");
   const currentYear = String(new Date().getFullYear()).padStart(4, "0");
 
-  return (month === currentMonth && year === currentYear);
+  return month === currentMonth && year === currentYear;
 };
 
 const getSalesByCity = async () => {

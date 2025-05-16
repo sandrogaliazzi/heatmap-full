@@ -18,6 +18,12 @@ export default {
       sellerClass: 0,
       goal: 15,
     },
+    {
+      name: "DIEGO",
+      avatar: "../src/assets/SELLERS/DIEGO.jpg",
+      sellerClass: 0,
+      goal: 15,
+    },
   ],
   internos: [
     {

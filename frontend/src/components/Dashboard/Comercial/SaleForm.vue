@@ -57,11 +57,14 @@ const sellersName = ref([
   "JESSICA",
   "EQUIPE CONECT",
   "DOUGLAS",
+  "DIEGO",
   "GIACOMO",
 ]);
 
 const findClass = (name) => {
-  return ["JESSICA", "NADINE", "JANICE", "EQUIPE CONECT"].indexOf(name) > -1
+  return ["JESSICA", "NADINE", "JANICE", "EQUIPE CONECT", "GIACOMO"].indexOf(
+    name
+  ) > -1
     ? 0
     : 1;
 };
