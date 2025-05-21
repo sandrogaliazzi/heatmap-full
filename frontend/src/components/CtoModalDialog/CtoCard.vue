@@ -286,10 +286,11 @@ const onClientLocationUpdated = async ({ client, position }) => {
 <template>
   <v-card class="rounded-md-lg" :loading="isDataLoading">
     <v-card-title
-      class="d-flex justify-space-between align-center border-b bg-orange"
+      class="d-flex justify-space-between align-center border-b"
+      :class="cto.color === '#00ff00' ? 'bg-green' : 'bg-orange'"
     >
       <p style="cursor: pointer" @click="openNewGMapTab(cto.coord)">
-        #{{ cto.name }}
+        {{ cto.color === "#00ff00" ? "$" : "#" }}{{ cto.name }}
       </p>
       <div>
         <v-btn

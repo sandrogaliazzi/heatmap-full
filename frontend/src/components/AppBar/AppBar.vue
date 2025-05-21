@@ -8,6 +8,7 @@ import { ref, watch } from "vue";
 
 import SideNavList from "./SideNavList";
 import ButtonGroup from "./ButtonGroup";
+import { useWindowSize } from "vue-window-size";
 
 const isSearchBarVisible = ref(false);
 const isCtoMarkerVisible = ref(false);
@@ -16,6 +17,7 @@ const drawer = ref(false);
 const heatmapStore = useHeatMapStore();
 const tomodatStore = useTomodatStore();
 const userStore = useUserStore();
+const { width } = useWindowSize();
 
 const router = useRouter();
 
@@ -27,7 +29,7 @@ const logout = () => {
   router.push({ name: "Login" });
 };
 
-watch(selectedCto, () => (drawer.value = false));
+//watch(selectedCto, () => (drawer.value = false));
 
 const toggleCtoMarkers = () => {
   tomodatStore.toggleMarkers();
@@ -96,7 +98,12 @@ const handleUserLocation = () => {
   </v-app-bar>
 
   <!-- DRAWER -->
-  <v-navigation-drawer v-model="drawer" expand-on-hover rail>
+  <v-navigation-drawer
+    expand-on-hover
+    rail
+    :permanent="width > 600 ? true : false"
+    v-model="drawer"
+  >
     <ButtonGroup
       :isCtoMarkerVisible="isCtoMarkerVisible"
       :setPolygonDrawMode="setPolygonDrawMode"
