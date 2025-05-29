@@ -65,6 +65,14 @@ const olts = [
     ip: "172.16.11.2",
     name: "PARKS 11",
   },
+  {
+    ip: "192.168.214.2",
+    name: "PARKS 14",
+  },
+  {
+    ip: "192.168.215.2",
+    name: "PARKS 15",
+  },
 ];
 
 const fetchAllOnu = async () => {
