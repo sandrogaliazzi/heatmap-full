@@ -17,7 +17,7 @@ class oltController {
     try {
       const ramal = new ramaisModel({ ...req.body });
 
-      ramal.save((err) => {
+      ramal.save(err => {
         if (err) {
           res
             .status(500)
@@ -74,14 +74,14 @@ class oltController {
               res.json(onus);
               conn.end();
             })
-            .on("data", (data) => {
+            .on("data", data => {
               dataBuffer += data.toString();
               if (dataBuffer.includes("\n")) {
                 const lines = dataBuffer.split("\n");
                 dataBuffer = lines.pop();
                 for (const line of lines) {
                   if (line.includes("|") && !line.includes("Interface")) {
-                    const values = line.split("|").map((value) => value.trim());
+                    const values = line.split("|").map(value => value.trim());
                     const [gpon, onuMac, onuModel] = values;
 
                     onus.push({
@@ -97,7 +97,7 @@ class oltController {
           stream.write("exit\n");
         });
       })
-      .on("error", (err) => {
+      .on("error", err => {
         console.error(err);
         res.status(500).json({ error: "Error connecting to the OLT" });
       })
@@ -134,7 +134,7 @@ class oltController {
               res.json(jsonOutput); // Send jsonOutput as the response
               conn.end();
             })
-            .on("data", (data) => {
+            .on("data", data => {
               dataBuffer += data.toString();
               if (dataBuffer.includes("\n")) {
                 const lines = dataBuffer.split("\n");
@@ -169,7 +169,7 @@ class oltController {
           stream.write("exit\n");
         });
       })
-      .on("error", (err) => {
+      .on("error", err => {
         console.error(err);
         res.status(500).json({ error: "Error connecting to the OLT" });
       })
@@ -206,7 +206,7 @@ class oltController {
 
               conn.end();
             })
-            .on("data", (data) => {
+            .on("data", data => {
               dataBuffer += data.toString();
               if (dataBuffer.includes("\n")) {
                 const lines = dataBuffer.split("\n");
@@ -227,7 +227,7 @@ class oltController {
           stream.write("exit\n");
         });
       })
-      .on("error", (err) => {
+      .on("error", err => {
         console.error(err);
         res.status(500).json({ error: "Error connecting to the OLT" });
       })
@@ -271,7 +271,7 @@ class oltController {
               }
               conn.end();
             })
-            .on("data", (data) => {
+            .on("data", data => {
               dataBuffer += data.toString();
               if (dataBuffer.includes("\n")) {
                 const items = [];
@@ -287,13 +287,19 @@ class oltController {
                     const powerLevelLine = lines[i + 2]?.trim();
                     const rssiLine = lines[i + 3]?.trim();
 
-                    const statusMatch = statusLine ? statusLine.match(/Status\s*:\s*(.*)/) : null;
+                    const statusMatch = statusLine
+                      ? statusLine.match(/Status\s*:\s*(.*)/)
+                      : null;
                     const status = statusMatch ? statusMatch[1] : null;
 
-                    const txMatch = powerLevelLine ? powerLevelLine.match(/Power Level\s*:\s*(-?\d+\.\d+)/) : null;
+                    const txMatch = powerLevelLine
+                      ? powerLevelLine.match(/Power Level\s*:\s*(-?\d+\.\d+)/)
+                      : null;
                     const tx = txMatch ? parseFloat(txMatch[1]) : null;
 
-                    const rxMatch = rssiLine ? rssiLine.match(/RSSI\s*:\s*(-?\d+\.\d+)/) : null;
+                    const rxMatch = rssiLine
+                      ? rssiLine.match(/RSSI\s*:\s*(-?\d+\.\d+)/)
+                      : null;
                     const rx = rxMatch ? parseFloat(rxMatch[1]) : null;
 
                     if (status && tx && rx) {
@@ -317,7 +323,7 @@ class oltController {
           stream.write("exit\n");
         });
       })
-      .on("error", (err) => {
+      .on("error", err => {
         if (!responseSent) {
           console.error(err);
           res.status(500).json({ error: "Error connecting to the OLT" });
@@ -331,7 +337,6 @@ class oltController {
         password: password,
       });
   };
-
 
   static VerificarNomeOnuPon = (req, res) => {
     let host = req.body.oltIp;
@@ -358,7 +363,7 @@ class oltController {
 
               conn.end();
             })
-            .on("data", (data) => {
+            .on("data", data => {
               dataBuffer += data.toString();
               if (dataBuffer.includes("\n")) {
                 const lines = dataBuffer.split("\n");
@@ -389,14 +394,12 @@ class oltController {
                     onuData.portsVlanTranslation &&
                     line.includes(":")
                   ) {
-                    const [port, vlan] = line
-                      .split(":")
-                      .map((str) => str.trim());
+                    const [port, vlan] = line.split(":").map(str => str.trim());
                     onuData.portsVlanTranslation[port] = vlan;
                   } else if (onuData.portsEthernet && line.includes(":")) {
                     const [port, status] = line
                       .split(":")
-                      .map((str) => str.trim());
+                      .map(str => str.trim());
                     onuData.portsEthernet[port] = status;
                   }
                 }
@@ -412,7 +415,7 @@ class oltController {
           stream.write("exit\n");
         });
       })
-      .on("error", (err) => {
+      .on("error", err => {
         console.error(err);
         res.status(500).json({ error: "Error connecting to the OLT" });
       })
@@ -447,7 +450,7 @@ class oltController {
               res.json(jsonOutput); // Send the modified JSON as the response
               conn.end();
             })
-            .on("data", (data) => {
+            .on("data", data => {
               dataBuffer += data.toString();
               if (dataBuffer.includes("\n")) {
                 const lines = dataBuffer.split("\n");
@@ -479,14 +482,12 @@ class oltController {
                     onuData.portsVlanTranslation &&
                     line.includes(":")
                   ) {
-                    const [port, vlan] = line
-                      .split(":")
-                      .map((str) => str.trim());
+                    const [port, vlan] = line.split(":").map(str => str.trim());
                     onuData.portsVlanTranslation[port] = vlan;
                   } else if (onuData.portsEthernet && line.includes(":")) {
                     const [port, status] = line
                       .split(":")
-                      .map((str) => str.trim());
+                      .map(str => str.trim());
                     onuData.portsEthernet[port] = status;
                   }
                 }
@@ -499,10 +500,13 @@ class oltController {
 
           stream.write("terminal length 0\n");
           stream.write(`sh gpon onu \n`);
-          stream.write("exit\n");
+          new Promise(resolve => setTimeout(resolve, 300)).then(() =>
+            stream.write("exit\n")
+          );
+          //stream.write("exit\n");
         });
       })
-      .on("error", (err) => {
+      .on("error", err => {
         console.error(err);
         res.status(500).json({ error: "Error connecting to the OLT" });
       })
@@ -537,14 +541,14 @@ class oltController {
               res.json(onus);
               conn.end();
             })
-            .on("data", (data) => {
+            .on("data", data => {
               dataBuffer += data.toString();
               if (dataBuffer.includes("\n")) {
                 const lines = dataBuffer.split("\n");
                 dataBuffer = lines.pop();
                 for (const line of lines) {
                   if (line.includes("|") && !line.includes("Interface")) {
-                    const values = line.split("|").map((value) => value.trim());
+                    const values = line.split("|").map(value => value.trim());
                     const [gpon, onuMac, onuModel] = values;
 
                     onus.push({
@@ -560,7 +564,7 @@ class oltController {
           stream.write("exit\n");
         });
       })
-      .on("error", (err) => {
+      .on("error", err => {
         console.error(err);
         res.status(500).json({ error: "Error connecting to the OLT" });
       })
@@ -599,7 +603,7 @@ class oltController {
               res.json(onus);
               conn.end();
             })
-            .on("data", (data) => {
+            .on("data", data => {
               dataBuffer += data.toString();
               if (dataBuffer.includes("\n")) {
                 const lines = dataBuffer.split("\n");
@@ -607,7 +611,7 @@ class oltController {
                 dataBuffer = lines.pop();
                 for (const line of lines) {
                   if (line.includes("|") && !line.includes("Interface")) {
-                    const values = line.split("|").map((value) => value.trim());
+                    const values = line.split("|").map(value => value.trim());
                     const [gpon, onuMac, onuModel] = values;
 
                     onus.push({
@@ -629,7 +633,7 @@ class oltController {
           stream.write("exit\n");
         });
       })
-      .on("error", (err) => {
+      .on("error", err => {
         console.error(err);
         res.status(500).json({ error: "Error connecting to the OLT" });
       })
@@ -689,7 +693,7 @@ class oltController {
               res.status(200).json(jsonOutput);
               conn.end();
             })
-            .on("data", (data) => {
+            .on("data", data => {
               dataBuffer += data.toString();
               if (dataBuffer.includes("\n")) {
                 const lines = dataBuffer.split("\n");
