@@ -53,7 +53,9 @@ const registerOnu = async (onu) => {
           <v-list-item-subtitle
             class="mt-2 d-flex flex-column flex-md-row ga-2"
           >
-            <v-chip class="mr-2 d-none d-md-block">{{ onu.onuModel }}</v-chip>
+            <v-chip class="mr-2 d-none d-md-flex align-center justify-center">{{
+              onu.onuModel || "Modelo desconhecido"
+            }}</v-chip>
             <v-chip>{{ onu.oltRamal }}</v-chip>
             <v-chip
               v-if="onuSignalDataList[onu.onuMac]"
