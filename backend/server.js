@@ -7,7 +7,7 @@ const port = process.env.PORT || 5005; //always 5005
 
 const server = http.createServer(app);
 
-signalUpdateLoop();
+//signalUpdateLoop();
 tomodatUpdateLoop();
 
 server.listen(port, () => {
