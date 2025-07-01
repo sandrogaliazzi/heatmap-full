@@ -52,7 +52,6 @@ const inputRules = [
 const sellersName = ref([
   "FELIPE",
   "LUIS FELIPE",
-  "NADINE",
   "JANICE",
   "JESSICA",
   "EQUIPE CONECT",

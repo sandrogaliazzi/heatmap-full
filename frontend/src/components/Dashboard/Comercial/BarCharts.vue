@@ -68,7 +68,6 @@ const sellers = ref([
   "FELIPE",
   "LUIS FELIPE",
   "NADINE",
-  "JANICE",
   "JESSICA",
   "GIACOMO",
   "DIEGO",
