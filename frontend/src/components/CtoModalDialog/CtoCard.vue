@@ -14,7 +14,6 @@ const { cto, tomodatView } = defineProps(["cto", "tomodatView"]);
 const emit = defineEmits(["setCtoFromChild"]);
 
 const ctoNotes = ref(false);
-const conectors = ref([]);
 const apConnList = ref([]);
 const clientsWithLocation = ref([]);
 const isDataLoading = ref(true);
@@ -74,18 +73,6 @@ const onNotesReload = async () => {
   notesKey.value++;
 };
 
-const getMkRetiradasDeConector = async (cto) => {
-  try {
-    const response = await fetchApi(
-      `/listar-os-retiradas-conector/${cto.name}/${cto.city}`
-    );
-
-    return response.data;
-  } catch (error) {
-    return [];
-  }
-};
-
 const clients = ref([]);
 
 const mapClients = (connections) => {
@@ -117,8 +104,6 @@ const calcFreePorts = (accessPoint) => {
 };
 
 const loadCtoData = async (slide) => {
-  conectors.value = await getMkRetiradasDeConector(cto);
-
   clientsWithLocation.value = await getClientsWithLocation();
 
   const response = await fetchApi("connections/" + cto.id);
@@ -284,7 +269,7 @@ const onClientLocationUpdated = async ({ client, position }) => {
 </script>
 
 <template>
-  <v-card class="rounded-md-lg" :loading="isDataLoading">
+  <v-card class="rounded-md-lg">
     <v-card-title
       class="d-flex justify-space-between align-center border-b"
       :class="cto.color === '#00ff00' ? 'bg-green' : 'bg-orange'"
@@ -299,10 +284,8 @@ const onClientLocationUpdated = async ({ client, position }) => {
           variant="text"
           @click="handleUserLocation"
         />
-        <v-btn variant="text" @click="setViewMode">
-          <v-badge color="error" :content="conectors.length" floating>
-            <v-icon>mdi-connection</v-icon>
-          </v-badge>
+        <v-btn variant="text" :disabled="true" @click="setViewMode">
+          <v-icon>mdi-connection</v-icon>
         </v-btn>
         <v-btn
           v-if="slideNumber < 2"
@@ -414,16 +397,7 @@ const onClientLocationUpdated = async ({ client, position }) => {
         </v-card-actions>
       </v-window-item>
       <v-window-item :value="3">
-        <CtoConectors
-          :conector-os-list="conectors"
-          :cto="cto.name"
-          v-if="conectors.length > 0"
-        />
-        <v-card
-          v-else
-          class="py-5"
-          title="NÃO HÁ RETIRADAS DE CONECTOR"
-        ></v-card>
+        <CtoConectors :cto="cto" />
       </v-window-item>
       <v-window-item :value="4" v-if="apConnList.length > 0">
         <CeCard

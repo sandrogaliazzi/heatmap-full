@@ -91,8 +91,8 @@ const onCloseDialog = (value) => {
         @click="openCameraDialog = true"
       ></v-list-item>
       <v-list-item
-        prepend-icon="mdi-flag-variant"
-        title="Ordens Suporte"
+        prepend-icon="mdi-engine"
+        title="Veículos Conect"
         value="ordens"
         color="orange"
         v-role="['adm', 'tecnico']"

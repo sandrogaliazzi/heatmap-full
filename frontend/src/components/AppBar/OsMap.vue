@@ -1,57 +1,58 @@
 <script setup>
 import { inject, ref, watch, onMounted, onUnmounted } from "vue";
 import fetchApi from "@/api";
-import OsMarkers from "../HeatMap/OsMarkers.vue";
+//import OsMarkers from "../HeatMap/OsMarkers.vue";
 import vehicleOff from "@/assets/carro-desligado.png";
 import vehicleOn from "@/assets/carro-ligado.png";
 
 const model = ref(null);
+const isLoadingVehicle = ref(true);
 
-const letters = ["e", "i", "l", "w", "c"];
+//const letters = ["e", "i", "l", "w", "c"];
 const tecIdList = [1877, 5180, 5291, 12014, 8715];
 
 const adressList = ref([]);
 
-const formatAdress = (adress) => {
-  const { logradouro, bairro, cidade } = adress;
+// const formatAdress = (adress) => {
+//   const { logradouro, bairro, cidade } = adress;
 
-  return `${logradouro.replaceAll(" ", "+")},${bairro.replaceAll(
-    " ",
-    "+"
-  )},${cidade.replaceAll(" ", "+")}+RS`;
-};
+//   return `${logradouro.replaceAll(" ", "+")},${bairro.replaceAll(
+//     " ",
+//     "+"
+//   )},${cidade.replaceAll(" ", "+")}+RS`;
+// };
 
-const getCoordinatesFromAdress = async (adress) => {
-  const response = await fetch(
-    `https://maps.googleapis.com/maps/api/geocode/json?address=${adress}&key=${
-      import.meta.env.VITE_GOOGLE_API_KEY
-    }`
-  );
+// const getCoordinatesFromAdress = async (adress) => {
+//   const response = await fetch(
+//     `https://maps.googleapis.com/maps/api/geocode/json?address=${adress}&key=${
+//       import.meta.env.VITE_GOOGLE_API_KEY
+//     }`
+//   );
 
-  const data = await response.json();
+//   const data = await response.json();
 
-  return data.results[0];
-};
+//   return data.results[0];
+// };
 
-const getMkSupportOsAdress = async (tecnicoId) => {
-  const response = await fetchApi("listar-os-percurso/" + tecnicoId);
+// const getMkSupportOsAdress = async (tecnicoId) => {
+//   const response = await fetchApi("listar-os-percurso/" + tecnicoId);
 
-  const adresses = response.data;
+//   const adresses = response.data;
 
-  const formatedAdresses = await Promise.all(
-    adresses.map(async (ad) => {
-      return {
-        adress: await getCoordinatesFromAdress(formatAdress(ad)),
-        encerrado: ad.encerrado,
-        cliente: ad.com_titulo,
-        descricao: ad.com_descricao,
-        encerramento: ad.servico_prestado,
-      };
-    })
-  );
+//   const formatedAdresses = await Promise.all(
+//     adresses.map(async (ad) => {
+//       return {
+//         adress: await getCoordinatesFromAdress(formatAdress(ad)),
+//         encerrado: ad.encerrado,
+//         cliente: ad.com_titulo,
+//         descricao: ad.com_descricao,
+//         encerramento: ad.servico_prestado,
+//       };
+//     })
+//   );
 
-  return formatedAdresses;
-};
+//   return formatedAdresses;
+// };
 
 const vehicleList = ref([]);
 const markerId = ref(null);
@@ -59,6 +60,8 @@ const markerId = ref(null);
 const getLastVehiclePosition = async () => {
   try {
     const response = await fetchApi(`vehicles`);
+
+    isLoadingVehicle.value = false;
 
     if (response.status === 200) {
       return response.data;
@@ -94,11 +97,11 @@ watch(model, async (modelValue) => {
 const closeDialog = inject("closeDialog");
 </script>
 <template>
-  <v-card>
+  <v-card :loading="isLoadingVehicle">
     <v-toolbar color="orange">
       <v-btn icon="mdi-close" @click="closeDialog"></v-btn>
 
-      <v-toolbar-title>Mapa OS Suporte</v-toolbar-title>
+      <v-toolbar-title>Mapa Veículos</v-toolbar-title>
 
       <v-spacer></v-spacer>
 
@@ -110,11 +113,11 @@ const closeDialog = inject("closeDialog");
     <v-card
       class="px-2 mx-auto"
       rounded="lg"
-      text="Selecione um técnico para exibir as OS no Mapa"
+      text="Clique num veículo para obter mais informações"
       theme="dark"
       variant="flat"
     >
-      <v-item-group
+      <!-- <v-item-group
         v-model="model"
         class="d-flex justify-space-between px-6 pt-2 pb-6 mb-5"
       >
@@ -130,7 +133,7 @@ const closeDialog = inject("closeDialog");
             ></v-btn>
           </template>
         </v-item>
-      </v-item-group>
+      </v-item-group> -->
     </v-card>
 
     <v-divider></v-divider>
@@ -143,7 +146,6 @@ const closeDialog = inject("closeDialog");
       class="w-100 h-100"
       ref="mapRef"
     >
-      <OsMarkers :adress-list="adressList" />
       <GMapMarker
         v-for="(vehicle, index) in vehicleList"
         :key="vehicle.ras_vei_id"

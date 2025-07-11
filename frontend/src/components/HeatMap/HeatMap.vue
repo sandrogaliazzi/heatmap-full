@@ -43,6 +43,7 @@ const heatMapRadius = ref(5);
 const cto = ref({});
 const ce = ref([]);
 const openModal = ref(false);
+const totalClients = ref(0);
 
 const openEventModal = ref(false);
 const eventWindow = ref(false);
@@ -60,15 +61,31 @@ const nextPoint = ref(0);
 const openClientSignalModal = ref(false);
 
 const showSideBar = async (ctoList) => {
+  if (!ctoList.length) {
+    sideBar.value = false;
+    sideBarCtoList.value = [];
+    return;
+  }
+
   sideBar.value = true;
+
+  const novosCtos = [];
+
   ctoList.forEach((item) => {
     const cto = getCto(item.id);
 
     if (!sideBarCtoList.value.includes(cto)) {
-      sideBarCtoList.value.push(cto);
+      novosCtos.push(cto);
     }
   });
-  if (!ctoList.length) sideBar.value = false;
+  sideBarCtoList.value = [...sideBarCtoList.value, ...novosCtos];
+
+  totalClients.value = sideBarCtoList.value.reduce((acc, val) => {
+    if (Array.isArray(val.clients)) {
+      return acc + val.clients.length;
+    }
+    return acc;
+  }, 0);
 };
 
 const onCloseDialog = (value) => {
@@ -257,6 +274,7 @@ onMounted(async () => {
   <RightSideBar
     :side-bar="sideBar"
     :side-bar-cto-list="sideBarCtoList"
+    :total-clients="totalClients"
     v-model="sideBar"
     @clear-cto-list="sideBarCtoList = []"
   />

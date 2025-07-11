@@ -4,7 +4,7 @@ import { useTomodatStore } from "@/stores/tomodat";
 import { useUserStore } from "@/stores/user";
 import { storeToRefs } from "pinia";
 import { useRouter } from "vue-router";
-import { ref, watch } from "vue";
+import { ref } from "vue";
 
 import SideNavList from "./SideNavList";
 import ButtonGroup from "./ButtonGroup";

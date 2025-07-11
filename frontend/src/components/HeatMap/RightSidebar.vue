@@ -2,21 +2,18 @@
 import { ref, defineModel } from "vue";
 import DialogBox from "@/components/Dialog/Dialog.vue";
 import ClientesOnuCard from "../ClientesOnuModalDialog/ClientesOnuCard.vue";
+import { getHubClientFone } from "./hubApi";
 import { getMkToken, getClientFone } from "@/api/mkApi.js";
 
-const { sideBarCtoList } = defineProps(["sideBar", "sideBarCtoList"]);
+const { sideBarCtoList, totalClients } = defineProps([
+  "sideBar",
+  "sideBarCtoList",
+  "totalClients",
+]);
 const emit = defineEmits(["clearCtoList"]);
 const sideBar = defineModel();
 
 const openClientSignalModal = ref(false);
-
-const findTotalClients = () => {
-  return sideBarCtoList.reduce((acc, val) => {
-    if (Array.isArray(val.clients)) {
-      return acc + val.clients.length;
-    } else return 0;
-  }, 0);
-};
 
 const removeParenthesis = (inputString) => {
   const startIndex = inputString.indexOf("(");
@@ -51,19 +48,37 @@ const downloadCSV = (csvContent, fileName) => {
   URL.revokeObjectURL(url);
 };
 
-const extractClientsNamesFromCto = () => {
-  return sideBarCtoList
+const extractClientsNamesFromCto = (clientsList) => {
+  return clientsList
     .filter((cto) => Array.isArray(cto.clients))
     .map((cto) => cto.clients)
     .flat()
     .map((client) => removeParenthesis(client.name).trim());
 };
 
-const extractClientsFromCto = () => {
-  return sideBarCtoList
+const extractClientsFromCto = (clientsList) => {
+  return clientsList
     .filter((cto) => Array.isArray(cto.clients))
     .map((cto) => cto.clients)
     .flat();
+};
+
+const getClientFoneFromHubsoft = async (clientsList) => {
+  const clients = extractClientsNamesFromCto(clientsList);
+
+  const promisseList = clients.map((client) => getHubClientFone(client));
+
+  const foneList = await Promise.all(promisseList);
+
+  const foneListFormatted = foneList.map((client) => ({
+    numero: client.fone,
+    nome: client.nome,
+    mensagem: "",
+  }));
+
+  const csvContent = convertArrayOfObjectsToCSV(foneListFormatted);
+
+  downloadCSV(csvContent, `data=${new Date().toLocaleDateString()}.csv`);
 };
 
 const getClientsFone = async () => {
@@ -119,7 +134,8 @@ const onCloseDialog = (value) => {
             class="ml-2"
             color="success"
             prepend-icon="mdi-phone"
-            @click="getClientsFone"
+            :disabled="true"
+            @click="getClientFoneFromHubsoft(sideBarCtoList)"
             >IF-BOT</v-btn
           >
           <v-btn
@@ -148,7 +164,7 @@ const onCloseDialog = (value) => {
             size="large"
             color="orange"
             class="ml-2"
-            >CLIENTES {{ findTotalClients() }}</v-chip
+            >CLIENTES {{ totalClients }}</v-chip
           >
         </div>
       </v-card-title>
