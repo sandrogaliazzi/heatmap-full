@@ -64,21 +64,27 @@ const extractClientsFromCto = (clientsList) => {
 };
 
 const getClientFoneFromHubsoft = async (clientsList) => {
-  const clients = extractClientsNamesFromCto(clientsList);
+  try {
+    const clients = extractClientsNamesFromCto(clientsList);
 
-  const promisseList = clients.map((client) => getHubClientFone(client));
+    const promisseList = clients.map((client) => getHubClientFone(client));
 
-  const foneList = await Promise.all(promisseList);
+    const foneList = await Promise.all(promisseList);
 
-  const foneListFormatted = foneList.map((client) => ({
-    numero: client.fone,
-    nome: client.nome,
-    mensagem: "",
-  }));
+    const foneListFormatted = foneList
+      .filter((fone) => fone !== null)
+      .map((client) => ({
+        numero: client.fone,
+        nome: client.nome,
+        mensagem: "",
+      }));
 
-  const csvContent = convertArrayOfObjectsToCSV(foneListFormatted);
+    const csvContent = convertArrayOfObjectsToCSV(foneListFormatted);
 
-  downloadCSV(csvContent, `data=${new Date().toLocaleDateString()}.csv`);
+    downloadCSV(csvContent, `data=${new Date().toLocaleDateString()}.csv`);
+  } catch (error) {
+    console.log("erro ao baixar contatos do hubsoft", error);
+  }
 };
 
 const getClientsFone = async () => {

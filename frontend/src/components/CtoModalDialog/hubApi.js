@@ -1,7 +1,7 @@
 import hubApi from "../../api/hubsoftApi.js";
 
 async function getOsByType(
-  type = "29",
+  type = "30",
   startDate = "2023-09-20",
   endDate = new Date().toISOString().split("T")[0],
   page = 0,
