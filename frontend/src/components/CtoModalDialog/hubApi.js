@@ -9,7 +9,7 @@ async function getOsByType(
 ) {
   try {
     const response = await hubApi.get(
-      `api/v1/integracao/ordem_servico/todos?pagina=${page}&itens_por_pagina=500&data_inicio=${startDate}&data_fim=${endDate}&tipo_ordem_servico=${type}`
+      `api/v1/integracao/ordem_servico/todos?pagina=${page}&itens_por_pagina=500&data_inicio=${startDate}&data_fim=${endDate}&tipo_ordem_servico=${type}&status=pendente`
     );
 
     const osPending = response.data.ordens_servico.filter(
