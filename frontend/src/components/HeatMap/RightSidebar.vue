@@ -134,7 +134,6 @@ const onCloseDialog = (value) => {
             class="ml-2"
             color="success"
             prepend-icon="mdi-phone"
-            :disabled="true"
             @click="getClientFoneFromHubsoft(sideBarCtoList)"
             >IF-BOT</v-btn
           >

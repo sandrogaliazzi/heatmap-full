@@ -284,7 +284,7 @@ const onClientLocationUpdated = async ({ client, position }) => {
           variant="text"
           @click="handleUserLocation"
         />
-        <v-btn variant="text" :disabled="true" @click="setViewMode">
+        <v-btn variant="text" @click="setViewMode">
           <v-icon>mdi-connection</v-icon>
         </v-btn>
         <v-btn
