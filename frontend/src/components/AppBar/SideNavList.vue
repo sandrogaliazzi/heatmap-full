@@ -11,6 +11,7 @@ import EmailModalDialog from "@/components/EmailModalDialog/EmailModalDialog";
 import ClientesOnuCard from "@/components/ClientesOnuModalDialog/ClientesOnuCard";
 import RamalCard from "@/components/RamalModalDialog/RamalCard";
 import OsMap from "./OsMap.vue";
+import OsList from "../Ativacoes/OsList.vue";
 
 const tomodatStore = useTomodatStore();
 const { selectedCto } = storeToRefs(tomodatStore);
@@ -32,6 +33,7 @@ const openOnuDialog = ref(false);
 const openEmailDialog = ref(false);
 const openClientsOnuDialog = ref(false);
 const openRamalDialog = ref(false);
+const openAtivacoesDialog = ref(false);
 const openOsDialog = ref(false);
 const onuKey = ref(1);
 
@@ -45,6 +47,7 @@ const onCloseDialog = (value) => {
   openClientsOnuDialog.value = value;
   openRamalDialog.value = value;
   openOsDialog.value = value;
+  openAtivacoesDialog.value = value;
 };
 </script>
 
@@ -97,6 +100,14 @@ const onCloseDialog = (value) => {
         color="orange"
         v-role="['adm', 'tecnico']"
         @click="openOsDialog = true"
+      ></v-list-item>
+      <v-list-item
+        prepend-icon="mdi-flag-plus"
+        title="Ativações"
+        value="ativacao"
+        color="orange"
+        v-role="['adm']"
+        @click="openAtivacoesDialog = true"
       ></v-list-item>
       <v-list-item
         prepend-icon="mdi-logout"
@@ -192,6 +203,13 @@ const onCloseDialog = (value) => {
   </DialogBox>
   <DialogBox :isOpen="openRamalDialog" @update:modalValue="onCloseDialog">
     <RamalCard />
+  </DialogBox>
+  <DialogBox
+    :isOpen="openAtivacoesDialog"
+    @update:modalValue="onCloseDialog"
+    size="1000"
+  >
+    <OsList />
   </DialogBox>
   <DialogBox
     :isOpen="openOsDialog"

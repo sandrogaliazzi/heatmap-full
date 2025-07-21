@@ -7,6 +7,7 @@
 // Styles
 import "@mdi/font/css/materialdesignicons.css";
 import "vuetify/styles";
+import { VDateInput } from "vuetify/labs/VDateInput";
 
 // Composables
 import { createVuetify } from "vuetify";
@@ -22,5 +23,8 @@ export default createVuetify({
         },
       },
     },
+  },
+  components: {
+    VDateInput,
   },
 });

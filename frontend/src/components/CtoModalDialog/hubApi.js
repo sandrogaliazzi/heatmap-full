@@ -1,22 +1,19 @@
 import hubApi from "../../api/hubsoftApi.js";
 
-async function getOsByType(
+export async function getOsByType(
   type = "30",
   startDate = "2023-09-20",
   endDate = new Date().toISOString().split("T")[0],
+  status = "pendente",
   page = 0,
   osList = []
 ) {
   try {
     const response = await hubApi.get(
-      `api/v1/integracao/ordem_servico/todos?pagina=${page}&itens_por_pagina=500&data_inicio=${startDate}&data_fim=${endDate}&tipo_ordem_servico=${type}&status=pendente`
+      `api/v1/integracao/ordem_servico/todos?pagina=${page}&itens_por_pagina=500&data_inicio=${startDate}&data_fim=${endDate}&tipo_ordem_servico=${type}&status=${status}`
     );
 
-    const osPending = response.data.ordens_servico.filter(
-      (os) => os.status === "Pendente"
-    );
-
-    osList.push(...osPending);
+    osList.push(...response.data.ordens_servico);
 
     const atual = response.data.paginacao.pagina_atual;
     const ultima = response.data.paginacao.ultima_pagina;
@@ -32,7 +29,7 @@ async function getOsByType(
   }
 }
 
-function extractCto(string) {
+export function extractCto(string) {
   const regex = /R\d{1,3}[-\s]*CA\d{1,2}/g;
   const matches = string.match(regex);
   return matches ? matches[0] : null;
@@ -99,12 +96,15 @@ export async function closeOs(os_id, user) {
         data_inicio_executado: new Date().toISOString().split("T")[0],
         hora_inicio_executado: new Date().toTimeString().split(" ")[0],
         data_termino_executado: new Date().toISOString().split("T")[0],
-        hora_termino_executado: new Date().toTimeString().split(" ")[0],
+        hora_termino_executado: new Date(Date.now() + 5 * 60 * 1000)
+          .toTimeString()
+          .split(" ")[0],
         status_fechamento: "concluido",
         descricao_fechamento: "RETIRADO CONECTOR POR " + user,
         motivo_fechamento: {
-          id_motivo_fechamento: 44,
+          id_motivo_fechamento: 27,
         },
+        tecnicos: [{ id: "285" }],
       }
     );
     return response.data;

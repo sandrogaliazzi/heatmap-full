@@ -2,8 +2,10 @@
 import { defineProps, defineEmits, computed, provide } from "vue";
 import { useWindowSize } from "vue-window-size";
 
-const props = defineProps(["isOpen", "isFull"]);
+const props = defineProps(["isOpen", "isFull", "size"]);
 const emit = defineEmits(["update:modalValue"]);
+
+const size = computed(() => (props.size ? props.size + "px" : "600px"));
 
 const isDialogOpen = computed({
   get() {
@@ -28,7 +30,7 @@ const { width } = useWindowSize();
       v-model="isDialogOpen"
       transition="dialog-top-transition"
       scrim="grey-darken-4"
-      :maxWidth="props.isFull ? '' : '600px'"
+      :maxWidth="props.isFull ? '' : size"
       scrollable
       :fullscreen="width < 600 || props.isFull ? true : false"
     >

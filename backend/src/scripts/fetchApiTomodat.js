@@ -72,6 +72,19 @@ async function getAllAcessPoints() {
   }
 }
 
+export async function getAllAcessPointsByRange(range, coordinates) {
+  try {
+    let response = await fetch(
+      `${baseURL}/access_points/${coordinates.lat}/${coordinates.lng}/${range}`,
+      reqConfig
+    );
+    let data = await response.json();
+    return data;
+  } catch (err) {
+    console.error("erro ao obter AP por range" + err.message);
+  }
+}
+
 export async function getAllAcessPointsByCity() {
   try {
     let response = await fetch(`${baseURL}/access_points/list_path`, reqConfig);

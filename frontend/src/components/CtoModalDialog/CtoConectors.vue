@@ -63,14 +63,15 @@ const sendMessageToTelegram = async (bodyRequest) => {
   }
 };
 
-const createMessage = (info) => {
+const createMessage = async (info) => {
   if (confirm("Confirmar esta ação?")) {
     info.cto = cto.name;
     info.user = userStore.user.name;
     info.retirado = true;
 
     try {
-      sendMessageToTelegram(info);
+      await sendMessageToTelegram(info);
+      await closeOsApi(info.id_ordem_servico);
       alert("Ação confirmada");
     } catch (error) {
       console.log(error);

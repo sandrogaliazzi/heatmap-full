@@ -23,5 +23,6 @@ router
   .delete("/deleteclientfromtomodat/:id", auth, TomodatController.DeleteClient) //deleta cliente no servido do tomodat
   .get("/getalltomodat", auth, TomodatController.ListarCabos) //lista tomodat completo
   .post("/rotasave", auth, TomodatController.SalvarRota) // salva rota no banco
-  .get("/viability/:lat/:lng", TomodatController.CheckTomodatViability); //checa a viabilidade de portas com base na localização
+  .get("/viability/:lat/:lng", TomodatController.CheckTomodatViability) //checa a viabilidade de portas com base na localização
+  .get("/aprange/:lat/:lng/:range", TomodatController.getApByRange);
 export default router;

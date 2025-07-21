@@ -3,6 +3,7 @@ import {
   getAllAcessPointsByCity,
   getAccessPointConnections,
   checkViability,
+  getAllAcessPointsByRange,
 } from "../scripts/fetchApiTomodat.js";
 import { addClient } from "../scripts/fetchApiTomodat.js";
 import tomodatcompleto16052023 from "../models/tomodatcompleto.js";
@@ -61,6 +62,17 @@ class TomodatController {
       .catch(error => {
         res.status(500).json(error);
       });
+  };
+
+  static getApByRange = async (req, res) => {
+    try {
+      const { lat, lng, range } = req.params;
+      const data = await getAllAcessPointsByRange(range, { lat, lng });
+      res.status(200).json(data);
+    } catch (error) {
+      console.error("Erro ao buscar pontos de acesso:", error);
+      res.status(500).json({ error: "Erro ao buscar pontos de acesso" });
+    }
   };
 
   static ListarApenasCaixas = (_, res) => {
