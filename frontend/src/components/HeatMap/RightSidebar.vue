@@ -87,26 +87,6 @@ const getClientFoneFromHubsoft = async (clientsList) => {
   }
 };
 
-const getClientsFone = async () => {
-  const clients = extractClientsNamesFromCto();
-
-  const mkToken = await getMkToken();
-
-  const promisseList = clients.map((client) => getClientFone(client, mkToken));
-
-  const foneList = await Promise.all(promisseList);
-
-  const foneListFormatted = foneList.flat().map((client) => ({
-    numero: client.fone,
-    nome: client.nome,
-    mensagem: "",
-  }));
-
-  const csvContent = convertArrayOfObjectsToCSV(foneListFormatted);
-
-  downloadCSV(csvContent, `data=${new Date().toLocaleDateString()}.csv`);
-};
-
 const closeSideBar = () => {
   sideBar.value = false;
   emit("clearCtoList");
@@ -119,7 +99,9 @@ const onCloseDialog = (value) => {
 
 <template>
   <DialogBox :isOpen="openClientSignalModal" @update:modalValue="onCloseDialog">
-    <ClientesOnuCard :clients="extractClientsFromCto()"></ClientesOnuCard>
+    <ClientesOnuCard
+      :clients="extractClientsFromCto(sideBarCtoList)"
+    ></ClientesOnuCard>
   </DialogBox>
   <v-navigation-drawer
     location="right"

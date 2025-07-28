@@ -83,8 +83,8 @@ const saveTomodat = async () => {
     <v-expansion-panels>
       <v-expansion-panel v-for="(tomodat, index) in tomodatList" :key="index">
         <v-expansion-panel-title>
-          {{ tomodat.name }} - {{ tomodat.id || "NÃO ENCONTRADO" }} -
-          {{ tomodat.client }}
+          {{ tomodat?.name }} - {{ tomodat.id || "NÃO ENCONTRADO" }} -
+          {{ tomodat?.client }}
           <template v-slot:actions="{ expanded }">
             <v-icon
               :color="tomodat.id ? 'success' : 'error'"

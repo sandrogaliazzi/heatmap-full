@@ -95,6 +95,15 @@ const findTomodatCtoId = async (data, retries = 0) => {
     const { data: ctosNearby } = await fetchApi.get(
       `/aprange/${latitude}/${longitude}/2000`
     );
+
+    if (!ctosNearby) {
+      return {
+        name: targetCtoName,
+        id: null,
+        client: data.client,
+        coordenadas: data.coordenadas,
+      };
+    }
     const foundCto = ctosNearby.find((cto) => cto.name === targetCtoName);
 
     if (foundCto) {
