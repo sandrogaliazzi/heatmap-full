@@ -23,7 +23,7 @@ const reqConfig = {
   },
 };
 
-async function getAllClients() {
+export async function getAllClients() {
   try {
     let response = await fetch(`${baseURL}/clients/`, reqConfig);
     let data = await response.json();

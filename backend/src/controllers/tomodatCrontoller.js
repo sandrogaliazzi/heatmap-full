@@ -4,8 +4,9 @@ import {
   getAccessPointConnections,
   checkViability,
   getAllAcessPointsByRange,
+  getAllClients,
+  addClient,
 } from "../scripts/fetchApiTomodat.js";
-import { addClient } from "../scripts/fetchApiTomodat.js";
 import tomodatcompleto16052023 from "../models/tomodatcompleto.js";
 import needle from "needle";
 
@@ -43,10 +44,26 @@ class TomodatController {
       });
   };
 
+  static getAllClients = (_, res) => {
+    getAllClients()
+      .then(data => {
+        res.status(200).json(data);
+      })
+      .catch(error => {
+        console.error(error);
+        res.status(500).json({ error: `Erro ao buscar clientes: ${error}` });
+      });
+  };
+
   static ListarCtos = (req, res) => {
-    getAllAcessPointsByCity().then(data => {
-      res.json(data);
-    });
+    getAllAcessPointsByCity()
+      .then(data => {
+        res.status(200).json(data);
+      })
+      .catch(error => {
+        console.error(error);
+        res.status(500).json({ error: `Erro ao buscar CTOS: ${error}` });
+      });
   };
 
   static CadastrarClient = (req, res) => {

@@ -11,6 +11,8 @@ router
   .get("/tomodat", auth, TomodatController.ListarClients) // fetch direto do tomodat (60 segundos)
   .get("/tomodat-basico", TomodatController.ListarApenasCaixas)
   .get("/connections/:id", auth, TomodatController.getAPcon) //Pega todas as conexões de uma cto ou ce pelo id
+  .get("/clients", auth, TomodatController.getAllClients)
+  .get("/ctos", auth, TomodatController.ListarCtos)
   .post(
     "/client",
     auth,

@@ -2,6 +2,7 @@
 import { inject, ref, watch, onMounted } from "vue";
 import { useTomodatStore } from "@/stores/tomodat";
 import { storeToRefs } from "pinia";
+import fetchApi from "@/api";
 
 import ListResult from "./ListResult.vue";
 
@@ -11,12 +12,37 @@ const closeDialog = inject("closeDialog");
 
 const query = ref(localStorage.getItem("lastQuery") || "");
 const searchResults = ref([]);
+const clients = ref([]);
+const ctos = ref([]);
+
+const fetchClients = async () => {
+  try {
+    const response = await fetchApi.get("/clients");
+    clients.value = response.data;
+    console.log(clients.value);
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const fetchCtos = async () => {
+  try {
+    const response = await fetchApi.get("/ctos");
+    ctos.value = response.data;
+    console.log(ctos.value);
+  } catch (error) {
+    console.error(error);
+  }
+};
 
 const getCtoByName = (name) => {
   return ctoList.value.filter((cto) => cto.name.includes(name.toUpperCase()));
 };
 
 const getClientsByName = (name) => {
+  console.log(
+    clients.value.filter((client) => client.name.includes(name.toUpperCase()))
+  );
   return getClients.value.filter((client) =>
     client.name.includes(name.toUpperCase())
   );
@@ -56,6 +82,8 @@ const myInput = ref(null);
 onMounted(() => {
   myInput.value.focus();
   findResults();
+  //fetchClients();
+  //fetchCtos();
 });
 </script>
 
