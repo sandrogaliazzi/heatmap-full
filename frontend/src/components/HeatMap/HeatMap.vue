@@ -28,6 +28,7 @@ const {
   setPolygonDrawMode,
   mapZoom,
   cableList,
+  loadingData,
 } = storeToRefs(store);
 const { getCto, getTomodatData } = store;
 
@@ -249,6 +250,20 @@ onMounted(async () => {
 </script>
 
 <template>
+  <DialogBox :isOpen="loadingData" @update:modalValue="onCloseDialog">
+    <div
+      style="height: 100hv"
+      class="d-flex flex-column ga-3 justify-center align-center"
+    >
+      <v-progress-circular
+        color="orange"
+        indeterminate
+        :size="128"
+        :width="6"
+      ></v-progress-circular>
+      <v-chip color="orange" variant="flat">Carregando dados...</v-chip>
+    </div>
+  </DialogBox>
   <DialogBox :isOpen="openModal" @update:modalValue="onCloseDialog">
     <CtoCard
       :cto="cto"
@@ -279,7 +294,7 @@ onMounted(async () => {
     @clear-cto-list="sideBarCtoList = []"
   />
   <GMapAutocomplete
-    style="width: 100%; padding: 10px; background-color: #212121"
+    :style="{ width: '100%', padding: '10px', backgroundColor: '#212121' }"
     placeholder="Buscar Endereço"
     @place_changed="setPlace"
   >

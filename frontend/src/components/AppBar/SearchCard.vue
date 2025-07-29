@@ -7,31 +7,22 @@ import fetchApi from "@/api";
 import ListResult from "./ListResult.vue";
 
 const tomodat = useTomodatStore();
-const { ctoList, getClients } = storeToRefs(tomodat);
+const { ctoList } = storeToRefs(tomodat);
 const closeDialog = inject("closeDialog");
 
 const query = ref(localStorage.getItem("lastQuery") || "");
 const searchResults = ref([]);
 const clients = ref([]);
-const ctos = ref([]);
+const isLoadingClients = ref(true);
 
 const fetchClients = async () => {
   try {
     const response = await fetchApi.get("/clients");
     clients.value = response.data;
-    console.log(clients.value);
+    isLoadingClients.value = false;
   } catch (error) {
     console.error(error);
-  }
-};
-
-const fetchCtos = async () => {
-  try {
-    const response = await fetchApi.get("/ctos");
-    ctos.value = response.data;
-    console.log(ctos.value);
-  } catch (error) {
-    console.error(error);
+    isLoadingClients.value = false;
   }
 };
 
@@ -40,12 +31,12 @@ const getCtoByName = (name) => {
 };
 
 const getClientsByName = (name) => {
-  console.log(
-    clients.value.filter((client) => client.name.includes(name.toUpperCase()))
-  );
-  return getClients.value.filter((client) =>
-    client.name.includes(name.toUpperCase())
-  );
+  return clients.value
+    .filter((client) => client.name.includes(name.toUpperCase()))
+    .map((client) => {
+      const cto = ctoList.value.find((cto) => cto.id == client.ap_id_connected);
+      return cto ? { ...client, ctoId: cto.id, ctoName: cto.name } : client;
+    });
 };
 
 const findResults = () => {
@@ -70,25 +61,34 @@ const findResults = () => {
   }
 };
 
+const searchTimeout = ref(null);
+const debounceDelay = 500;
+
 watch(query, () => {
   if (!query.value) searchResults.value = [];
-  findResults();
+
+  if (searchTimeout.value) {
+    clearTimeout(searchTimeout.value);
+  }
+
+  searchTimeout.value = setTimeout(() => {
+    findResults();
+  }, debounceDelay);
 
   localStorage.setItem("lastQuery", query.value);
 });
 
 const myInput = ref(null);
 
-onMounted(() => {
+onMounted(async () => {
   myInput.value.focus();
+  await fetchClients();
   findResults();
-  //fetchClients();
-  //fetchCtos();
 });
 </script>
 
 <template>
-  <v-card style="margin-top: 0 !important">
+  <v-card style="margin-top: 0 !important" :loading="isLoadingClients">
     <v-toolbar color="orange" title="Pesquisa Avançada">
       <v-btn icon @click="closeDialog">
         <v-icon>mdi-close</v-icon>
@@ -101,6 +101,7 @@ onMounted(() => {
         prepend-inner-icon="mdi-magnify"
         v-model="query"
         ref="myInput"
+        :disabled="isLoadingClients"
       >
       </v-text-field>
       <div
