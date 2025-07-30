@@ -101,7 +101,6 @@ onMounted(async () => {
         prepend-inner-icon="mdi-magnify"
         v-model="query"
         ref="myInput"
-        :disabled="isLoadingClients"
       >
       </v-text-field>
       <div
