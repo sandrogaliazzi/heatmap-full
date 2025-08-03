@@ -5,11 +5,11 @@ import newFetch from "../models/newetchWithPppoe.js";
 
 class fetTomodatController {
   static CadastrarFetch = (req, res) => {
-    fetchTomodat().then((data) => {
-      data.forEach((element) => {
+    fetchTomodat().then(data => {
+      data.forEach(element => {
         JSON.stringify(element);
         let fet = new fetTomodat(element);
-        fet.save((err) => {
+        fet.save(err => {
           if (err) {
             console.log({ message: `${err.message} - falha ao cadastrar.` });
           } else {
@@ -25,12 +25,12 @@ class fetTomodatController {
 
   static UpdateFetch = (req, res) => {
     let now = new Date();
-    fetchTomodat().then((data) => {
-      data.forEach((element) => {
+    fetchTomodat().then(data => {
+      data.forEach(element => {
         JSON.stringify(element);
         let dados = element;
         let id = dados.id;
-        fetTomodat.findOneAndUpdate({ id: id }, { $set: dados }, (err) => {
+        fetTomodat.findOneAndUpdate({ id: id }, { $set: dados }, err => {
           if (!err) {
             console.log({ message: `Fetch atualizado com susesso. ${now}` });
           } else {
@@ -253,7 +253,7 @@ class fetTomodatController {
         res.status(500).send(err);
       } else {
         // Check the presence of the city field and provide a default value if missing
-        const documentsToSave = result.map((doc) => {
+        const documentsToSave = result.map(doc => {
           if (!doc.city) {
             doc.city = "Default City"; // Provide a default value for the city field
           }
@@ -337,7 +337,7 @@ class fetTomodatController {
       if (err) {
         res.status(500).send(err);
       } else {
-        const bulkOperations = result.map((doc) => ({
+        const bulkOperations = result.map(doc => ({
           updateOne: {
             filter: { _id: doc._id },
             update: doc,
@@ -371,7 +371,7 @@ class fetTomodatController {
       );
 
       // Step 3: Find the names in pppoeDataNames that don't exist in fetTomadatClients
-      const namesToDelete = pppoeDataNames.filter((name) => {
+      const namesToDelete = pppoeDataNames.filter(name => {
         const isNotIncluded = !fetTomadatClients.includes(name);
         if (isNotIncluded) {
           const objectToDelete = { name };
@@ -394,10 +394,21 @@ class fetTomodatController {
     }
   };
 
-  static ListarFetchNew = (req, res) => {
-    newFetch.find((err, fetTomodats) => {
-      res.status(200).json(fetTomodats);
-    });
+  static ListarFetchNew = (_, res) => {
+    newFetch
+      .find(
+        {},
+        {
+          clients: 0,
+          percentage_free: 0,
+        }
+      ) // projeção aqui
+      .exec((err, fetTomodats) => {
+        if (err) {
+          return res.status(500).json({ erro: err.message });
+        }
+        res.status(200).json(fetTomodats);
+      });
   };
 }
 

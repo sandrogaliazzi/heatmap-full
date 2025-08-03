@@ -283,10 +283,9 @@ const onClientLocationUpdated = async ({ client, position }) => {
           :color="userLocation ? 'red' : ''"
           variant="text"
           @click="handleUserLocation"
+          size="small"
         />
-        <v-btn variant="text" @click="setViewMode">
-          <v-icon>mdi-connection</v-icon>
-        </v-btn>
+        <v-btn variant="plain" icon="mdi-connection" @click="setViewMode" />
         <v-btn
           v-if="slideNumber < 2"
           icon="mdi-account-plus"
@@ -406,14 +405,14 @@ const onClientLocationUpdated = async ({ client, position }) => {
         ></CeCard>
       </v-window-item>
     </v-window>
-    <v-card-actions v-if="slideNumber == 1">
+    <v-card-actions style="margin-top: auto" v-if="slideNumber == 1">
       <v-btn
         block
         variant="tonal"
         color="primary"
         @click="showOnuCard = !showOnuCard"
       >
-        verfificar sinal
+        verificar sinal
       </v-btn>
     </v-card-actions>
     <ClientesOnuCard

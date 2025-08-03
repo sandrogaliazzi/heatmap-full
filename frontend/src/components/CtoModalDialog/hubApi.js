@@ -19,7 +19,14 @@ export async function getOsByType(
     const ultima = response.data.paginacao.ultima_pagina;
 
     if (atual < ultima) {
-      return await getOsByType(type, startDate, endDate, page + 1, osList);
+      return await getOsByType(
+        type,
+        startDate,
+        endDate,
+        status,
+        page + 1,
+        osList
+      );
     }
 
     return osList;

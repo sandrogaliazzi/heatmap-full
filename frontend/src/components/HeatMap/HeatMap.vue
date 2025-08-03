@@ -252,7 +252,7 @@ onMounted(async () => {
 <template>
   <DialogBox :isOpen="loadingData" @update:modalValue="onCloseDialog">
     <div
-      style="height: 100hv"
+      style="height: 100vh"
       class="d-flex flex-column ga-3 justify-center align-center"
     >
       <v-progress-circular
