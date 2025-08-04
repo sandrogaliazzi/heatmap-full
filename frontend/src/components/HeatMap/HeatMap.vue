@@ -5,10 +5,10 @@ import { useHeatMapStore } from "@/stores/heatmap";
 import { useUserStore } from "@/stores/user.js";
 import { storeToRefs } from "pinia";
 import { getNewRadius } from "./HeatMap.js";
+import { getClientes } from "./util";
 import warningIcon from "@/assets/warning-icon.png";
 import EventForm from "./EventForm.vue";
 import fetchApi from "@/api";
-
 import CtoCard from "../CtoModalDialog/CtoCard.vue";
 import DialogBox from "@/components/Dialog/Dialog.vue";
 import Marker from "./Marker.vue";
@@ -72,9 +72,7 @@ const showSideBar = async (ctoList) => {
 
   const novosCtos = [];
 
-  ctoList.forEach((item) => {
-    const cto = getCto(item.id);
-
+  ctoList.forEach((cto) => {
     if (!sideBarCtoList.value.includes(cto)) {
       novosCtos.push(cto);
     }
@@ -136,7 +134,7 @@ const polygonRef = ref(null);
 
 watch(polygonRef, (polygon) => {
   if (polygon) {
-    polygon.$polygonPromise.then((area) => {
+    polygon.$polygonPromise.then(async (area) => {
       const isWithinPolygon = getMarkersData.value.filter((marker) => {
         const multiples = store.queryCto.toUpperCase().split(",");
 
@@ -153,7 +151,17 @@ watch(polygonRef, (polygon) => {
         }
       });
 
-      showSideBar(isWithinPolygon);
+      if (!isWithinPolygon.length) return;
+
+      const clientsWithinPolygon = await Promise.all(
+        isWithinPolygon.map(async (marker) => {
+          const clients = await getClientes(marker);
+          marker.clients = clients;
+          return marker;
+        })
+      );
+
+      showSideBar(clientsWithinPolygon);
     });
   }
 });

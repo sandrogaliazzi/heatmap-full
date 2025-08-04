@@ -158,7 +158,7 @@ const onCloseDialog = (value) => {
       <v-card-text style="max-height: 80vh; overflow-y: auto">
         <v-list>
           <v-list-item v-for="cto in sideBarCtoList" :key="cto.id">
-            <v-list-subheader inset>{{ cto.name }}</v-list-subheader>
+            <v-list-subheader inset>{{ cto.title }}</v-list-subheader>
             <v-list-item
               v-for="client in cto.clients"
               :title="client.name"

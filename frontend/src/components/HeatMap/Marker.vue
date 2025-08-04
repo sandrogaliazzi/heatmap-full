@@ -1,10 +1,10 @@
 <script setup>
 import { defineProps, defineEmits } from "vue";
 import { useTomodatStore } from "@/stores/tomodat";
+import { getClientes } from "./util";
 
 import ctoIcon from "@/assets/ctoconect.png";
 import ctoFullIcon from "@/assets/ctofull.png";
-import ctoWarning from "@/assets/ctowarning.png";
 import ceIcon from "@/assets/ce.png";
 
 const tomodatStore = useTomodatStore();
@@ -38,10 +38,13 @@ const emit = defineEmits([
   "open:viabilityDialog",
 ]);
 
-const handleMarkerClick = (event, marker) => {
+const handleMarkerClick = async (event, marker) => {
   if (marker.category) {
-    if (event.domEvent.altKey) emit("open:sideBar", [marker]);
-    else emit("open:ctoDialog", marker);
+    if (event.domEvent.altKey) {
+      const clients = await getClientes(marker);
+      marker.clients = clients;
+      emit("open:sideBar", [marker]);
+    } else emit("open:ctoDialog", marker);
     return;
   } else {
     emit("open:viabilityDialog", marker);

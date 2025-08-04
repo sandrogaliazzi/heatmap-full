@@ -13,12 +13,6 @@ export default {
       goal: 25,
     },
     {
-      name: "DOUGLAS",
-      avatar: "../src/assets/SELLERS/DOUGLAS.jpg",
-      sellerClass: 0,
-      goal: 15,
-    },
-    {
       name: "DIEGO",
       avatar: "../src/assets/SELLERS/DIEGO.jpg",
       sellerClass: 0,
