@@ -417,7 +417,7 @@ const onClientLocationUpdated = async ({ client, position }) => {
     </v-card-actions>
     <ClientesOnuCard
       v-if="showOnuCard"
-      :clients="cto.clients"
+      :clients="clients"
       @exit="showOnuCard = false"
     >
       <template #header>
