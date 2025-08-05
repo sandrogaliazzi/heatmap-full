@@ -20,6 +20,18 @@ const viewSettings = ref(false);
 const viewNumber = ref(1);
 const play = ref(true);
 
+const showAllMetricsOnMenu = ref(false);
+
+const metricSlice = ref(metrics.slice(-5));
+
+watch(showAllMetricsOnMenu, () => {
+  if (showAllMetricsOnMenu.value) {
+    metricSlice.value = metrics;
+  } else {
+    metricSlice.value = metrics.slice(-5);
+  }
+});
+
 const resetState = () => {
   newMetric.value = { ...newMetric };
   openForm.value = false;
@@ -127,12 +139,26 @@ const submitMetric = async () => {
         <v-menu activator="#menu-activator">
           <v-list>
             <v-list-item
-              v-for="metric in metrics"
+              v-for="metric in metricSlice"
               :key="metric._id"
               :value="metric.description"
               @click="$emit('update-metric', metric)"
             >
               <v-list-item-title>{{ metric.description }}</v-list-item-title>
+            </v-list-item>
+            <v-list-item
+              v-if="!showAllMetricsOnMenu"
+              value="Mostrar mais..."
+              title="Mostrar mais..."
+              @click.stop="showAllMetricsOnMenu = true"
+            >
+            </v-list-item>
+            <v-list-item
+              v-else
+              title="Mostrar menos..."
+              value="Mostrar menos..."
+              @click.stop="showAllMetricsOnMenu = false"
+            >
             </v-list-item>
           </v-list>
         </v-menu>

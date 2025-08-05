@@ -23,6 +23,8 @@ ChartJS.register(
 
 const { sales } = defineProps(["sales"]);
 
+const metricMonth = defineModel();
+
 const salesByCity = ref([]);
 const loadingChart = ref(false);
 const hasFilter = ref(true);
@@ -67,11 +69,10 @@ const citys = ref([
 const sellers = ref([
   "FELIPE",
   "LUIS FELIPE",
+  "DIEGO",
   "JANICE",
   "JESSICA",
-  "JANICE",
   "GIACOMO",
-  "DIEGO",
   "EQUIPE CONECT",
 ]);
 
@@ -88,13 +89,17 @@ const colors = {
   "EQUIPE CONECT": "#00296b",
 };
 
-const byCurrentMonth = (sale) => {
-  const month = sale.date.split("-")[1];
-  const year = sale.date.split("-")[0];
-  const currentMonth = String(new Date().getMonth() + 1).padStart(2, "0");
-  const currentYear = String(new Date().getFullYear()).padStart(4, "0");
+watch(metricMonth, () => {
+  renderChart();
+});
 
-  return month === currentMonth && year === currentYear;
+const byCurrentMonth = (sale) => {
+  const month = metricMonth.value.date.split("/")[1];
+  const year = metricMonth.value.date.split("/")[2];
+  const saleMonth = sale.date.split("-")[1];
+  const saleYear = sale.date.split("-")[0];
+
+  return month === saleMonth && year === saleYear;
 };
 
 const getSalesByCity = async () => {
@@ -163,14 +168,6 @@ setInterval(() => {
   <v-card :loading="loadingChart">
     <v-card-title class="d-flex justify-space-between align-center">
       <p>Numero de Ativaçõs por cidade</p>
-      <!-- <div>
-        <v-switch
-          v-model="hasFilter"
-          label="Mês atual"
-          hide-details
-          color="orange-darken-4"
-        ></v-switch>
-      </div> -->
     </v-card-title>
     <v-card-text>
       <Suspense>

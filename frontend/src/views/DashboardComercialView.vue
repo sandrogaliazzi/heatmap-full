@@ -157,7 +157,7 @@ onMounted(async () => {
           <v-window-item :value="2">
             <v-row>
               <v-col>
-                <BarCharts />
+                <BarCharts v-model="currentMetric" />
               </v-col>
             </v-row>
           </v-window-item>

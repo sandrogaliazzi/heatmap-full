@@ -1,5 +1,4 @@
 <script setup>
-import { computed } from "vue";
 const { title, metric, numberOfSales } = defineProps([
   "title",
   "metric",
