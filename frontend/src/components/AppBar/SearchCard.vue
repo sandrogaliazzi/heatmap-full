@@ -9,7 +9,6 @@ import ListResult from "./ListResult.vue";
 const tomodat = useTomodatStore();
 const { ctoList } = storeToRefs(tomodat);
 const closeDialog = inject("closeDialog");
-
 const query = ref(localStorage.getItem("lastQuery") || "");
 const searchResults = ref([]);
 const clients = ref([]);

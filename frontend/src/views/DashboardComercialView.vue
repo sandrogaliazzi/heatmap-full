@@ -5,6 +5,7 @@ import SalesCard from "@/components/Dashboard/Comercial/SalesCard";
 import HeaderCard from "@/components/Dashboard/Comercial/HeaderCard.vue";
 import MetricsCard from "@/components/Dashboard/Comercial/MetricsCard";
 import BarCharts from "@/components/Dashboard/Comercial/BarCharts.vue";
+//import PieChart from "@/components/Dashboard/Comercial/PieChart.vue";
 import MessageBoard from "@/components/Dashboard/Comercial/MessageBoard.vue";
 import fetchApi from "@/api";
 
@@ -167,6 +168,7 @@ onMounted(async () => {
                 @re-render="nextKeyMessage++"
                 :key="nextKeyMessage"
               />
+              <!-- <v-col><PieChart /></v-col> -->
             </v-row>
           </v-window-item>
         </v-window>
