@@ -35,9 +35,9 @@ async function tomodatUpdateLoop() {
       await updateFetchInBatches(data);
       console.log(`Fetch successfully updated to Db at: ${now}`);
       console.log(
-        `Waiting for ${3 * 60 * 1000} milliseconds before next update...`
+        `Waiting for ${4 * 60 * 60 * 1000} milliseconds before next update...`
       );
-      await new Promise(resolve => setTimeout(resolve, 60 * 60 * 1000)); // Wait 3 minutes
+      await new Promise(resolve => setTimeout(resolve, 4 * 60 * 60 * 1000)); // Wait 4 hours
     }
   } catch (err) {
     console.error(`Error in main loop: ${err.message}`);
