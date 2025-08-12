@@ -57,9 +57,9 @@ const handleLocationUpdate = async (location, markerUpdate) => {
   }
   isActive.value = false;
   loadingData.value = true;
-  range.value = location.range;
+  range.value = location.range || range.value;
   setUserLocation({ latitude, longitude });
-  await getCtosWithFreePorts(latitude, longitude, location.range);
+  await getCtosWithFreePorts(latitude, longitude, range.value);
   zoom.value = 16;
   loadingData.value = false;
 };
@@ -70,6 +70,11 @@ const filterFreePorts = (ctoList) => {
       cto.splitters.reduce((acc, cur) => acc + cur.free_ports_number, 0) > 0
     );
   });
+};
+
+const copyCoords = (coords) => {
+  navigator.clipboard.writeText(coords.latitude + ", " + coords.longitude);
+  alert("Coordenadas copiadas com sucesso!");
 };
 
 const getCtosWithFreePorts = async (latitude, longitude, range) => {
@@ -130,6 +135,7 @@ const getCtosWithFreePorts = async (latitude, longitude, range) => {
         lat: userLocation.latitude,
         lng: userLocation.longitude,
       }"
+      @click="copyCoords(userLocation)"
       :draggable="true"
       @dragend="handleLocationUpdate($event, true)"
     />
@@ -137,7 +143,10 @@ const getCtosWithFreePorts = async (latitude, longitude, range) => {
     <GMapCircle
       v-if="userLocation"
       :radius="Number.parseInt(range)"
-      :center="{ lat: userLocation.latitude, lng: userLocation.longitude }"
+      :center="{
+        lat: userLocation.latitude,
+        lng: userLocation.longitude,
+      }"
     />
   </GMapMap>
 
