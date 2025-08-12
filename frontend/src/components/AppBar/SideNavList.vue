@@ -12,6 +12,7 @@ import ClientesOnuCard from "@/components/ClientesOnuModalDialog/ClientesOnuCard
 import RamalCard from "@/components/RamalModalDialog/RamalCard";
 import OsMap from "./OsMap.vue";
 import OsList from "../Ativacoes/OsList.vue";
+import router from "@/router";
 
 const tomodatStore = useTomodatStore();
 const { selectedCto } = storeToRefs(tomodatStore);
@@ -100,6 +101,13 @@ const onCloseDialog = (value) => {
         color="orange"
         v-role="['adm', 'tecnico']"
         @click="openOsDialog = true"
+      ></v-list-item>
+      <v-list-item
+        prepend-icon="mdi-account-question"
+        title="Consulta Viabilidade"
+        value="viabilidade"
+        color="orange"
+        @click="router.push('/viabilidade')"
       ></v-list-item>
       <v-list-item
         prepend-icon="mdi-flag-plus"

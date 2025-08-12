@@ -71,8 +71,8 @@ class TomodatController {
   };
 
   static CheckTomodatViability = (req, res) => {
-    const { lat, lng } = req.params;
-    checkViability(lat, lng)
+    const { lat, lng, range } = req.params;
+    checkViability(lat, lng, range)
       .then(data => {
         res.status(200).json(data);
       })

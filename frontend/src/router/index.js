@@ -8,6 +8,7 @@ import UserList from "@/components/Dashboard/UserList";
 import LogsList from "@/components/Dashboard/LogsList";
 import CameraList from "@/components/Dashboard/CameraList";
 import DashboardComercial from "@/views/DashboardComercialView";
+import ViabilityView from "@/views/ViabilityView.vue";
 
 import { useUserStore } from "@/stores/user";
 import { storeToRefs } from "pinia";
@@ -20,6 +21,8 @@ const router = createRouter({
     { path: "/heatmap", name: "HeatMap", component: HeatMapView },
 
     { path: "/", redirect: "/heatmap" },
+
+    { path: "/viabilidade", name: "Viabilidade", component: ViabilityView },
 
     {
       path: "/dashboard",
