@@ -1,4 +1,5 @@
 import Reservados from "../models/Reservados.js";
+import { deleteClientFromTomodat } from "../scripts/fetchApiTomodat.js";
 
 class ReservadosController {
   static ListReservados = async (req, res) => {
@@ -47,8 +48,12 @@ class ReservadosController {
   };
 
   static DeleteReservados = async (req, res) => {
+    const { tomodat_id, id } = req.params;
     try {
-      await Reservados.findByIdAndDelete(req.params.id);
+      await Promise.all([
+        Reservados.findByIdAndDelete(id),
+        deleteClientFromTomodat(tomodat_id),
+      ]);
       res.status(200).json({ message: "Deleted successfully" });
     } catch (error) {
       res.status(400).json({ message: error.message });

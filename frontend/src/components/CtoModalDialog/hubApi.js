@@ -37,7 +37,7 @@ export async function getOsByType(
 }
 
 export function extractCto(string) {
-  const regex = /R\d{1,3}[-\s]*CA\d{1,2}/g;
+  const regex = /R\d{1,3}[-\s]*CA\d{1,2}/gi;
   const matches = string.match(regex);
   return matches ? matches[0] : null;
 }

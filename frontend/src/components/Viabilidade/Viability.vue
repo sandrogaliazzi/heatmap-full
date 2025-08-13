@@ -121,7 +121,7 @@ const getCtosWithFreePorts = async (latitude, longitude, range) => {
       <v-chip color="orange" variant="flat">Carregando dados...</v-chip>
     </div>
   </v-dialog>
-  <v-dialog v-model="openClientForm">
+  <v-dialog v-model="openClientForm" max-width="600">
     <ClientForm
       v-model="selectedCto"
       :location="userLocation"

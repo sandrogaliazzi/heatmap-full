@@ -1,7 +1,8 @@
 <script setup>
 import fetchApi from "@/api";
 import { ref, onMounted } from "vue";
-import ctoIcon from "@/assets/ctoconect.png";
+import ReservadosList from "./ReservadosList.vue";
+import OsMap from "./OsMap.vue";
 
 const tomodatList = defineModel();
 
@@ -92,49 +93,19 @@ const saveTomodat = async () => {
             ></v-icon> </template
         ></v-expansion-panel-title>
         <v-expansion-panel-text>
-          <GMapMap
-            style="width: 100%; height: 400px"
-            v-if="tomodat.id"
-            :center="{
-              lat: Number.parseFloat(tomodat.dot.lat),
-              lng: Number.parseFloat(tomodat.dot.lng),
-            }"
-            :zoom="12"
-          >
-            <GMapMarker
-              :icon="ctoIcon"
-              :position="{
-                lat: Number.parseFloat(tomodat.dot.lat),
-                lng: Number.parseFloat(tomodat.dot.lng),
-              }"
-              :title="tomodat.name"
-            />
-            <GMapMarker
-              :title="tomodat.client"
-              :position="{
-                lat: Number.parseFloat(tomodat.latitude),
-                lng: Number.parseFloat(tomodat.longitude),
-              }"
-              :draggable="true"
-              @dragend="handleMarkerDrop($event, tomodat)"
-            />
-          </GMapMap>
-          <GMapMap
-            v-else
-            style="width: 100%; height: 400px"
-            :center="{
-              lat: Number.parseFloat(tomodat.coordenadas.latitude),
-              lng: Number.parseFloat(tomodat.coordenadas.longitude),
-            }"
-            :zoom="12"
-          >
-            <GMapMarker
-              :title="tomodat.client"
-              :position="{
-                lat: Number.parseFloat(tomodat.coordenadas.latitude),
-                lng: Number.parseFloat(tomodat.coordenadas.longitude),
-              }"
-          /></GMapMap>
+          <v-container fluid>
+            <v-row>
+              <v-col cols="6">
+                <OsMap
+                  :tomodat="tomodat"
+                  @handle-marker-drop="handleMarkerDrop"
+                />
+              </v-col>
+              <v-col cols="6">
+                <ReservadosList :cto="tomodat" />
+              </v-col>
+            </v-row>
+          </v-container>
         </v-expansion-panel-text>
       </v-expansion-panel>
     </v-expansion-panels>

@@ -85,7 +85,7 @@ router.beforeEach((to, from) => {
   }
 
   // Redireciona para Viabilidade se for vendedor ou visitante
-  if (userCategory === "convidado") {
+  if (userCategory === "vendas" || userCategory === "convidado") {
     if (to.name !== "Viabilidade") return { name: "Viabilidade" };
   }
 
