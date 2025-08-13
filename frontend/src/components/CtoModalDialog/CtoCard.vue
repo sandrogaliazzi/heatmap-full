@@ -9,6 +9,7 @@ import fetchApi from "@/api";
 import CeCard from "@/components/CeModalDialog/CeCard.vue";
 import CtoNotes from "./CtoNotes.vue";
 import CtoConectors from "./CtoConectors.vue";
+import { load } from "webfontloader";
 
 const { cto, tomodatView } = defineProps(["cto", "tomodatView"]);
 const emit = defineEmits(["setCtoFromChild"]);
@@ -379,7 +380,6 @@ const onClientLocationUpdated = async ({ client, position }) => {
           <AddClientForm
             :clientPosition="positionClicked"
             :cto="cto"
-            :splitter="getSplitterPortStatus"
             @update-cto-clietns="loadCtoData({ slide: true })"
           />
         </v-card-text>

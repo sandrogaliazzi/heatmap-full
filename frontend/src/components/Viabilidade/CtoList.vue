@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from "vue";
 defineProps(["ctoList"]);
+defineEmits(["selectCto"]);
 const drawer = defineModel();
 const showList = ref(true);
 
@@ -42,11 +43,12 @@ const calcFreePorts = (splitters) => {
       >
         <template #append>
           <v-btn
-            icon="mdi-lock-open-check"
+            prepend-icon="mdi-lock-open-check"
             size="small"
             v-if="calcFreePorts(cto.splitters) > 0"
-            @click="console.log(cto)"
-          ></v-btn>
+            @click="$emit('selectCto', cto)"
+            >reservar</v-btn
+          >
         </template>
       </v-list-item>
     </v-list>

@@ -2,6 +2,8 @@
 import { ref } from "vue";
 import ctoIcon from "@/assets/ctoconect.png";
 
+const emit = defineEmits(["selectCto"]);
+
 defineProps(["ctoList"]);
 const openId = ref(null);
 </script>
@@ -27,7 +29,13 @@ const openId = ref(null);
         <strong>
           {{ cto.name }}
         </strong>
-        <v-btn color="primary" variant="plain" class="mt-2">reservar</v-btn>
+        <v-btn
+          color="primary"
+          variant="plain"
+          class="mt-2"
+          @click="emit('selectCto', cto)"
+          >reservar</v-btn
+        >
         <v-btn color="error" variant="plain" @click="openId = null"
           >fechar</v-btn
         >

@@ -1,10 +1,9 @@
 <script setup>
-import { inject, ref, computed, onMounted, onUnmounted } from "vue";
+import { inject, ref, computed } from "vue";
 import DataDisplay from "./DataDisplay.vue";
 import TomodatList from "./TomodatList.vue";
 import fetchApi from "@/api";
 import { getOsByType, extractCto } from "../CtoModalDialog/hubApi";
-import { load } from "webfontloader";
 
 const dateRange = ref([]);
 const osList = ref([]);

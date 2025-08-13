@@ -1,6 +1,5 @@
 <script setup>
 import { ref } from "vue";
-import { load } from "webfontloader";
 
 const props = defineProps(["loading"]);
 

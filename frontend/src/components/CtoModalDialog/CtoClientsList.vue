@@ -51,11 +51,11 @@ const deleteClient = async (id) => {
       const response = await fetchApi.delete(`deleteclientfromtomodat/${id}`);
 
       if (response.status === 200) {
-        triggerNotification("client excluido com sucesso!");
+        triggerNotification("cliente excluido com sucesso!");
         emit("deleteUser");
       }
     } catch (error) {
-      console.error("erro ao adicionar cliente " + error.message);
+      console.error("erro ao excluir cliente " + error.message);
     }
   }
 };

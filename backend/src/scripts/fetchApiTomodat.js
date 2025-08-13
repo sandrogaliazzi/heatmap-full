@@ -3,7 +3,6 @@ dotenv.config();
 import needle from "needle";
 import fetch from "node-fetch";
 
-const path = import("path");
 const fetchAllAcessPoints = [];
 const baseURL = "https://sp.tomodat.com.br/tomodat/api";
 
@@ -155,6 +154,24 @@ export async function checkViability(lat, lng, range = 10) {
     return data;
   } catch (error) {
     console.error("erro ao checar viabilidade " + error.message);
+  }
+}
+
+export async function deleteClientFromTomodat(id) {
+  try {
+    needle.delete(
+      `${baseURL}/clients/${id}`,
+      null,
+      { method: "DELETE", ...reqConfig },
+      (err, response, body) => {
+        if (!err) {
+          return body;
+        }
+      }
+    );
+  } catch (error) {
+    console.error("erro ao deletar cliente " + error.message);
+    throw error;
   }
 }
 

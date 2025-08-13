@@ -1,10 +1,11 @@
 <script setup>
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import Dialog from "./Dialog.vue";
 import fetchApi from "@/api";
 import CtoMarkers from "./CtoMarkers.vue";
 import CtoList from "./CtoList.vue";
 import ControlSet from "./ControlSet.vue";
+import ClientForm from "./ClientForm.vue";
 
 const mapRef = ref(null);
 const isActive = ref(true);
@@ -15,6 +16,11 @@ const ctoList = ref([]);
 const loadingData = ref(false);
 const drawer = ref(false);
 const range = ref(300);
+const selectedCto = ref(null);
+
+const openClientForm = computed(() => {
+  return selectedCto.value !== null;
+});
 
 const setUserLocation = async (location) => {
   userLocation.value = location;
@@ -22,6 +28,11 @@ const setUserLocation = async (location) => {
     lat: location.latitude,
     lng: location.longitude,
   };
+};
+
+const handleRangeUpdate = (expand) => {
+  range.value = expand ? (range.value += 100) : (range.value -= 100);
+  handleLocationUpdate(userLocation.value, false);
 };
 
 const sortCtoListByDistance = (ctoList, userLocation) => {
@@ -110,7 +121,18 @@ const getCtosWithFreePorts = async (latitude, longitude, range) => {
       <v-chip color="orange" variant="flat">Carregando dados...</v-chip>
     </div>
   </v-dialog>
-  <CtoList v-model="drawer" :ctoList="ctoList" />
+  <v-dialog v-model="openClientForm">
+    <ClientForm
+      v-model="selectedCto"
+      :location="userLocation"
+      @update:cto-list="handleLocationUpdate(userLocation, false)"
+    />
+  </v-dialog>
+  <CtoList
+    v-model="drawer"
+    :ctoList="ctoList"
+    @select-cto="selectedCto = $event"
+  />
   <v-toolbar color="orange">
     <v-toolbar-title>
       <div class="d-flex align-center ga-2">
@@ -122,6 +144,8 @@ const getCtosWithFreePorts = async (latitude, longitude, range) => {
   <ControlSet
     @edit-location="isActive = true"
     @toggle-drawer="drawer = !drawer"
+    @update:range="handleRangeUpdate"
+    @update:list="handleLocationUpdate(userLocation, false)"
   />
   <GMapMap
     :center="centerMap"
@@ -139,7 +163,11 @@ const getCtosWithFreePorts = async (latitude, longitude, range) => {
       :draggable="true"
       @dragend="handleLocationUpdate($event, true)"
     />
-    <CtoMarkers :ctoList="ctoList" v-if="ctoList.length > 0" />
+    <CtoMarkers
+      :ctoList="ctoList"
+      v-if="ctoList.length > 0"
+      @select-cto="selectedCto = $event"
+    />
     <GMapCircle
       v-if="userLocation"
       :radius="Number.parseInt(range)"

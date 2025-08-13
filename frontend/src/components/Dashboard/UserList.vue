@@ -57,6 +57,7 @@ const userIcon = computed(() => {
     tecnico: "mdi-tools",
     adm: "mdi-security",
     vendas: "mdi-handshake",
+    convidado: "mdi-account",
   };
 });
 
