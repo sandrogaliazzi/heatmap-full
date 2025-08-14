@@ -6,6 +6,7 @@ const ReservadosSchema = new mongoose.Schema({
   coord: { type: Object, required: true },
   created_at: { type: Date, default: Date.now },
   cto_id: { type: String, required: true },
+  user: { type: String, required: true },
 });
 
 const Reservados = mongoose.model("Reservados", ReservadosSchema);
