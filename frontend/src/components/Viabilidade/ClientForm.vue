@@ -60,7 +60,7 @@ const addClient = async () => {
           coord: { lat: payload.value.lat, lng: payload.value.lng },
           cto_id: payload.value.cto_id,
           created_at: payload.value.date_time,
-          user: user.name
+          user: payload.value.user,
         });
 
         setNotification({

@@ -13,13 +13,14 @@ class ReservadosController {
 
   static CreateReservados = async (req, res) => {
     try {
-      const { tomodat_id, name, coord, cto_id, created_at } = req.body;
+      const { tomodat_id, name, coord, cto_id, created_at, user } = req.body;
       const newReservado = new Reservados({
         tomodat_id,
         name,
         coord,
         cto_id,
         created_at,
+        user
       });
       const savedReservado = await newReservado.save();
       res.status(201).json(savedReservado);
