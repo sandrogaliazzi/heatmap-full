@@ -1,7 +1,13 @@
 <script setup>
 import { useRouter } from "vue-router";
 import { useUserStore } from "@/stores/user";
-defineEmits(["editLocation", "toggleDrawer", "update:range", "update:list"]);
+defineEmits([
+  "editLocation",
+  "toggleDrawer",
+  "update:range",
+  "update:list",
+  "open:reservadosDialog",
+]);
 
 const userStore = useUserStore();
 
@@ -9,7 +15,9 @@ const router = useRouter();
 
 const logout = () => {
   userStore.logout();
-  router.push({ name: "Login" });
+  router.push({ name: "Login" }).then(() => {
+    router.go(0); // Reload the page to reset the state
+  });
 };
 </script>
 
@@ -49,6 +57,13 @@ const logout = () => {
           size="small"
           variant="flat"
           @click="$emit('update:list')"
+        >
+        </v-btn>
+        <v-btn
+          icon="mdi-account-group"
+          size="small"
+          variant="flat"
+          @click="$emit('open:reservadosDialog')"
         >
         </v-btn>
         <v-btn icon="mdi-logout" size="small" variant="flat" @click="logout">

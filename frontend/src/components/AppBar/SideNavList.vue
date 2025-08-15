@@ -12,6 +12,7 @@ import ClientesOnuCard from "@/components/ClientesOnuModalDialog/ClientesOnuCard
 import RamalCard from "@/components/RamalModalDialog/RamalCard";
 import OsMap from "./OsMap.vue";
 import OsList from "../Ativacoes/OsList.vue";
+import ReservadosList from "../Reservados/ReservadosList.vue";
 import router from "@/router";
 
 const tomodatStore = useTomodatStore();
@@ -36,6 +37,7 @@ const openClientsOnuDialog = ref(false);
 const openRamalDialog = ref(false);
 const openAtivacoesDialog = ref(false);
 const openOsDialog = ref(false);
+const openReservadosDialog = ref(false);
 const onuKey = ref(1);
 
 const emit = defineEmits(["logout:user"]);
@@ -49,6 +51,7 @@ const onCloseDialog = (value) => {
   openRamalDialog.value = value;
   openOsDialog.value = value;
   openAtivacoesDialog.value = value;
+  openReservadosDialog.value = value;
 };
 </script>
 
@@ -109,6 +112,14 @@ const onCloseDialog = (value) => {
         color="orange"
         @click="router.push('/viabilidade')"
       ></v-list-item>
+      <v-list-item
+        prepend-icon="mdi-account-lock"
+        title="Reservados"
+        value="reservados"
+        color="orange"
+        v-role="['adm', 'tecnico']"
+        @click="openReservadosDialog = true">
+      </v-list-item>
       <v-list-item
         prepend-icon="mdi-flag-plus"
         title="Ativações"
@@ -218,6 +229,12 @@ const onCloseDialog = (value) => {
     size="1000"
   >
     <OsList />
+  </DialogBox>
+  <DialogBox
+    :isOpen="openReservadosDialog"
+    @update:modalValue="onCloseDialog"
+  >
+    <ReservadosList/>
   </DialogBox>
   <DialogBox
     :isOpen="openOsDialog"

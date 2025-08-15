@@ -12,6 +12,7 @@ const router = useRouter();
 const userName = ref("");
 const password = ref("");
 const formRef = ref(null);
+const showPassword = ref(false);
 
 const inputRules = [
   (value) => {
@@ -88,8 +89,11 @@ const handleLogin = async () => {
                       <v-text-field
                         v-model="password"
                         :rules="inputRules"
-                        clearable
-                        type="password"
+                        :append-inner-icon="
+                          showPassword ? 'mdi-eye' : 'mdi-eye-off'
+                        "
+                        @click:append-inner="showPassword = !showPassword"
+                        :type="showPassword ? 'text' : 'password'"
                         label="Senha"
                         placeholder="Digite sua senha"
                       ></v-text-field>

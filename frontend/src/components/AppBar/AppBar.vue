@@ -4,7 +4,7 @@ import { useTomodatStore } from "@/stores/tomodat";
 import { useUserStore } from "@/stores/user";
 import { storeToRefs } from "pinia";
 import { useRouter } from "vue-router";
-import { ref } from "vue";
+import { ref, computed } from "vue";
 
 import SideNavList from "./SideNavList";
 import ButtonGroup from "./ButtonGroup";
@@ -23,6 +23,8 @@ const router = useRouter();
 
 const { selectedCto, selectedUserLocation, setPolygonDrawMode } =
   storeToRefs(tomodatStore);
+
+const isMobile = computed(() => width.value <= 600);
 
 const logout = () => {
   userStore.logout();
@@ -99,9 +101,9 @@ const handleUserLocation = () => {
 
   <!-- DRAWER -->
   <v-navigation-drawer
-    expand-on-hover
-    rail
-    :permanent="width > 600 ? true : false"
+    :expand-on-hover="!isMobile"
+    :rail="!isMobile"
+    :permanent="!isMobile"
     v-model="drawer"
   >
     <ButtonGroup
@@ -113,9 +115,4 @@ const handleUserLocation = () => {
     />
     <SideNavList @logout:user="logout" :user="userStore.user" />
   </v-navigation-drawer>
-  <!-- <v-progress-linear
-    v-if="tomodatStore.loadingData"
-    color="primary"
-    indeterminate
-  ></v-progress-linear> -->
 </template>

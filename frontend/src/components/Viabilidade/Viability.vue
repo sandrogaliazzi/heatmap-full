@@ -1,11 +1,14 @@
 <script setup>
 import { ref, computed } from "vue";
 import Dialog from "./Dialog.vue";
+import DialogBox from "../Dialog/Dialog.vue";
 import fetchApi from "@/api";
 import CtoMarkers from "./CtoMarkers.vue";
 import CtoList from "./CtoList.vue";
 import ControlSet from "./ControlSet.vue";
 import ClientForm from "./ClientForm.vue";
+import ReservadosList from "../Reservados/ReservadosList.vue";
+import { useUserStore } from "@/stores/user";
 
 const mapRef = ref(null);
 const isActive = ref(true);
@@ -17,6 +20,8 @@ const loadingData = ref(false);
 const drawer = ref(false);
 const range = ref(300);
 const selectedCto = ref(null);
+const { user } = useUserStore();
+const openUserReservados = ref(false);
 
 const openClientForm = computed(() => {
   return selectedCto.value !== null;
@@ -146,6 +151,7 @@ const getCtosWithFreePorts = async (latitude, longitude, range) => {
     @toggle-drawer="drawer = !drawer"
     @update:range="handleRangeUpdate"
     @update:list="handleLocationUpdate(userLocation, false)"
+    @open:reservados-dialog="openUserReservados = true"
   />
   <GMapMap
     :center="centerMap"
@@ -183,4 +189,10 @@ const getCtosWithFreePorts = async (latitude, longitude, range) => {
     width="600"
     @update:user-location="handleLocationUpdate"
   ></Dialog>
+  <DialogBox
+    :isOpen="openUserReservados"
+    @update:modalValue="openUserReservados = $event"
+  >
+    <ReservadosList v-if="user" :user="user" />
+  </DialogBox>
 </template>

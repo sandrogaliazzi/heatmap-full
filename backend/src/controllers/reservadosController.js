@@ -20,7 +20,7 @@ class ReservadosController {
         coord,
         cto_id,
         created_at,
-        user
+        user,
       });
       const savedReservado = await newReservado.save();
       res.status(201).json(savedReservado);
@@ -31,7 +31,7 @@ class ReservadosController {
 
   static UpdateReservados = async (req, res) => {
     try {
-      const { tomodat_id, name, coord, cto_id } = req.body;
+      const { tomodat_id, name, coord, cto_id, created_at } = req.body;
       const updatedReservado = await Reservados.findByIdAndUpdate(
         req.params.id,
         {
@@ -39,6 +39,7 @@ class ReservadosController {
           name,
           coord,
           cto_id,
+          created_at,
         },
         { new: true }
       );

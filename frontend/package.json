@@ -20,7 +20,7 @@
     "vue": "^3.4.36",
     "vue-chartjs": "^5.2.0",
     "vue-google-maps-community-fork": "^0.3.1",
-    "vue-router": "^4.2.2",
+    "vue-router": "^4.5.1",
     "vue-virtual-list-v3": "^1.5.1",
     "vue-window-size": "^2.0.0",
     "vuetify": "^3.6.0",
