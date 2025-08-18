@@ -2,13 +2,13 @@
 import { ref, inject, onMounted, computed } from "vue";
 import { useNotificationStore } from "@/stores/notification";
 import fetchApi from "@/api";
+const { user, searchTerm } = defineProps(["user", "searchTerm"]);
 
-const reservado = ref(null);
+const reservado = ref(searchTerm || null);
 const closeDialog = inject("closeDialog");
 const reservados = ref([]);
 const notification = useNotificationStore();
 const isLoading = ref(true);
-const { user } = defineProps(["user"]);
 
 const getReservados = async () => {
   try {
@@ -83,23 +83,25 @@ onMounted(async () => {
 </script>
 
 <template>
-  <v-card style="min-height: 600px" :loading="isLoading">
-    <v-card-title class="bg-orange">
-      <div class="d-flex justify-space-between align-center">
-        <div class="d-flex">
-          <p class="me-2">Reservados</p>
-          <v-icon>mdi-account-lock</v-icon>
+  <v-card style="min-height: 400px" :loading="isLoading">
+    <slot name="header">
+      <v-card-title class="bg-orange">
+        <div class="d-flex justify-space-between align-center">
+          <div class="d-flex">
+            <p class="me-2">Reservados</p>
+            <v-icon>mdi-account-lock</v-icon>
+          </div>
+          <div>
+            <v-btn
+              variant="text"
+              icon="mdi-reload"
+              @click="getReservados"
+            ></v-btn>
+            <v-btn variant="text" icon="mdi-close" @click="closeDialog"></v-btn>
+          </div>
         </div>
-        <div>
-          <v-btn
-            variant="text"
-            icon="mdi-reload"
-            @click="getReservados"
-          ></v-btn>
-          <v-btn variant="text" icon="mdi-close" @click="closeDialog"></v-btn>
-        </div>
-      </div>
-    </v-card-title>
+      </v-card-title>
+    </slot>
     <v-card-text>
       <v-row justify="center" v-if="!isLoading">
         <v-col cols="12" class="fixed-column">
@@ -117,12 +119,9 @@ onMounted(async () => {
             <v-list-subheader>Lista de Reservados</v-list-subheader>
             <div v-if="reservado && !filteredReservados.length">
               <v-list-item>
-                <div
-                  class="d-flex justify-center align-center text-center"
-                  style="min-height: 500px"
-                >
+                <div class="d-flex justify-center align-center text-center">
                   <div>
-                    <v-icon size="200px">mdi-email-search</v-icon>
+                    <v-icon size="100px">mdi-email-search</v-icon>
                     <p class="text-center text-h5">
                       Nenhum resultado correspondente a {{ reservado }}
                     </p>
@@ -150,7 +149,6 @@ onMounted(async () => {
                           prepend-icon="mdi-delete"
                           @click="deleteReservado(reserva)"
                           title="Remover reserva"
-                          v-role="['adm']"
                         />
                         <v-list-item
                           prepend-icon="mdi-map-marker"

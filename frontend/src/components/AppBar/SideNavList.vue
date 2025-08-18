@@ -117,8 +117,9 @@ const onCloseDialog = (value) => {
         title="Reservados"
         value="reservados"
         color="orange"
-        v-role="['adm', 'tecnico']"
-        @click="openReservadosDialog = true">
+        v-role="['adm']"
+        @click="openReservadosDialog = true"
+      >
       </v-list-item>
       <v-list-item
         prepend-icon="mdi-flag-plus"
@@ -230,11 +231,8 @@ const onCloseDialog = (value) => {
   >
     <OsList />
   </DialogBox>
-  <DialogBox
-    :isOpen="openReservadosDialog"
-    @update:modalValue="onCloseDialog"
-  >
-    <ReservadosList/>
+  <DialogBox :isOpen="openReservadosDialog" @update:modalValue="onCloseDialog">
+    <ReservadosList />
   </DialogBox>
   <DialogBox
     :isOpen="openOsDialog"

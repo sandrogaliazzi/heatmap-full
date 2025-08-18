@@ -21,7 +21,7 @@ const range = ref(300);
 // Regras de validação
 const rules = {
   required: (v) => !!v || "Campo obrigatório",
-  cep: (v) => /^\d{5}-\d{3}$/.test(v) || "CEP inválido",
+  cep: (v) => /^\d{8}$|^\d{5}-\d{3}$/.test(v) || "CEP inválido",
 };
 
 const obterCoordenadas = async (endereco) => {
@@ -54,6 +54,29 @@ const obterCoordenadas = async (endereco) => {
     });
   });
 };
+
+const getAddressFromCep = async (cep) => {
+  if (!cep) return;
+  cep = cep.replace("-", "");
+  try {
+    const response = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    if (!response.ok) throw new Error("Erro ao buscar CEP");
+    const adressData = await response.json();
+    if (!adressData || adressData.erro) return;
+    endereco.value = {
+      rua: adressData.logradouro || "",
+      bairro: adressData.bairro || "",
+      cidade: adressData.localidade || "",
+      estado: adressData.uf || "",
+      cep: adressData.cep || "",
+      numero: "", // Número deve ser preenchido manualmente
+    };
+  } catch (error) {
+    console.error("Erro ao obter endereço:", error);
+    return null;
+  }
+};
+
 const submit = async () => {
   const { valid } = await form.value.validate();
   if (valid) {
@@ -79,6 +102,7 @@ const submit = async () => {
           variant="underlined"
           maxlength="9"
           placeholder="00000-000"
+          @change="getAddressFromCep(endereco.cep)"
         />
 
         <VTextField

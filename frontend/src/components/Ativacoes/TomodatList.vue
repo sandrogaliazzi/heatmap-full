@@ -1,8 +1,8 @@
 <script setup>
 import fetchApi from "@/api";
 import { ref, onMounted } from "vue";
-import ReservadosList from "./ReservadosList.vue";
 import OsMap from "./OsMap.vue";
+import ReservadosList from "../Reservados/ReservadosList.vue";
 
 const tomodatList = defineModel();
 
@@ -102,7 +102,14 @@ const saveTomodat = async () => {
                 />
               </v-col>
               <v-col cols="6">
-                <ReservadosList :cto="tomodat" />
+                <ReservadosList
+                  :search-term="tomodat.client.split(' ')[0]"
+                  style="max-height: 200px; overflow-y: auto"
+                >
+                  <template #header>
+                    <span class="d-none"></span>
+                  </template>
+                </ReservadosList>
               </v-col>
             </v-row>
           </v-container>

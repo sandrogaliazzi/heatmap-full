@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import Dialog from "./Dialog.vue";
 import DialogBox from "../Dialog/Dialog.vue";
 import fetchApi from "@/api";
@@ -109,6 +109,16 @@ const getCtosWithFreePorts = async (latitude, longitude, range) => {
     console.error(error);
   }
 };
+
+watch(mapRef, (googleMap) => {
+  if (googleMap) {
+    googleMap.$mapPromise.then((map) => {
+      map.addListener("click", (mapsMouseEvent) => {
+        handleLocationUpdate(mapsMouseEvent, true);
+      });
+    });
+  }
+});
 </script>
 
 <template>
