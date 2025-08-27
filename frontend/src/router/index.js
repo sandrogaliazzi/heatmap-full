@@ -25,6 +25,12 @@ const router = createRouter({
     { path: "/viabilidade", name: "Viabilidade", component: ViabilityView },
 
     {
+      path: "/drawflow",
+      name: "DrawFlow",
+      component: () => import("@/components/teste.vue"),
+    },
+
+    {
       path: "/dashboard",
       component: DashboardView,
       children: [

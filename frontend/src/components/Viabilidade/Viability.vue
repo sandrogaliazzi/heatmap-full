@@ -8,6 +8,7 @@ import CtoList from "./CtoList.vue";
 import ControlSet from "./ControlSet.vue";
 import ClientForm from "./ClientForm.vue";
 import ReservadosList from "../Reservados/ReservadosList.vue";
+import SearchCard from "../AppBar/SearchCard.vue";
 import { useUserStore } from "@/stores/user";
 
 const mapRef = ref(null);
@@ -22,6 +23,7 @@ const range = ref(300);
 const selectedCto = ref(null);
 const { user } = useUserStore();
 const openUserReservados = ref(false);
+const openSearch = ref(false);
 
 const openClientForm = computed(() => {
   return selectedCto.value !== null;
@@ -162,6 +164,7 @@ watch(mapRef, (googleMap) => {
     @update:range="handleRangeUpdate"
     @update:list="handleLocationUpdate(userLocation, false)"
     @open:reservados-dialog="openUserReservados = true"
+    @open:search="openSearch = true"
   />
   <GMapMap
     :center="centerMap"
@@ -204,5 +207,8 @@ watch(mapRef, (googleMap) => {
     @update:modalValue="openUserReservados = $event"
   >
     <ReservadosList v-if="user" :user="user" />
+  </DialogBox>
+  <DialogBox :isOpen="openSearch" @update:modalValue="openSearch = $event">
+    <SearchCard />
   </DialogBox>
 </template>

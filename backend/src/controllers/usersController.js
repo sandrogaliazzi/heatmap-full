@@ -32,21 +32,24 @@ class UserController {
     });
   };
 
-  static atualizarUser = (req, res) => {
-    const id = req.params.id;
-    let { name, password, category } = req.body;
+  static atualizarUser = async (req, res) => {
+    try {
+      const id = req.params.id;
+      let { name, password, category } = req.body;
 
-    let encryptedPassword = bcrypt.hash(password, 10);
+      let dados = { name, category };
 
-    let dados = { name, encryptedPassword, category };
-
-    user.findByIdAndUpdate(id, { $set: dados }, (err) => {
-      if (!err) {
-        res.status(200).send({ message: `Alteração realizada com sucesso,` });
-      } else {
-        res.status(500).send({ message: err.message });
+      if (password) {
+        const encryptedPassword = await bcrypt.hash(password, 10);
+        dados.password = encryptedPassword;
       }
-    });
+
+      await user.findByIdAndUpdate(id, { $set: dados });
+
+      res.status(200).send({ message: "Alteração realizada com sucesso." });
+    } catch (err) {
+      res.status(500).send({ message: err.message });
+    }
   };
 
   static RegisterUser = async (req, res) => {

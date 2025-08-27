@@ -64,8 +64,6 @@ const userIcon = computed(() => {
 const editUser = (id) => {
   user.value = users.value.find((user) => user._id === id);
 
-  console.log(user.value);
-
   dialog.value = true;
 };
 

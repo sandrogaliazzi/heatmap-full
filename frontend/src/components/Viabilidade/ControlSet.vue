@@ -7,6 +7,7 @@ defineEmits([
   "update:range",
   "update:list",
   "open:reservadosDialog",
+  "open:search",
 ]);
 
 const userStore = useUserStore();
@@ -25,6 +26,13 @@ const logout = () => {
   <v-card
     ><v-card-title>
       <div class="d-flex align-center justify-center ga-2">
+        <v-btn
+          icon="mdi-magnify"
+          size="small"
+          variant="flat"
+          @click="$emit('open:search')"
+          v-role="['adm', 'vendas', 'tecnico']"
+        ></v-btn>
         <v-btn
           icon="mdi-map-marker"
           size="small"

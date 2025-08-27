@@ -56,6 +56,15 @@ const extractClientsNamesFromCto = (clientsList) => {
     .map((client) => removeParenthesis(client.name).trim());
 };
 
+const extractClientsNamesWithHifenFromCto = (clientsList) => {
+  return clientsList
+    .filter((cto) => Array.isArray(cto.clients))
+    .map((cto) => cto.clients)
+    .flat()
+    .map((client) => removeParenthesis(client.name).trim())
+    .map((name) => name.split(" ").join("-"));
+};
+
 const extractClientsFromCto = (clientsList) => {
   return clientsList
     .filter((cto) => Array.isArray(cto.clients))
@@ -87,6 +96,20 @@ const getClientFoneFromHubsoft = async (clientsList) => {
   }
 };
 
+const copyNamesToClipboard = (clientsList) => {
+  const clientsNames =
+    extractClientsNamesWithHifenFromCto(clientsList).join("\n");
+
+  navigator.clipboard
+    .writeText(clientsNames)
+    .then(() => {
+      alert("Nomes copiados para a área de transferência!");
+    })
+    .catch((err) => {
+      console.error("Erro ao copiar nomes: ", err);
+    });
+};
+
 const closeSideBar = () => {
   sideBar.value = false;
   emit("clearCtoList");
@@ -116,10 +139,10 @@ const onCloseDialog = (value) => {
         v-if="sideBarCtoList.length > 0"
         style="position: sticky; top: 0"
       >
-        <div class="d-flex justify-center">
+        <div class="d-flex justify-center flex-wrap">
           <v-btn
             rounded="xl"
-            class="ml-2"
+            class="ml-2 mb-2"
             color="success"
             prepend-icon="mdi-phone"
             @click="getClientFoneFromHubsoft(sideBarCtoList)"
@@ -132,6 +155,14 @@ const onCloseDialog = (value) => {
             prepend-icon="mdi-flash"
             @click="openClientSignalModal = true"
             >Sinal</v-btn
+          >
+          <v-btn
+            rounded="xl"
+            class="ml-2"
+            color="blue"
+            prepend-icon="mdi-content-copy"
+            @click="copyNamesToClipboard(sideBarCtoList)"
+            >copiar nomes</v-btn
           >
           <v-btn
             rounded="xl"
