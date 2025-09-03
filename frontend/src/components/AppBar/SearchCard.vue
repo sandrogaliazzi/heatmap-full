@@ -1,5 +1,5 @@
 <script setup>
-import { inject, ref, watch, onMounted } from "vue";
+import { inject, provide, ref, watch, onMounted } from "vue";
 import { useTomodatStore } from "@/stores/tomodat";
 import { storeToRefs } from "pinia";
 import fetchApi from "@/api";
@@ -79,10 +79,16 @@ watch(query, () => {
 
 const myInput = ref(null);
 
-onMounted(async () => {
-  myInput.value.focus();
+const loadInitialResults = async () => {
   await fetchClients();
   findResults();
+};
+
+provide("loadInitialResults", loadInitialResults);
+
+onMounted(async () => {
+  myInput.value.focus();
+  await loadInitialResults();
 });
 </script>
 

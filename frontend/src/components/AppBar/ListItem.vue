@@ -1,11 +1,38 @@
 <script setup>
 import { inject } from "vue";
 import { useTomodatStore } from "@/stores/tomodat";
+import { useNotificationStore } from "@/stores/notification";
+import fetchApi from "@/api";
 
 const { source } = defineProps(["source"]);
 
 const closeDialog = inject("closeDialog");
 const tomodatStore = useTomodatStore();
+const notification = useNotificationStore();
+
+const triggerNotification = (msg) => {
+  notification.setNotification({
+    msg,
+    status: "success",
+  });
+};
+
+const loadInitialResults = inject("loadInitialResults");
+
+const deleteClient = async (id) => {
+  if (confirm("deseja excluir este cliente?")) {
+    try {
+      const response = await fetchApi.delete(`deleteclientfromtomodat/${id}`);
+
+      if (response.status === 200) {
+        triggerNotification("cliente excluido com sucesso!");
+        loadInitialResults();
+      }
+    } catch (error) {
+      console.error("erro ao excluir cliente " + error.message);
+    }
+  }
+};
 
 const setCto = ({ ctoId, ctoName, id, name, apartment_id }) => {
   if (apartment_id) return;
@@ -40,6 +67,14 @@ const setCto = ({ ctoId, ctoName, id, name, apartment_id }) => {
         icon="mdi-cube"
         variant="text"
         @click="setCto(source)"
+      ></v-btn>
+      <v-btn
+        color="grey-lighten-1"
+        icon="mdi-delete"
+        variant="text"
+        v-role="['adm']"
+        v-if="!source.city"
+        @click="deleteClient(source.id)"
       ></v-btn>
     </template>
   </v-list-item>

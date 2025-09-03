@@ -1,7 +1,8 @@
 <script setup>
-import { ref } from "vue";
+import { ref, watch, onMounted } from "vue";
 import { useUserStore } from "@/stores/user";
 import fetchApi from "@/api";
+import hubApi from "@/api/hubsoftApi";
 
 const { formData } = defineProps(["formData"]);
 const emit = defineEmits([
@@ -10,12 +11,17 @@ const emit = defineEmits([
 ]);
 
 const formRef = ref(null);
-const onuAlias = ref("");
 const cto = ref("");
 const tecnico = ref("");
 const userStore = useUserStore();
 const loadingSubmit = ref(false);
 const isDisabledVlanInput = ref(true);
+const clientsFound = ref([]);
+const search = ref("");
+const selectedClient = ref(null);
+const selectedService = ref(null);
+const interfaces = ref([]);
+const selectedInterface = ref(null);
 
 const inputRules = [
   (value) => {
@@ -25,7 +31,82 @@ const inputRules = [
   },
 ];
 
+const loadInterfaces = async () => {
+  try {
+    const response = await hubApi.get("api/v1/integracao/rede/equipamento");
+    if (response.status === 200) {
+      interfaces.value = response.data.equipamentos
+        .map((equip) =>
+          equip.interfaces.map((interface_) => ({
+            ...interface_,
+            nome_equipamento: equip.nome,
+          }))
+        )
+        .flat();
+
+      console.log("interfaces carregadas", interfaces.value);
+    }
+  } catch (error) {
+    console.log("erro ao buscar interfaces", error.message);
+  }
+};
+
 const toParksTextFormat = (text) => text.replace(/\s+/g, "-").toUpperCase();
+
+const debounce = (fn, delay) => {
+  let timeout;
+  return (...args) => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => {
+      fn(...args);
+    }, delay);
+  };
+};
+
+const loadingClients = ref(false);
+
+const searchClientByName = debounce(async (alias) => {
+  if (alias.length < 3) return;
+  console.log("buscando cliente", alias);
+  loadingClients.value = true;
+  try {
+    const response = await hubApi.get(
+      `api/v1/integracao/cliente?busca=nome_razaosocial&termo_busca=${alias}`
+    );
+    if (response.status === 200) {
+      clientsFound.value = response.data.clientes;
+      console.log("clientes encontrados", clientsFound.value);
+    }
+  } catch (error) {
+    console.log("erro ao buscar cliente", error.message);
+  } finally {
+    loadingClients.value = false;
+  }
+}, 500);
+
+watch(search, searchClientByName);
+
+const configClientAuth = async () => {
+  try {
+    const response = await hubApi.post(
+      "/api/v1/integracao/cliente/configurar_autenticacao",
+      {
+        id_cliente_servico: selectedService.value.id_cliente_servico,
+        id_interface_conexao: 184,
+        phy_addr: formData.onuMac,
+        observacoes: `Liberado via Heatmap por: ${
+          userStore.user.name
+        }, técnico no local: ${toParksTextFormat(
+          tecnico.value
+        )}, CTO: ${toParksTextFormat(
+          cto.value
+        )} - data ${new Date().toLocaleString()}`,
+      }
+    );
+  } catch (error) {
+    console.log("erro ao configurar cliente", error.message);
+  }
+};
 
 const handleSubmit = async () => {
   const { valid } = await formRef.value.validate();
@@ -45,12 +126,12 @@ const handleSubmit = async () => {
       gpon: formData.gpon,
       onuModel: formData.onuModel,
       oltRamal: formData.oltRamal,
-      onuAlias: toParksTextFormat(onuAlias.value),
+      onuAlias: toParksTextFormat(selectedClient.value.nome_razaosocial),
       sinalTX: formData["Power Level"],
       sinalRX: formData["RSSI"],
     };
 
-    console.log(requestBody);
+    await configClientAuth();
 
     try {
       const response = await fetchApi.post("liberar-onu", requestBody);
@@ -70,6 +151,8 @@ const handleSubmit = async () => {
     }
   }
 };
+
+onMounted(() => loadInterfaces());
 </script>
 
 <template>
@@ -113,14 +196,44 @@ const handleSubmit = async () => {
       </v-col>
     </v-row>
 
-    <v-text-field
-      v-model="onuAlias"
+    <v-autocomplete
+      v-model="selectedClient"
       :rules="inputRules"
       clearable
+      @update:search="search = $event"
       label="CLIENTE"
+      :items="clientsFound || []"
+      :item-title="(item) => item.nome_razaosocial"
+      :item-value="(item) => item"
       prepend-inner-icon="mdi-account"
       placeholder="Digite o nome da cliente"
-    ></v-text-field>
+      :loading="loadingClients"
+    ></v-autocomplete>
+
+    <v-select
+      v-if="selectedClient"
+      label="SELECIONAR SERVIÇO"
+      :items="selectedClient.servicos"
+      :item-title="
+        (item) => item.login || item.nome + ' (serviço sem autenticação)'
+      "
+      :item-value="(item) => item"
+      :rules="inputRules"
+      prepend-inner-icon="mdi-wifi"
+      v-model="selectedService"
+    ></v-select>
+
+    <v-autocomplete
+      v-model="selectedInterface"
+      :rules="inputRules"
+      clearable
+      label="INTERFACE"
+      :items="interfaces || []"
+      :item-title="(item) => `${item.nome} - ${item.nome_equipamento}`"
+      :item-value="(item) => item.id_interface_conexao"
+      prepend-inner-icon="mdi-hdmi-port"
+      placeholder="Selecione a interface"
+    ></v-autocomplete>
 
     <v-text-field
       v-model="tecnico"
