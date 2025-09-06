@@ -92,7 +92,7 @@ const configClientAuth = async () => {
       "/api/v1/integracao/cliente/configurar_autenticacao",
       {
         id_cliente_servico: selectedService.value.id_cliente_servico,
-        id_interface_conexao: 184,
+        id_interface_conexao: selectedInterface.value,
         phy_addr: formData.onuMac,
         observacoes: `Liberado via Heatmap por: ${
           userStore.user.name

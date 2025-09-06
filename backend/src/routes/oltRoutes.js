@@ -1,6 +1,7 @@
 import express from "express";
 import oltController from "../controllers/oltController.js";
 import OnuController from "../controllers/onuClientController.js";
+import FiberHomeController from "../controllers/fiberhomeController.js";
 import auth from "../middleware/auth.js";
 
 const router = express.Router();
@@ -15,6 +16,8 @@ router
     oltController.VerificarOnuAConfigurarPon
   )
   .post("/listar-onu", auth, oltController.listarOnu)
+  .get("/listar-onu-fiberhome", auth, FiberHomeController.discoverOnus)
+  .post("/liberar-onu-fiberhome", FiberHomeController.authorizeAndProvisionOnu)
   .post("/verificar-onu", auth, oltController.VerificarOnu)
   .post("/verificar-onu-completo", auth, oltController.VerificarOnuSummary)
   .post("/verificar-pon", auth, oltController.VerificarSinalPon)
