@@ -19,25 +19,39 @@ const chartKey = ref(0);
 
 const checkOnuSignal = async (onu) => {
   isLoadingSignal.value = true;
-  const signal = await fetchApi.post(
-    "verificar-onu-completo",
-    {
-      oltIp: onu.oltIp,
-      onuAlias: onu.mac,
-    },
-    {
-      headers: {
-        "Cache-Control": "no-cache",
-        Pragma: "no-cache",
-        Expires: "0",
+  let signal;
+  if (!onu.onuNumber) {
+    signal = await fetchApi.post(
+      "verificar-onu-completo",
+      {
+        oltIp: onu.oltIp,
+        onuAlias: onu.mac,
       },
-      params: {
-        t: new Date().getTime(),
+      {
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+        params: {
+          t: new Date().getTime(),
+        },
+      }
+    );
+  } else {
+    signal = await fetchApi.post("verificar-onu-fiberhome", [
+      {
+        slot: onu.slot,
+        onuNumber: onu.onuNumber,
+        pon: onu.pon,
+        mac: onu.mac,
       },
-    }
-  );
+    ]);
+  }
 
-  signalList.value[onu.mac] = signal.data;
+  signalList.value[onu.mac] = Array.isArray(signal.data)
+    ? signal.data[0]
+    : signal.data;
   isLoadingSignal.value = false;
 };
 
@@ -220,6 +234,7 @@ const showClientSignalHistory = async (client) => {
                   rounded="xl"
                   :loading="isLoadingClientHistory"
                   prepend-icon="mdi-history"
+                  v-if="!item.onuNumber"
                   @click="showClientSignalHistory(item)"
                   >histórico de sinal</v-btn
                 >

@@ -37,13 +37,16 @@ const handleMarkerDrop = (event, data) => {
   }
 };
 
+const normalizeName = (name) =>
+  name.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
 const saveTomodat = async () => {
   loading.value = true;
   const payload = tomodatList.value
     .filter((tomodat) => tomodat.id)
     .map((tomodat) => {
       return {
-        name: tomodat.client,
+        name: normalizeName(tomodat.name),
         pppoe: getPppoe(tomodat.client).toLowerCase(),
         lat: tomodat.latitude,
         lng: tomodat.longitude,

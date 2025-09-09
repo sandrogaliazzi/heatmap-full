@@ -108,6 +108,53 @@ const configClientAuth = async () => {
   }
 };
 
+const provisionOnuParks = async (requestBody) => {
+  try {
+    const response = await fetchApi.post("liberar-onu", requestBody);
+    if (response.status === 200) {
+      loadingSubmit.value = false;
+
+      emit("update:onuRegisterWithSuccess", {
+        ...requestBody,
+        signal: {
+          tx: formData["Power Level"],
+          rx: formData["RSSI"],
+        },
+      });
+    }
+  } catch (error) {
+    console.log("erro ao adicionar onu", error.message);
+  }
+};
+
+const normalizeName = (name) =>
+  name.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+const provisionOnuFiberhome = async (requestBody) => {
+  try {
+    const response = await fetchApi.post("liberar-onu-fiberhome", {
+      slot: formData.slot,
+      pon: formData.gpon,
+      vlan: formData.ponVlan,
+      onuAlias: normalizeName(selectedClient.value.nome_razaosocial),
+      onuType: formData.onuModel,
+      mac: formData.onuMac,
+    });
+    if (response.status === 200) {
+      loadingSubmit.value = false;
+
+      emit("update:onuRegisterWithSuccess", {
+        ...requestBody,
+        signal: {
+          tx: "",
+          rx: "",
+        },
+      });
+    }
+  } catch (error) {
+    console.log("erro ao adicionar onu fiberhome", error.message);
+  }
+};
 const handleSubmit = async () => {
   const { valid } = await formRef.value.validate();
 
@@ -126,28 +173,19 @@ const handleSubmit = async () => {
       gpon: formData.gpon,
       onuModel: formData.onuModel,
       oltRamal: formData.oltRamal,
-      onuAlias: toParksTextFormat(selectedClient.value.nome_razaosocial),
+      onuAlias: toParksTextFormat(
+        normalizeName(selectedClient.value.nome_razaosocial)
+      ),
       sinalTX: formData["Power Level"],
       sinalRX: formData["RSSI"],
     };
 
     await configClientAuth();
 
-    try {
-      const response = await fetchApi.post("liberar-onu", requestBody);
-      if (response.status === 200) {
-        loadingSubmit.value = false;
-
-        emit("update:onuRegisterWithSuccess", {
-          ...requestBody,
-          signal: {
-            tx: formData["Power Level"],
-            rx: formData["RSSI"],
-          },
-        });
-      }
-    } catch (error) {
-      console.log("erro ao adicionar onu", error.message);
+    if (formData.oltName === "FIBERHOME") {
+      await provisionOnuFiberhome(requestBody);
+    } else {
+      await provisionOnuParks(requestBody);
     }
   }
 };

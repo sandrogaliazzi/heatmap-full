@@ -79,6 +79,16 @@ const olts = [
   },
 ];
 
+const fetchFiberhomeOnu = async () => {
+  try {
+    const response = await fetchApi.get("/listar-onu-fiberhome");
+
+    return response.data.onus;
+  } catch (error) {
+    console.log("erro ao consultar olts fiberhome", error.message);
+  }
+};
+
 const fetchAllOnu = async () => {
   const promiseList = olts.map(async (olt) => {
     const onuData = await fetchApi.post("verificar-onu-name-olt", {
@@ -87,8 +97,9 @@ const fetchAllOnu = async () => {
     return onuData.data;
   });
 
-  const allOnuData = await Promise.all(promiseList);
-  onuList.value = allOnuData.flat();
+  const parksOnuData = await Promise.all(promiseList);
+  const fiberhomeOnuData = await fetchFiberhomeOnu();
+  onuList.value = [...parksOnuData.flat(), ...fiberhomeOnuData];
   onuListCopy.value = onuList.value;
   vLanList.value = onuList.value
     .map((onu) => {

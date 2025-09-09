@@ -24,6 +24,7 @@ const checkOnuSignal = async (onu) => {
     isLoadingSignal.value = false;
   } catch (error) {
     console.log("erro ao consultar sinal", error.message);
+    isLoadingSignal.value = false;
   }
 };
 

@@ -16,8 +16,10 @@ router
     oltController.VerificarOnuAConfigurarPon
   )
   .post("/listar-onu", auth, oltController.listarOnu)
-  .get("/listar-onu-fiberhome", auth, FiberHomeController.discoverOnus)
-  .post("/liberar-onu-fiberhome", FiberHomeController.authorizeAndProvisionOnu)
+  .get("/descobrir-onu-fiberhome", auth, FiberHomeController.discoverOnus)
+  .get("/listar-onu-fiberhome", auth, FiberHomeController.getAllONUsFromUNM)
+  .post("/liberar-onu-fiberhome", auth, FiberHomeController.addAndConfigOnu)
+  .post("/verificar-onu-fiberhome", auth, FiberHomeController.getOnuSignals)
   .post("/verificar-onu", auth, oltController.VerificarOnu)
   .post("/verificar-onu-completo", auth, oltController.VerificarOnuSummary)
   .post("/verificar-pon", auth, oltController.VerificarSinalPon)

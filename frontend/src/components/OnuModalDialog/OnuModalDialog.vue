@@ -58,6 +58,19 @@ const getUnauthorizedOnuInfo = async () => {
   }
 };
 
+const fiberhomeOnuList = ref([]);
+
+const getUnauthorizedOnuInfoFromFiberhome = async () => {
+  try {
+    const response = await fetchApi.get("/descobrir-onu-fiberhome");
+
+    return response.data.onus;
+  } catch (error) {
+    console.log("erro ao consultar olts fiberhome", error.message);
+    loadingApi.value = false;
+  }
+};
+
 const mergeOnuAndRamalData = async () => {
   const unauthorizedOnuInfo = await getUnauthorizedOnuInfo();
 
@@ -83,6 +96,10 @@ const unAuthOnuFilterByMAC = computed(() => {
 const fetchAll = async () => {
   oltRamals.value = await getOltRamals();
   unauthorizedOnuList.value = await mergeOnuAndRamalData();
+  fiberhomeOnuList.value = await getUnauthorizedOnuInfoFromFiberhome();
+  unauthorizedOnuList.value = unauthorizedOnuList.value.concat(
+    fiberhomeOnuList.value
+  );
   loadingApi.value = false;
 };
 
