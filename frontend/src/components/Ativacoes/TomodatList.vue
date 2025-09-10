@@ -46,7 +46,7 @@ const saveTomodat = async () => {
     .filter((tomodat) => tomodat.id)
     .map((tomodat) => {
       return {
-        name: normalizeName(tomodat.name),
+        name: normalizeName(tomodat.client),
         pppoe: getPppoe(tomodat.client).toLowerCase(),
         lat: tomodat.latitude,
         lng: tomodat.longitude,

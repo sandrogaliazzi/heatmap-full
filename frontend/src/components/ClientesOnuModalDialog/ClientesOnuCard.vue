@@ -3,7 +3,7 @@ import { inject, ref, onMounted, computed, watch } from "vue";
 import OnuList from "./OnuList.vue";
 import fetchApi from "@/api";
 
-const { clients } = defineProps(["clients"]);
+const { clients, city } = defineProps(["clients", "city"]);
 const emit = defineEmits(["exit"]);
 
 const onuList = ref([]);
@@ -12,6 +12,39 @@ const vLanList = ref([]);
 const selectedVlan = ref(null);
 const closeDialog = inject("closeDialog");
 const query = ref("");
+
+const oltListByCity = {
+  "NOVA HARTZ": [
+    { ip: "192.168.202.2", name: "PARKS 1" },
+    { ip: "192.168.203.2", name: "PARKS 2" },
+    { ip: "192.168.204.2", name: "PARKS 3" },
+  ],
+  SAPIRANGA: [
+    { ip: "192.168.207.2", name: "PARKS 6" },
+    { ip: "192.168.209.2", name: "PARKS 8" },
+  ],
+  ARARICA: [
+    { ip: "192.168.207.2", name: "PARKS 6" },
+    { ip: "192.168.209.2", name: "PARKS 8" },
+  ],
+  IGREJINHA: [
+    { ip: "172.16.9.6", name: "PARKS 10" },
+    { ip: "172.16.9.10", name: "PARKS 9" },
+  ],
+  "TRES COROAS": [{ ip: "172.16.9.10", name: "PARKS 9" }],
+  PAROBE: [
+    { ip: "192.168.212.2", name: "PARKS 12" },
+    { ip: "192.168.213.2", name: "PARKS 13" },
+  ],
+  "M. PEDRA": [{ ip: "192.168.205.2", name: "PARKS 4" }],
+  "FAZ. FIALHO": [
+    { ip: "192.168.206.2", name: "PARKS 5" },
+    { ip: "192.168.208.2", name: "PARKS 7" },
+  ],
+  "SÃO JOÃO DO DESERTO": [{ ip: "172.16.11.2", name: "PARKS 11" }],
+  MORUNGAVA: [{ ip: "192.168.216.2", name: "PARKS 16" }],
+};
+
 const olts = [
   {
     ip: "192.168.202.2",
@@ -90,7 +123,8 @@ const fetchFiberhomeOnu = async () => {
 };
 
 const fetchAllOnu = async () => {
-  const promiseList = olts.map(async (olt) => {
+  const oltList = city && city !== "INDEFINIDO" ? oltListByCity[city] : olts;
+  const promiseList = oltList.map(async (olt) => {
     const onuData = await fetchApi.post("verificar-onu-name-olt", {
       oltIp: olt.ip,
     });
@@ -98,7 +132,8 @@ const fetchAllOnu = async () => {
   });
 
   const parksOnuData = await Promise.all(promiseList);
-  const fiberhomeOnuData = await fetchFiberhomeOnu();
+  const fiberhomeOnuData =
+    city === "NOVA HARTZ" ? await fetchFiberhomeOnu() : [];
   onuList.value = [...parksOnuData.flat(), ...fiberhomeOnuData];
   onuListCopy.value = onuList.value;
   vLanList.value = onuList.value
