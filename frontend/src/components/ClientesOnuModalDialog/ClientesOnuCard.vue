@@ -40,6 +40,7 @@ const oltListByCity = {
   "FAZ. FIALHO": [
     { ip: "192.168.206.2", name: "PARKS 5" },
     { ip: "192.168.208.2", name: "PARKS 7" },
+    { ip: "192.168.205.2", name: "PARKS 4" },
   ],
   "SÃO JOÃO DO DESERTO": [{ ip: "172.16.11.2", name: "PARKS 11" }],
   MORUNGAVA: [{ ip: "192.168.216.2", name: "PARKS 16" }],
