@@ -4,6 +4,32 @@ import PppoeOnlineData from "../models/pppoeDataModel.js";
 import dotenv from "dotenv";
 dotenv.config();
 
+function extractUserSessions(text) {
+  const results = [];
+
+  const regex =
+    /^\s*(\d+)\s+(\S+)\s+(\S+)\s+(\d{1,3}(?:\.\d{1,3}){3})\s+([0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4})/gm;
+
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    const userId = match[1];
+    const username = match[2];
+    const iface = match[3];
+    const ipv4 = match[4];
+
+    // normalize MAC to xx:xx:xx:xx:xx:xx
+    const macClean = match[5].replace(/-/g, "");
+    const mac = macClean
+      .match(/.{1,2}/g)
+      .join(":")
+      .toLowerCase();
+
+    results.push({ userId, username, interface: iface, ipv4, mac });
+  }
+
+  return results;
+}
+
 class PppoeDataController {
   static ListarPppoe = (req, res) => {
     PppoeData.find((err, user) => {
@@ -46,9 +72,9 @@ class PppoeDataController {
         });
         stream.on("close", () => {
           if (output.includes("PPPoE")) {
-            res.status(201).send({ message: "PPPoE is online." });
+            res.status(201).json({ session: extractUserSessions(output) });
           } else {
-            res.status(500).send({ message: "PPPoE is offline or not exist." });
+            res.status(404).send({ message: "PPPoE is offline or not exist." });
           }
           sshClient.end();
         });

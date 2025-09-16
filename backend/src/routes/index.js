@@ -22,8 +22,9 @@ import notes from "./noteRoutes.js";
 import mkOs from "./mkOsRoutes.js";
 import fullTrack from "./fullTrackRoutes.js";
 import reservados from "./reservadosRoutes.js";
+import macVendor from "./macVendorRoutes.js";
 
-const routes = app => {
+const routes = (app) => {
   app.route("/").get((req, res) => {
     res.status(200).send({
       message:
@@ -55,7 +56,8 @@ const routes = app => {
     notes,
     mkOs,
     fullTrack,
-    reservados
+    reservados,
+    macVendor
   );
 };
 

@@ -2,6 +2,7 @@
 import { ref, toRefs } from "vue";
 import { useNotificationStore } from "@/stores/notification";
 import fetchApi from "@/api";
+import HubsoftClientPanel from "./HubsoftClientPanel.vue";
 
 const props = defineProps(["clients", "cto", "clientsWithLocation"]);
 
@@ -59,6 +60,8 @@ const deleteClient = async (id) => {
     }
   }
 };
+
+const selectedClient = ref(null);
 </script>
 
 <template>
@@ -74,7 +77,18 @@ const deleteClient = async (id) => {
           'text-decoration-line-through': selected.includes(client.id),
         }"
       >
-        <span class="text-wrap">{{ client.name }}</span>
+        <span class="text-wrap"
+          ><a
+            href="#"
+            style="color: #208be3"
+            @click.prevent="selectedClient = client"
+            >{{ client.name }}
+            <hubsoft-client-panel
+              v-model="selectedClient"
+              @delete-client="deleteClient"
+            />
+          </a>
+        </span>
       </v-list-item-title>
       <template #prepend>
         <v-list-item-action start>
@@ -90,7 +104,7 @@ const deleteClient = async (id) => {
           icon="mdi-map-marker-plus"
           variant="text"
           size="small"
-          @click="handleClientLocation(client)"
+          @click.stop="handleClientLocation(client)"
         ></v-btn>
         <v-btn
           color="grey-lighten-1"
@@ -98,7 +112,7 @@ const deleteClient = async (id) => {
           variant="text"
           size="small"
           class="d-none d-md-flex"
-          @click="copyName(client.name)"
+          @click.stop="copyName(client.name)"
         ></v-btn>
         <v-btn
           color="grey-lighten-1"
@@ -106,7 +120,7 @@ const deleteClient = async (id) => {
           variant="text"
           size="small"
           class="d-none d-md-flex"
-          @click="copyNameWithHifen(client.name)"
+          @click.stop="copyNameWithHifen(client.name)"
         ></v-btn>
         <v-btn
           color="grey-lighten-1"
@@ -115,7 +129,7 @@ const deleteClient = async (id) => {
           size="small"
           class="d-none d-md-flex"
           v-role="['adm']"
-          @click="deleteClient(client.id)"
+          @click.stop="deleteClient(client.id)"
         ></v-btn>
       </template>
     </v-list-item>
