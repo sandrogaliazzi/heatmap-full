@@ -21,7 +21,7 @@ const findClientOnHubsoft = async (isDialogOpen) => {
   try {
     loadingHubsoftData.value = true;
     const response = await hubApi.get(
-      `/api/v1/integracao/cliente?inativo=todos&busca=nome_razaosocial&termo_busca=${normalizeName(
+      `/api/v1/integracao/cliente?inativo=todos&ultima_conexao=sim&busca=nome_razaosocial&termo_busca=${normalizeName(
         client.value.name
       )}`
     );
@@ -31,6 +31,12 @@ const findClientOnHubsoft = async (isDialogOpen) => {
       response.data.clientes.length > 0
     ) {
       hubSoftClientData.value = response.data.clientes[0];
+      console.log(hubSoftClientData.value);
+      await Promise.all(
+        hubSoftClientData.value.servicos.map(async (service) => {
+          await getVendor(service.mac_addr);
+        })
+      );
     }
   } catch (error) {
     console.error("erro ao buscar cliente no hubsoft " + error.message);
@@ -53,35 +59,7 @@ const getVendor = async (mac) => {
 };
 
 const loadServices = ref(false);
-const loadSessions = ref(false);
-const netWorkSessionInfo = ref([]);
-const getServiceConnectionStatus = async (services) => {
-  try {
-    loadServices.value = true;
-    const sessions = await Promise.all(
-      services.map(async (service) => {
-        const response = await fetchApi.post("/pppoeonline", {
-          pppoe: service.login,
-        });
-        if (response.status === 201) {
-          await getVendor(service.mac_addr);
-          return response.data.session;
-        } else {
-          return null;
-        }
-      })
-    );
-
-    netWorkSessionInfo.value = sessions.flat();
-
-    loadServices.value = false;
-  } catch (error) {
-    console.error(error);
-  } finally {
-    loadServices.value = false;
-    loadSessions.value = true;
-  }
-};
+const showServicesAuthStatus = ref(false);
 
 const port = ref("443");
 const protocol = ref("https");
@@ -117,9 +95,8 @@ const openNewTab = (ipv4) => {
               class="mt-2"
               v-if="hubSoftClientData.ativo"
               :loading="loadServices"
-              @click="getServiceConnectionStatus(hubSoftClientData.servicos)"
-              >buscar conexões
-              <!-- <HubsoftClientTabs :services="hubSoftClientData.servicos" /> -->
+              @click="showServicesAuthStatus = true"
+              >Mostrar serviços
             </v-btn>
             <v-btn
               v-else
@@ -133,28 +110,30 @@ const openNewTab = (ipv4) => {
             >
             <div
               class="d-flex flex-column justify-center flex-wrap flex-md-row ga-3"
-              v-if="loadSessions"
+              v-if="showServicesAuthStatus"
             >
               <v-card
                 variant="tonal"
                 class="mt-3"
-                min-width="300"
+                min-width="600"
                 v-for="(service, index) in hubSoftClientData.servicos"
-                :color="netWorkSessionInfo[index] ? 'green' : 'red'"
+                :color="service.ultima_conexao.conectado ? 'green' : 'red'"
                 :key="service.id_serivco"
               >
                 <v-card-item>
                   <div>
                     <div class="mb-1">
                       Status:
-                      {{ netWorkSessionInfo[index] ? "Online" : "Offline" }}
+                      {{ service.status }}
                     </div>
                     <div class="text-caption">Pppoe: {{ service?.login }}</div>
                     <div class="text-caption">Serviço: {{ service?.nome }}</div>
                     <div class="text-h6 mb-1">
                       Ipv4:
                       {{
-                        netWorkSessionInfo[index]?.ipv4 || service.ipv4 || "-"
+                        service.ultima_conexao.ultimo_ipv4 ||
+                        service.ipv4 ||
+                        "-"
                       }}
                       <v-btn icon="mdi-open-in-new" variant="text">
                         <v-icon>mdi-open-in-new</v-icon>
@@ -177,8 +156,14 @@ const openNewTab = (ipv4) => {
                                     v-model="protocol"
                                   ></v-text-field>
                                   <v-text-field
-                                    :label="netWorkSessionInfo[index]?.ipv4"
-                                    :value="netWorkSessionInfo[index]?.ipv4"
+                                    :label="
+                                      service.ultima_conexao.ultimo_ipv4 ||
+                                      service.ipv4
+                                    "
+                                    :value="
+                                      service.ultima_conexao.ultimo_ipv4 ||
+                                      service.ipv4
+                                    "
                                     readonly
                                   ></v-text-field>
                                   <v-text-field
@@ -189,7 +174,7 @@ const openNewTab = (ipv4) => {
                                     icon="mdi-open-in-new"
                                     @click="
                                       openNewTab(
-                                        netWorkSessionInfo[index]?.ipv4
+                                        service.ultima_conexao.ultimo_ipv4
                                       )
                                     "
                                     variant="text"
@@ -201,8 +186,18 @@ const openNewTab = (ipv4) => {
                         </v-dialog>
                       </v-btn>
                     </div>
+                    <v-chip
+                      :color="
+                        service.ultima_conexao.conectado ? 'green' : 'red'
+                      "
+                      variant="flat"
+                      size="x-small"
+                      class="text-caption mb-1"
+                      prepend-icon="mdi-timer-check"
+                      >{{ service.ultima_conexao.status_txt_resumido }}</v-chip
+                    >
                     <div class="text-h6 mb-1">
-                      Mac: {{ netWorkSessionInfo[index]?.mac }}
+                      Mac: {{ service.mac_addr }}
                       <span v-if="vendor">({{ vendor[index] }})</span>
                     </div>
                   </div>
