@@ -2,11 +2,13 @@
 import { ref } from "vue";
 import hubApi from "@/api/hubsoftApi";
 import fetchApi from "@/api";
+import { useWindowSize } from "vue-window-size";
 
 const loadingHubsoftData = ref(false);
 const client = defineModel();
 const hubSoftClientData = ref(null);
 const emit = defineEmits(["deleteClient"]);
+const { width } = useWindowSize();
 
 const normalizeName = (name) => {
   if (name.includes("(")) {
@@ -74,6 +76,7 @@ const openNewTab = (ipv4) => {
   <v-dialog
     max-width="800"
     activator="parent"
+    :fullscreen="width < 600"
     @update:modelValue="findClientOnHubsoft"
   >
     <template #default="{ isActive }">
@@ -115,7 +118,7 @@ const openNewTab = (ipv4) => {
               <v-card
                 variant="tonal"
                 class="mt-3"
-                min-width="600"
+                width="auto"
                 v-for="(service, index) in hubSoftClientData.servicos"
                 :color="service.ultima_conexao.conectado ? 'green' : 'red'"
                 :key="service.id_serivco"
