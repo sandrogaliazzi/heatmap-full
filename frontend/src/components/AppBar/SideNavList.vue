@@ -90,14 +90,6 @@ const onCloseDialog = (value) => {
         @click="openDialog = !openDialog"
       ></v-list-item>
       <v-list-item
-        prepend-icon="mdi-camera-account"
-        title="Adicionar Câmera"
-        value="camera"
-        color="orange"
-        v-role="['adm', 'tecnico']"
-        @click="openCameraDialog = true"
-      ></v-list-item>
-      <v-list-item
         prepend-icon="mdi-engine"
         title="Veículos Conect"
         value="ordens"
@@ -174,7 +166,7 @@ const onCloseDialog = (value) => {
       </v-list-group>
       <v-list-item
         prepend-icon="mdi-set-top-box"
-        title="Lista ONU"
+        title="Cpes não autorizadas"
         color="orange"
         value="ONU"
         v-role="['adm', 'tecnico']"
@@ -182,7 +174,7 @@ const onCloseDialog = (value) => {
       ></v-list-item>
       <v-list-item
         prepend-icon="mdi-circle-box"
-        title="ONU PARKS"
+        title="Lista Cpes"
         color="orange"
         value="onuParks"
         v-role="['adm', 'tecnico']"

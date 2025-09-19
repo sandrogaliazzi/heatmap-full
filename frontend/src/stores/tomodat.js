@@ -6,7 +6,7 @@ export const useTomodatStore = defineStore("tomodat", () => {
   const ctoList = ref([]);
   const cableList = ref([]);
   const ctoListByCity = ref({});
-  const queryCto = ref("R");
+  const queryCto = ref("123456");
   const locatedClients = ref([]);
   const selectedCto = ref("");
   const loadingData = ref(true);

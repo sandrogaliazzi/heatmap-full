@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from "vue";
+import HubsoftClientPanel from "../CtoModalDialog/HubsoftClientPanel.vue";
 
 const props = defineProps(["loading"]);
 
@@ -10,6 +11,7 @@ const selected = ref([]);
 const dialog = ref(false);
 const cto = ref(false);
 const ctoId = ref(null);
+const selectedClient = ref(null);
 
 const editCto = (item, value) => {
   cto.value = value;
@@ -97,6 +99,20 @@ const headers = [
         <div class="d-flex justify-center align-center">
           <v-checkbox-btn v-model="selected" :value="item"></v-checkbox-btn>
         </div>
+      </template>
+
+      <template v-slot:item.client="{ item, value }">
+        <a
+          href="#"
+          @click.prevent="selectedClient = item"
+          style="color: #208be3"
+        >
+          {{ value }}
+          <hubsoft-client-panel
+            v-model="selectedClient"
+            @delete-client="return"
+          />
+        </a>
       </template>
 
       <template v-slot:item.descricao="{ item, value }">

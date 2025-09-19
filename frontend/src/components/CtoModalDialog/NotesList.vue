@@ -61,10 +61,12 @@ const deleteNote = async (note) => {
       v-for="note in activeNotes"
       :key="note.id"
       :value="note.id"
-      :title="note.note"
       :subtitle="setNoteSubtitle(note)"
       prepend-icon="mdi-text"
     >
+      <v-list-title>
+        <div class="text-wrap text-caption">{{ note.note }}</div>
+      </v-list-title>
       <template #append>
         <v-btn
           color="grey-lighten-1"
