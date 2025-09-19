@@ -134,7 +134,7 @@ const fetchAllOnu = async () => {
 
   const parksOnuData = await Promise.all(promiseList);
   const fiberhomeOnuData =
-    city === "NOVA HARTZ" ? await fetchFiberhomeOnu() : [];
+    !city || city === "NOVA HARTZ" ? await fetchFiberhomeOnu() : [];
   onuList.value = [...parksOnuData.flat(), ...fiberhomeOnuData];
   onuListCopy.value = onuList.value;
   vLanList.value = onuList.value
@@ -214,7 +214,7 @@ onMounted(async () => {
       <v-card-title class="bg-orange">
         <div class="d-flex justify-space-between align-center">
           <div class="d-flex">
-            <p class="me-2">ONUS PARKS</p>
+            <p class="me-2">CPE´S LISTA</p>
             <v-icon>mdi-circle-box</v-icon>
           </div>
           <div>
@@ -224,7 +224,7 @@ onMounted(async () => {
       </v-card-title>
     </slot>
     <v-card-text>
-      <v-container>
+      <slot name="search">
         <v-row no-gutters>
           <v-col cols="12">
             <v-text-field
@@ -247,34 +247,34 @@ onMounted(async () => {
             ></v-autocomplete>
           </v-col>
         </v-row>
-        <v-row no-gutters>
-          <v-col cols="12">
-            <div v-if="onuList.length">
-              <OnuList :onu-list="filterOnuList || onuList" />
-              <v-btn
-                v-if="onuList.length <= 16"
-                color="primary"
-                @click="fetchAllOnu"
-                variant="tonal"
-                >VER TODOS</v-btn
-              >
+      </slot>
+      <v-row no-gutters>
+        <v-col cols="12">
+          <div v-if="onuList.length">
+            <OnuList :onu-list="filterOnuList || onuList" />
+            <v-btn
+              v-if="onuList.length <= 16"
+              @click="emit('exit')"
+              variant="tonal"
+              color="error"
+              >Fechar</v-btn
+            >
+          </div>
+          <div v-else>
+            <div class="d-flex justify-center align-center">
+              <v-progress-circular
+                color="orange"
+                indeterminate
+                :size="105"
+                :width="9"
+              ></v-progress-circular>
             </div>
-            <div v-else>
-              <div class="d-flex justify-center align-center">
-                <v-progress-circular
-                  color="orange"
-                  indeterminate
-                  :size="105"
-                  :width="9"
-                ></v-progress-circular>
-              </div>
-              <p class="subtitle text-center text-warning mt-4">
-                Carregando lista de clientes
-              </p>
-            </div>
-          </v-col>
-        </v-row>
-      </v-container>
+            <p class="subtitle text-center text-warning mt-4">
+              Carregando lista de clientes
+            </p>
+          </div>
+        </v-col>
+      </v-row>
     </v-card-text>
   </v-card>
 </template>

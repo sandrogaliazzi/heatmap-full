@@ -1,8 +1,9 @@
 <script setup>
-import { inject } from "vue";
+import { inject, ref } from "vue";
 import { useTomodatStore } from "@/stores/tomodat";
 import { useNotificationStore } from "@/stores/notification";
 import fetchApi from "@/api";
+import HubsoftClientPanel from "../CtoModalDialog/HubsoftClientPanel.vue";
 
 const { source } = defineProps(["source"]);
 
@@ -42,6 +43,8 @@ const setCto = ({ ctoId, ctoName, id, name, apartment_id }) => {
   tomodatStore.mapZoom = 16;
   closeDialog();
 };
+
+const client = ref(null);
 </script>
 
 <template>
@@ -70,12 +73,13 @@ const setCto = ({ ctoId, ctoName, id, name, apartment_id }) => {
       ></v-btn>
       <v-btn
         color="grey-lighten-1"
-        icon="mdi-delete"
         variant="text"
-        v-role="['adm']"
         v-if="!source.city"
-        @click="deleteClient(source.id)"
-      ></v-btn>
+        @click="client = source"
+      >
+        <v-icon icon="mdi-login-variant"></v-icon>
+        <hubsoft-client-panel v-model="client" @delete-client="deleteClient" />
+      </v-btn>
     </template>
   </v-list-item>
 </template>

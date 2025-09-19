@@ -307,13 +307,27 @@ const onClientLocationUpdated = async ({ client, position }) => {
         <v-btn variant="plain" icon="mdi-close" @click="closeDialog" />
       </div>
     </v-card-title>
-    <v-card-subtitle class="mt-3 font-weight-bold"
-      >{{ cto.city == "ZCLIENTES NÃO VERIFICADOS" ? "ARARICA" : cto.city }}
-      |
-      <span :class="freePorts.freePorts <= 0 ? 'text-error' : 'text-success'">
-        PORTAS {{ freePorts.totalPorts }} VAGAS
-        {{ freePorts.freePorts < 0 ? 0 : freePorts.freePorts }}
-      </span>
+    <v-card-subtitle
+      class="mt-3 font-weight-bold d-flex justify-space-between align-center"
+    >
+      <div>
+        {{ cto.city == "ZCLIENTES NÃO VERIFICADOS" ? "ARARICA" : cto.city }}
+        |
+        <span :class="freePorts.freePorts <= 0 ? 'text-error' : 'text-success'">
+          PORTAS {{ freePorts.totalPorts }} VAGAS
+          {{ freePorts.freePorts < 0 ? 0 : freePorts.freePorts }}
+        </span>
+      </div>
+
+      <v-chip append-icon="mdi-note-text" link>
+        ver anotações
+        <CtoNotes
+          :notes="ctoNotes"
+          :ctoId="cto.id"
+          @reload-notes="onNotesReload"
+          :key="notesKey"
+        />
+      </v-chip>
     </v-card-subtitle>
 
     <CtoMap
@@ -332,7 +346,7 @@ const onClientLocationUpdated = async ({ client, position }) => {
 
     <v-window v-model="slideNumber" class="overflow-auto">
       <v-window-item :value="1">
-        <v-card-text class="pa-5">
+        <v-card-text style="padding-bottom: 0">
           <template v-if="!isDataLoading">
             <template v-if="!showOnuCard">
               <CtoClientsList
@@ -352,12 +366,6 @@ const onClientLocationUpdated = async ({ client, position }) => {
                 <v-icon size="200px">mdi-account-group</v-icon>
                 <p class="text-button">Nenhum cliente cadastrado</p>
               </v-sheet>
-              <CtoNotes
-                :notes="ctoNotes"
-                :ctoId="cto.id"
-                @reload-notes="onNotesReload"
-                :key="notesKey"
-              />
             </template>
           </template>
           <v-sheet
@@ -404,7 +412,10 @@ const onClientLocationUpdated = async ({ client, position }) => {
         ></CeCard>
       </v-window-item>
     </v-window>
-    <v-card-actions style="margin-top: auto" v-if="slideNumber == 1">
+    <v-card-actions
+      style="margin-top: auto"
+      v-if="slideNumber == 1 && !showOnuCard"
+    >
       <v-btn
         block
         variant="tonal"
@@ -421,6 +432,9 @@ const onClientLocationUpdated = async ({ client, position }) => {
       @exit="showOnuCard = false"
     >
       <template #header>
+        <span class="d-none"></span>
+      </template>
+      <template #search>
         <span class="d-none"></span>
       </template>
     </ClientesOnuCard>

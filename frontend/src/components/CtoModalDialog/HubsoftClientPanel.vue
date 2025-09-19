@@ -24,7 +24,7 @@ const findClientOnHubsoft = async (isDialogOpen) => {
     loadingHubsoftData.value = true;
     const response = await hubApi.get(
       `/api/v1/integracao/cliente?inativo=todos&ultima_conexao=sim&busca=nome_razaosocial&termo_busca=${normalizeName(
-        client.value.name
+        client.value.name || client.value.client
       )}`
     );
 
@@ -130,7 +130,13 @@ const openNewTab = (ipv4) => {
                       {{ service.status }}
                     </div>
                     <div class="text-caption">Pppoe: {{ service?.login }}</div>
-                    <div class="text-caption">Serviço: {{ service?.nome }}</div>
+                    <div class="text-caption">Serviço: {{ service.nome }}</div>
+                    <div class="text-caption">
+                      id_serivco: {{ service.id_cliente_servico }}
+                    </div>
+                    <div class="text-caption font-weight-bold">
+                      Referencia: {{ service?.referencia }}
+                    </div>
                     <div class="text-h6 mb-1">
                       Ipv4:
                       {{

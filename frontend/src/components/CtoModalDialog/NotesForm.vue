@@ -85,6 +85,7 @@ const closeForm = () => {
       color="success"
       size="small"
       icon="mdi-plus"
+      v-if="!showForm"
       @click="showForm = !showForm"
     ></v-btn>
     <v-btn
@@ -100,10 +101,10 @@ const closeForm = () => {
     <v-row>
       <v-col cols="12">
         <v-text-field
-          label="Nota"
-          append-inner-icon="mdi-plus"
-          @click:append-inner="onSaveNoteClick"
-          variant="outlined"
+          label="Escrver anotação"
+          append-icon="mdi-note-plus"
+          @click:append="onSaveNoteClick"
+          variant="underlined"
           v-model="note"
         ></v-text-field>
       </v-col>
