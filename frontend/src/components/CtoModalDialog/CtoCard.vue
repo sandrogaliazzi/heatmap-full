@@ -307,27 +307,13 @@ const onClientLocationUpdated = async ({ client, position }) => {
         <v-btn variant="plain" icon="mdi-close" @click="closeDialog" />
       </div>
     </v-card-title>
-    <v-card-subtitle
-      class="mt-3 font-weight-bold d-flex flex-wrap ga-2 justify-space-between align-center"
-    >
-      <div>
-        {{ cto.city == "ZCLIENTES NÃO VERIFICADOS" ? "ARARICA" : cto.city }}
-        |
-        <span :class="freePorts.freePorts <= 0 ? 'text-error' : 'text-success'">
-          PORTAS {{ freePorts.totalPorts }} VAGAS
-          {{ freePorts.freePorts < 0 ? 0 : freePorts.freePorts }}
-        </span>
-      </div>
-
-      <v-chip append-icon="mdi-note-text" link>
-        ver anotações
-        <CtoNotes
-          :notes="ctoNotes"
-          :ctoId="cto.id"
-          @reload-notes="onNotesReload"
-          :key="notesKey"
-        />
-      </v-chip>
+    <v-card-subtitle class="mt-3 font-weight-bold"
+      >{{ cto.city == "ZCLIENTES NÃO VERIFICADOS" ? "ARARICA" : cto.city }}
+      |
+      <span :class="freePorts.freePorts <= 0 ? 'text-error' : 'text-success'">
+        PORTAS {{ freePorts.totalPorts }} VAGAS
+        {{ freePorts.freePorts < 0 ? 0 : freePorts.freePorts }}
+      </span>
     </v-card-subtitle>
 
     <CtoMap

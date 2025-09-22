@@ -30,6 +30,31 @@ const onSelectedNote = (n) => {
             @reload-notes="() => emit('reloadNotes')"
             v-if="notes"
           />
+          <NotesForm
+            v-model:show-form="showForm"
+            v-model:selected-id="selectedId"
+            v-model:note="note"
+            :cto-id="ctoId"
+            @reload-notes="() => emit('reloadNotes')"
+          />
+        </v-card-text>
+        <v-card-actions>
+          <v-btn @click="isActive.value = false">Fechar</v-btn>
+        </v-card-actions>
+      </v-card>
+    </template>
+  </v-dialog>
+  <v-dialog activator="parent" max-width="800">
+    <template #default="{ isActive }">
+      <v-card>
+        <v-card-text>
+          <Noteslist
+            :notes="notes"
+            :cto-id="ctoId"
+            @select-note="onSelectedNote"
+            @reload-notes="() => emit('reloadNotes')"
+            v-if="notes"
+          />
           <div v-else>Não há anotações para esta caixa</div>
           <NotesForm
             v-model:show-form="showForm"
