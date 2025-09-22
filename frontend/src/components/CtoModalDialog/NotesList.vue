@@ -64,9 +64,9 @@ const deleteNote = async (note) => {
       :subtitle="setNoteSubtitle(note)"
       prepend-icon="mdi-text"
     >
-      <v-list-title>
+      <v-list-item-title>
         <div class="text-wrap text-caption">{{ note.note }}</div>
-      </v-list-title>
+      </v-list-item-title>
       <template #append>
         <v-btn
           color="grey-lighten-1"

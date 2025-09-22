@@ -174,7 +174,7 @@ const showClientSignalHistory = async (client) => {
     </v-list-subheader>
     <v-virtual-scroll
       class="pt-0"
-      height="400"
+      height="600"
       item-height="50"
       :items="onuList"
     >
