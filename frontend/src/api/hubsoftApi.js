@@ -6,10 +6,10 @@ let token = null;
 async function getAuthToken() {
   try {
     const response = await axios.post(`${BASE_URL}/oauth/token`, {
-      client_id: "22",
+      client_id: "65",
       client_secret: import.meta.env.VITE_HUBSOFT_API_CLIENT_SECRET,
-      username: "sandro@conectnet.net",
-      password: import.meta.env.VITE_HUBSOFT_API_CLIENT_PASSWORD,
+      username: "heatmap@conectnet.net",
+      password: `#${import.meta.env.VITE_HUBSOFT_API_CLIENT_PASSWORD}`,
       grant_type: "password",
     });
 
