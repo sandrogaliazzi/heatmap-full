@@ -12,6 +12,7 @@ const eventSchema = new mongoose.Schema({
   closeDescription: { type: String, required: false },
   eventLocale: { type: Object, required: true },
   message_id: { type: Number, required: true },
+  alerta_id: { type: Number, required: false },
 });
 
 const event = mongoose.model("events", eventSchema);

@@ -1,7 +1,9 @@
 <script setup>
-import { ref, inject, watch, onUnmounted } from "vue";
+import { ref, inject, watch, onUnmounted, onMounted } from "vue";
 import telegram from "@/api/telegramApi.js";
 import fetchApi from "@/api";
+import hubSoftApi from "@/api/hubSoftApi.js";
+
 const chat_id = import.meta.env.VITE_TELEGRAM_CHAT_ID;
 
 const { eventLocale, event, eventAction } = defineProps([
@@ -20,6 +22,7 @@ const eventClass = ref(event.eventClass || "");
 const startTime = ref(event.startTime || new Date().toLocaleString());
 const closeDialog = inject("closeDialog");
 const formRef = ref(null);
+const pop = ref(null);
 
 const inputRules = [
   (value) => {
@@ -110,6 +113,86 @@ const replyTelegramMessage = async (message, id) => {
   }
 };
 
+const getPopList = async () => {
+  try {
+    const response = await hubSoftApi.get("/api/v1/integracao/rede/pop");
+    return response.data.pops;
+  } catch (error) {
+    console.error("Error fetching POP list:", error);
+    return [];
+  }
+};
+
+const interfaces = ref([]);
+const interfaceSelection = ref([]);
+
+const loadInterfaces = async (id_equipamento) => {
+  try {
+    const response = await hubSoftApi.get(
+      "api/v1/integracao/rede/equipamento?busca=id_equipamento&termo_busca=" +
+        id_equipamento
+    );
+    if (response.status === 200) {
+      return response.data.equipamentos
+        .map((equip) =>
+          equip.interfaces.map((interface_) => ({
+            ...interface_,
+            nome_equipamento: equip.nome,
+          }))
+        )
+        .flat();
+    }
+  } catch (error) {
+    console.log("erro ao buscar interfaces", error.message);
+  }
+};
+
+const saveHubSoftAlarm = async (bodyRequest) => {
+  try {
+    const response = await hubSoftApi.post(
+      "/api/v1/integracao/configuracao/alerta",
+      bodyRequest
+    );
+    if (response.data.status === "success") {
+      return response.data.alerta[0].id_alerta;
+    } else {
+      console.error("Erro ao salvar alarme no HubSoft:", response);
+    }
+  } catch (error) {
+    console.error("Erro ao salvar alarme no HubSoft:", error);
+  }
+};
+
+const deleteHubSoftAlarm = async (id_alerta) => {
+  try {
+    const response = await hubSoftApi.delete(
+      `/api/v1/integracao/configuracao/alerta/${id_alerta}`
+    );
+    if (response.data.status === "success") {
+      console.log("Alarme deletado com sucesso no HubSoft");
+    } else {
+      console.error("Erro ao deletar alarme no HubSoft:", response);
+    }
+  } catch (error) {
+    console.error("Erro ao deletar alarme no HubSoft:", error);
+  }
+};
+
+watch(pop, async (newPop) => {
+  if (newPop) {
+    const interaceList = await Promise.all(
+      newPop.equipamentos.map(async (equip) => {
+        const interfaces = await loadInterfaces(equip.id_equipamento);
+        return interfaces;
+      })
+    );
+    interfaces.value = interaceList.flat();
+    console.log("interfaces da pop selecionada", interfaces.value);
+  } else {
+    interfaces.value = [];
+  }
+});
+
 const saveEvent = async (bodyRequest) => {
   const req = event._id
     ? {
@@ -152,11 +235,22 @@ const handleSubmit = async () => {
     };
 
     let message_id;
+    let alerta_id;
 
     switch (eventAction) {
       case "":
+        const alarmConfig = {
+          descricao: openDescription.value,
+          visivel_via_api: true,
+          atendimento: true,
+          pops: [{ id_pop: pop.value.id_pop }],
+          interface_conexao: interfaceSelection.value.map((id) => ({
+            id_interface_conexao: id,
+          })),
+        };
         message_id = await sendMessageToTelegram(bodyRequest);
-        await saveEvent({ ...bodyRequest, message_id });
+        alerta_id = await saveHubSoftAlarm(alarmConfig);
+        await saveEvent({ ...bodyRequest, message_id, alerta_id });
         break;
 
       case "update":
@@ -166,6 +260,7 @@ const handleSubmit = async () => {
 
       case "close":
         message_id = await replyTelegramMessage(bodyRequest, event.message_id);
+        await deleteHubSoftAlarm(event.alerta_id);
         await saveEvent({
           ...bodyRequest,
           message_id,
@@ -188,6 +283,13 @@ watch(mapRef, (googleMaps) => {
       });
     });
   }
+});
+
+const popList = ref([]);
+
+onMounted(async () => {
+  popList.value = await getPopList();
+  console.log(popList.value);
 });
 
 onUnmounted(() => emit("closeMarker"));
@@ -214,11 +316,11 @@ onUnmounted(() => emit("closeMarker"));
           <v-row>
             <v-col>
               <v-text-field
-            type="text"
-            label="Título do evento"
-            v-model="title"
-            :rules="inputRules"
-          >
+                type="text"
+                label="Título do evento"
+                v-model="title"
+                :rules="inputRules"
+              >
               </v-text-field>
             </v-col>
           </v-row>
@@ -243,19 +345,38 @@ onUnmounted(() => emit("closeMarker"));
                 :rules="inputRules"
               ></v-select>
             </v-col>
+          </v-row>
+          <v-row>
             <v-col>
-              <v-text-field
-                type="text"
-                label="Previsão fim"
-                v-model="timeToLive"
-              ></v-text-field>
+              <v-select
+                label="Selecionar pop"
+                :items="popList"
+                :item-title="(item) => item.nome"
+                :item-value="(item) => item"
+                v-model="pop"
+                :rules="inputRules"
+              ></v-select>
             </v-col>
+          </v-row>
+
+          <v-row>
             <v-col>
-              <v-text-field
-                type="text"
-                label="Protocólo"
-                v-model="eventCode"
-              ></v-text-field>
+              <v-select
+                v-if="pop"
+                :rules="inputRules"
+                clearable
+                label="selecionar interfaces"
+                v-model="interfaceSelection"
+                :items="interfaces"
+                :item-title="
+                  (item) => `${item.nome} - ${item.nome_equipamento}`
+                "
+                :item-value="(item) => item.id_interface_conexao"
+                prepend-inner-icon="mdi-hdmi-port"
+                placeholder="Selecione a interface"
+                chips
+                multiple
+              ></v-select>
             </v-col>
           </v-row>
 

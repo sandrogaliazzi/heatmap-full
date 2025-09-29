@@ -209,7 +209,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <v-card style="min-height: 450px" class="overflow-auto" variant="text">
+  <v-card style="min-height: 450px" class="overflow-auto">
     <slot name="header">
       <v-card-title class="bg-orange">
         <div class="d-flex justify-space-between align-center">
