@@ -2,7 +2,7 @@
 import { ref, inject, watch, onUnmounted, onMounted } from "vue";
 import telegram from "@/api/telegramApi.js";
 import fetchApi from "@/api";
-import hubSoftApi from "@/api/hubSoftApi.js";
+import hubSoftApi from "@/api/hubsoftApi.js";
 
 const chat_id = import.meta.env.VITE_TELEGRAM_CHAT_ID;
 
