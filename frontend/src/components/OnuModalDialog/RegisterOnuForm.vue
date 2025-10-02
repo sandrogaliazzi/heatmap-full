@@ -43,8 +43,6 @@ const loadInterfaces = async () => {
           }))
         )
         .flat();
-
-      console.log("interfaces carregadas", interfaces.value);
     }
   } catch (error) {
     console.log("erro ao buscar interfaces", error.message);

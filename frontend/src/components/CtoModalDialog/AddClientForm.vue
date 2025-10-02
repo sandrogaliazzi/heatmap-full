@@ -111,16 +111,6 @@ const handleFormSubmit = async () => {
             required
           ></v-text-field>
         </v-col>
-        <v-col cols="12">
-          <v-text-field
-            v-model="pppoe"
-            :rules="pppoeRules"
-            label="Pppoe"
-            type="text"
-            required
-          >
-          </v-text-field>
-        </v-col>
         <v-col cols="6">
           <v-text-field
             v-model="clientPosition.lat"

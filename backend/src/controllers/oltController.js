@@ -109,6 +109,278 @@ class oltController {
       });
   };
 
+  static VerificarPerfisGpon = (req, res) => {
+    const host = req.body.oltIp;
+    const username = process.env.PARKS_USERNAME;
+    const password = `#${process.env.PARKS_PASSWORD}`;
+    const conn = new Client();
+
+    conn
+      .on("ready", () => {
+        conn.shell((err, stream) => {
+          if (err) {
+            console.error(err);
+            res.status(500).json({ error: "Erro ao conectar na OLT" });
+            return;
+          }
+
+          let dataBuffer = "";
+          let perfis = [];
+          let currentPerfil = null;
+
+          stream
+            .on("close", () => {
+              // Processa qualquer dado restante no buffer
+              if (dataBuffer.trim()) {
+                processDataBuffer(dataBuffer);
+              }
+              // Adiciona o último perfil se existir
+              if (currentPerfil) {
+                perfis.push(currentPerfil);
+              }
+
+              res.status(200).json(perfis);
+              conn.end();
+            })
+            .on("data", (data) => {
+              dataBuffer += data.toString();
+
+              processDataBuffer(dataBuffer);
+              dataBuffer = "";
+            });
+
+          const processDataBuffer = (buffer) => {
+            const lines = buffer.split("\n");
+
+            for (const line of lines) {
+              const trimmed = line.trim();
+
+              // Ignora linhas de cabeçalho e comandos
+              if (
+                !trimmed ||
+                trimmed.startsWith("Index") ||
+                trimmed.startsWith("----") ||
+                trimmed.includes("show") ||
+                trimmed.includes("exit") ||
+                trimmed.includes("terminal length")
+              ) {
+                continue;
+              }
+
+              // Detecta início de um novo perfil (linha sem "|" e que não é numérica)
+              if (
+                trimmed &&
+                !trimmed.includes("|") &&
+                !/^\d+$/.test(trimmed) &&
+                trimmed !== "-"
+              ) {
+                // Salva o perfil anterior se existir
+                if (currentPerfil && currentPerfil.entries.length > 0) {
+                  perfis.push(currentPerfil);
+                }
+
+                currentPerfil = {
+                  name: trimmed,
+                  entries: [],
+                };
+                continue;
+              }
+
+              // Processa linhas de dados da tabela
+              if (trimmed.includes("|") && currentPerfil) {
+                const values = trimmed
+                  .split("|")
+                  .map((v) => v.trim())
+                  .filter((v) => v !== "");
+
+                // Valida se é uma linha de dados válida (tem pelo menos 8 campos e o primeiro é número)
+                if (values.length >= 8 && !isNaN(parseInt(values[0]))) {
+                  // Para linhas com 8 campos (sem PBMP Ports), adiciona um campo vazio
+                  const normalizedValues =
+                    values.length === 8 ? [...values, ""] : values;
+
+                  const [
+                    index,
+                    type,
+                    vlan,
+                    cos,
+                    encryption,
+                    downstream,
+                    bandwidthName,
+                    shared,
+                    pbmpPorts,
+                  ] = normalizedValues;
+
+                  currentPerfil.entries.push({
+                    index: parseInt(index),
+                    type,
+                    vlan: vlan !== "-" ? parseInt(vlan) : vlan,
+                    cos: cos !== "-" ? cos : null,
+                    encryption,
+                    downstream: parseInt(downstream),
+                    bandwidthName,
+                    shared: shared === "Yes",
+                    pbmpPorts: pbmpPorts || "", // Garante que não seja undefined
+                  });
+                }
+              }
+            }
+          };
+
+          stream.write("terminal length 0\n");
+          stream.write("sh gpon profile flow\n");
+          // Aguarda um tempo para o comando executar antes de sair
+          new Promise((resolve) => setTimeout(resolve, 300)).then(() =>
+            stream.write("exit\n")
+          );
+        });
+      })
+      .on("error", (err) => {
+        console.error(err);
+        res.status(500).json({ error: "Erro ao conectar à OLT" });
+      })
+      .connect({
+        host,
+        port: 22,
+        username,
+        password,
+      });
+  };
+
+  static VerificarVlanTranslation = (req, res) => {
+    const host = req.body.oltIp;
+    const username = process.env.PARKS_USERNAME;
+    const password = `#${process.env.PARKS_PASSWORD}`;
+    const conn = new Client();
+
+    conn
+      .on("ready", () => {
+        conn.shell((err, stream) => {
+          if (err) {
+            console.error(err);
+            res.status(500).json({ error: "Erro ao conectar na OLT" });
+            return;
+          }
+
+          let dataBuffer = "";
+          let translations = [];
+          let currentTranslation = null;
+
+          stream
+            .on("close", () => {
+              // Processa qualquer dado restante no buffer
+              if (dataBuffer.trim()) {
+                processDataBuffer(dataBuffer);
+              }
+              // Adiciona a última tradução se existir
+              if (currentTranslation) {
+                translations.push(currentTranslation);
+              }
+
+              res.status(200).json(translations);
+              conn.end();
+            })
+            .on("data", (data) => {
+              dataBuffer += data.toString();
+
+              processDataBuffer(dataBuffer);
+              dataBuffer = "";
+            });
+
+          const processDataBuffer = (buffer) => {
+            const lines = buffer.split("\n");
+
+            for (const line of lines) {
+              const trimmed = line.trim();
+
+              // Ignora linhas de cabeçalho e comandos
+              if (
+                !trimmed ||
+                trimmed.startsWith("Index") ||
+                trimmed.startsWith("----") ||
+                trimmed.includes("show") ||
+                trimmed.includes("exit") ||
+                trimmed.includes("terminal length")
+              ) {
+                continue;
+              }
+
+              // Detecta início de um novo perfil de VLAN translation (começa com _)
+              if (trimmed && trimmed.startsWith("_") && trimmed.includes(":")) {
+                // Salva a tradução anterior se existir
+                if (
+                  currentTranslation &&
+                  currentTranslation.entries.length > 0
+                ) {
+                  translations.push(currentTranslation);
+                }
+
+                // Extrai o nome do perfil (remove o : no final)
+                const profileName = trimmed.replace(":", "").trim();
+
+                currentTranslation = {
+                  name: profileName,
+                  entries: [],
+                };
+                continue;
+              }
+
+              // Processa linhas de dados da tabela
+              if (trimmed.includes("|") && currentTranslation) {
+                const values = trimmed
+                  .split("|")
+                  .map((v) => v.trim())
+                  .filter((v) => v !== "");
+
+                // Valida se é uma linha de dados válida (tem pelo menos 6 campos e o primeiro é número)
+                if (values.length >= 6 && !isNaN(parseInt(values[0]))) {
+                  const [
+                    index,
+                    mode,
+                    vlanX,
+                    vlanC,
+                    filterPrio,
+                    vlanPrio,
+                    // O último campo pode ser "F->X-F" ou similar
+                  ] = values;
+
+                  // Pega o último campo que pode ser a direção da tradução
+                  const direction = values[6] || "";
+
+                  currentTranslation.entries.push({
+                    index: parseInt(index),
+                    mode,
+                    vlanX: vlanX !== "-" ? parseInt(vlanX) : vlanX,
+                    vlanC: vlanC !== "-" ? parseInt(vlanC) : vlanC,
+                    filterPrio: filterPrio !== "-" ? filterPrio : null,
+                    vlanPrio: vlanPrio !== "-" ? parseInt(vlanPrio) : vlanPrio,
+                    direction: direction,
+                  });
+                }
+              }
+            }
+          };
+
+          stream.write("terminal length 0\n");
+          stream.write("sh gpon profile vlan-translation\n");
+          // Aguarda um tempo para o comando executar antes de sair
+          new Promise((resolve) => setTimeout(resolve, 300)).then(() =>
+            stream.write("exit\n")
+          );
+        });
+      })
+      .on("error", (err) => {
+        console.error(err);
+        res.status(500).json({ error: "Erro ao conectar à OLT" });
+      })
+      .connect({
+        host,
+        port: 22,
+        username,
+        password,
+      });
+  };
+
   static VerificarOnu = (req, res) => {
     let host = req.body.oltIp;
     let onuAlias = req.body.onuAlias;
@@ -745,6 +1017,72 @@ class oltController {
         port: 22,
         username: username,
         password: password,
+      });
+  };
+
+  static liberarOnuAvulsa = (req, res) => {
+    const { oltIp, oltPon, script } = req.body;
+
+    const conn = new Client();
+    const host = oltIp;
+    const username = process.env.PARKS_USERNAME;
+    const password = `#${process.env.PARKS_PASSWORD}`;
+
+    conn
+      .on("ready", () => {
+        console.log("Conectado à OLT:", oltIp);
+
+        conn.shell((err, stream) => {
+          if (err) {
+            console.error("Erro ao iniciar shell:", err);
+            return res.status(500).json({ status: "ERROR", msg: err.message });
+          }
+
+          stream
+            .on("close", () => {
+              console.log("Sessão SSH encerrada.");
+              conn.end();
+              res
+                .status(200)
+                .json({ status: "OK", msg: "Script executado com sucesso" });
+            })
+            .on("data", (data) => {
+              console.log(data.toString()); // apenas loga o output
+            })
+            .stderr.on("data", (data) => {
+              console.error("STDERR:", data.toString());
+            });
+
+          const comandos = [
+            "configure terminal",
+            `interface ${oltPon}`,
+            ...script.split("\n"),
+            "end",
+            "copy r s",
+            "exit", // garante fechamento do shell
+          ];
+
+          console.log("Enviando script para OLT...");
+          let i = 0;
+
+          const enviarComando = () => {
+            if (i < comandos.length) {
+              const cmd = comandos[i];
+              stream.write(cmd + "\n");
+              console.log("➡️  " + cmd);
+              i++;
+              setTimeout(enviarComando, 300);
+            }
+          };
+
+          enviarComando();
+        });
+      })
+      .connect({
+        host,
+        port: 22,
+        username,
+        password,
       });
   };
 }

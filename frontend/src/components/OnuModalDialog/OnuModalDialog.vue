@@ -9,7 +9,7 @@ import RegisterOnuForm from "./RegisterOnuForm";
 import AfterOnuSubmit from "./AfterOnuSubmit";
 
 const baseOltIp = "192.168";
-const oltIpRange = [202, 203, 204, 205, 206, 207, 208, 209, 212, 213, 216];
+const oltIpRange = [202, 203, 204, 205, 206, 207, 208, 209, 212, 213, 216, 218];
 const loadingApi = ref(true);
 const oltRamals = ref([]);
 const unauthorizedOnuList = ref([]);
@@ -107,9 +107,12 @@ onMounted(async () => {
   await fetchAll();
 });
 
+const key = ref(0);
+
 const resgisterOnu = (onu) => {
   windowNumer.value++;
   selectedOnu.value = onu;
+  key.value++;
 };
 
 const showOnuRegisterStatus = (data) => {
@@ -169,6 +172,7 @@ const closeDialog = inject("closeDialog");
         <v-window-item :value="2">
           <RegisterOnuForm
             :form-data="selectedOnu"
+            :key="key"
             @update:onu-register-with-success="showOnuRegisterStatus"
           />
         </v-window-item>

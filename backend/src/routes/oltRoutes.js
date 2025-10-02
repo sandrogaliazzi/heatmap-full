@@ -18,6 +18,8 @@ router
   .post("/listar-onu", auth, oltController.listarOnu)
   .get("/descobrir-onu-fiberhome", auth, FiberHomeController.discoverOnus)
   .get("/listar-onu-fiberhome", auth, FiberHomeController.getAllONUsFromUNM)
+  .post("/listar-perfis-gpon-parks", oltController.VerificarPerfisGpon)
+  .post("/listar-vlan-translation", oltController.VerificarVlanTranslation)
   .post("/liberar-onu-fiberhome", auth, FiberHomeController.addAndConfigOnu)
   .post("/verificar-onu-fiberhome", auth, FiberHomeController.getOnuSignals)
   .post("/verificar-onu", auth, oltController.VerificarOnu)
@@ -26,6 +28,7 @@ router
   .post("/verificar-onu-name-pon", auth, oltController.VerificarNomeOnuPon)
   .post("/verificar-onu-name-olt", auth, oltController.VerificarNomeOnuOlt)
   .post("/liberar-onu", auth, oltController.liberarOnu)
+  .post("/liberar-onu-avulsa", auth, oltController.liberarOnuAvulsa)
   .post("/editar-onu", auth, OnuController.EditOnu, oltController.EditarOnu);
 
 export default router;

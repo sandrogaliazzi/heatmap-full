@@ -14,6 +14,7 @@ import OsMap from "./OsMap.vue";
 import OsList from "../Ativacoes/OsList.vue";
 import ReservadosList from "../Reservados/ReservadosList.vue";
 import router from "@/router";
+import ProfileConfig from "../OnuModalDialog/ProfileConfig.vue";
 
 const tomodatStore = useTomodatStore();
 const { selectedCto } = storeToRefs(tomodatStore);
@@ -38,6 +39,7 @@ const openRamalDialog = ref(false);
 const openAtivacoesDialog = ref(false);
 const openOsDialog = ref(false);
 const openReservadosDialog = ref(false);
+const openProvisionDialog = ref(false);
 const onuKey = ref(1);
 
 const emit = defineEmits(["logout:user"]);
@@ -52,6 +54,7 @@ const onCloseDialog = (value) => {
   openOsDialog.value = value;
   openAtivacoesDialog.value = value;
   openReservadosDialog.value = value;
+  openProvisionDialog.value = value;
 };
 </script>
 
@@ -173,6 +176,14 @@ const onCloseDialog = (value) => {
         @click="openOnuDialog = true"
       ></v-list-item>
       <v-list-item
+        prepend-icon="mdi-cog-box"
+        title="Provisionar CPE avulsa"
+        color="orange"
+        value="CPE"
+        v-role="['adm', 'tecnico']"
+        @click="openProvisionDialog = true"
+      ></v-list-item>
+      <v-list-item
         prepend-icon="mdi-circle-box"
         title="Lista Cpes"
         color="orange"
@@ -232,5 +243,8 @@ const onCloseDialog = (value) => {
     @update:modalValue="onCloseDialog"
   >
     <OsMap />
+  </DialogBox>
+  <DialogBox :isOpen="openProvisionDialog" @update:modalValue="onCloseDialog">
+    <ProfileConfig />
   </DialogBox>
 </template>
