@@ -266,6 +266,8 @@ const onClientLocationUpdated = async ({ client, position }) => {
     alert("Ocorreu um erro ao atualizar a localizacao");
   }
 };
+
+const serviceLocation = ref("teste");
 </script>
 
 <template>
@@ -334,6 +336,7 @@ const onClientLocationUpdated = async ({ client, position }) => {
       :center="mapCenter"
       :key="mapKey"
       :ctoPosition="center"
+      :serviceLocation="serviceLocation"
       :clients="clientsWithLocation"
       :userLocation="userLocation"
       :openGmapTab="openNewGMapTab"
@@ -353,6 +356,7 @@ const onClientLocationUpdated = async ({ client, position }) => {
                 v-if="clients.length > 0"
                 :clients="clients"
                 :cto="cto.id"
+                :cto-name="cto.name"
                 :clients-with-location="clientsWithLocation"
                 @adduser:location="(client) => addUserLocation(client)"
                 @delete-user="loadCtoData"
@@ -388,6 +392,7 @@ const onClientLocationUpdated = async ({ client, position }) => {
             :clientPosition="positionClicked"
             :cto="cto"
             @update-cto-clietns="loadCtoData({ slide: true })"
+            @update-service-location="serviceLocation = $event"
           />
         </v-card-text>
 

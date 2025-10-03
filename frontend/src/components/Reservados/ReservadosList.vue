@@ -42,7 +42,9 @@ const openNewGMapTab = (reserva) => {
 
 const deleteReservado = async (reserva) => {
   try {
-    await fetchApi.delete(`/reservados/${reserva._id}/${reserva.tomodat_id}`);
+    await fetchApi.delete(`/reservados/${reserva._id}/${reserva.tomodat_id}`, {
+      onlyReservado: false,
+    });
     notification.setNotification({
       status: "success",
       msg: `Reserva de ${reserva.name} removida com sucesso!`,

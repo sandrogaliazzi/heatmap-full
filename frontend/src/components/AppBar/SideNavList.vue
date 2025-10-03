@@ -167,14 +167,14 @@ const onCloseDialog = (value) => {
           v-role="['adm', 'tecnico']"
         ></v-list-item>
       </v-list-group>
-      <v-list-item
+      <!-- <v-list-item
         prepend-icon="mdi-set-top-box"
         title="Cpes não autorizadas"
         color="orange"
         value="ONU"
         v-role="['adm', 'tecnico']"
         @click="openOnuDialog = true"
-      ></v-list-item>
+      ></v-list-item> -->
       <v-list-item
         prepend-icon="mdi-cog-box"
         title="Provisionar CPE avulsa"
@@ -216,7 +216,11 @@ const onCloseDialog = (value) => {
     <CameraForm />
   </DialogBox>
   <DialogBox :isOpen="openOnuDialog" @update:modalValue="onCloseDialog">
-    <OnuModalDialog :key="onuKey" @update:force-render="onuKey++" />
+    <OnuModalDialog
+      :key="onuKey"
+      @update:force-render="onuKey++"
+      :hubsoft-data="{}"
+    />
   </DialogBox>
   <DialogBox :isOpen="openEmailDialog" @update:modalValue="onCloseDialog">
     <EmailModalDialog />

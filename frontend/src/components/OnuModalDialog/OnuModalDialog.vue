@@ -3,6 +3,7 @@ import { inject, ref, onMounted, computed } from "vue";
 import fetchApi from "@/api";
 
 const emit = defineEmits(["update:forceRender"]);
+defineProps(["hubsoftData"]);
 
 import OnuList from "./UnAuthOnuList";
 import RegisterOnuForm from "./RegisterOnuForm";
@@ -172,6 +173,7 @@ const closeDialog = inject("closeDialog");
         <v-window-item :value="2">
           <RegisterOnuForm
             :form-data="selectedOnu"
+            :hubsoft-data="hubsoftData"
             :key="key"
             @update:onu-register-with-success="showOnuRegisterStatus"
           />

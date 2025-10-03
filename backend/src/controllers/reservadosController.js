@@ -51,11 +51,12 @@ class ReservadosController {
 
   static DeleteReservados = async (req, res) => {
     const { tomodat_id, id } = req.params;
+    const { onlyReservado } = req.body;
     try {
-      await Promise.all([
-        Reservados.findByIdAndDelete(id),
-        deleteClientFromTomodat(tomodat_id),
-      ]);
+      await Reservados.findByIdAndDelete(id);
+      if (!onlyReservado) {
+        await deleteClientFromTomodat(tomodat_id);
+      }
       res.status(200).json({ message: "Deleted successfully" });
     } catch (error) {
       res.status(400).json({ message: error.message });

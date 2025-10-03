@@ -12,6 +12,7 @@ const props = defineProps([
   "slideNumber",
   "userLocation",
   "clients",
+  "serviceLocation",
 ]);
 const emit = defineEmits([
   "positionSelected",
@@ -51,8 +52,8 @@ const isClientMarkersVisible = computed(() =>
   slideNumber.value === 1 ? true : false
 );
 
-const onMapClick = (position) => {
-  positionClicked.value = position;
+const onMapClick = (position, drag) => {
+  if (!drag) positionClicked.value = position;
   emit("positionSelected", position);
 };
 
@@ -102,7 +103,16 @@ watch(isMapVisible, () => (positionClicked.value = null));
           }"
           :animation="1"
         />
-        <template v-if="hasLocatedClients && isClientMarkersVisible">
+        <GMapMarker
+          v-if="serviceLocation"
+          :position="{
+            lat: serviceLocation.latitude,
+            lng: serviceLocation.longitude,
+          }"
+          :draggable="true"
+          @dragend="(event) => onMapClick(event.latLng.toJSON(), true)"
+        />
+        <template v-if="hasLocatedClients">
           <GMapMarker
             v-for="client in locatedClients"
             :key="client.id"

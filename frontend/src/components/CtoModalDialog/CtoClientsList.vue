@@ -4,9 +4,9 @@ import { useNotificationStore } from "@/stores/notification";
 import fetchApi from "@/api";
 import HubsoftClientPanel from "./HubsoftClientPanel.vue";
 
-const props = defineProps(["clients", "cto", "clientsWithLocation"]);
+const props = defineProps(["clients", "cto", "ctoName", "clientsWithLocation"]);
 
-const { clients, cto, clientsWithLocation } = toRefs(props);
+const { clients, cto, ctoName, clientsWithLocation } = toRefs(props);
 
 const emit = defineEmits(["adduser:location", "deleteUser", "open:location"]);
 const selected = ref([]);
@@ -85,6 +85,7 @@ const selectedClient = ref(null);
             >{{ client.name }}
             <hubsoft-client-panel
               v-model="selectedClient"
+              :cto="ctoName"
               @delete-client="deleteClient"
             />
           </a>

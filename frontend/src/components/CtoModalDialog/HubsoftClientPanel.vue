@@ -3,18 +3,25 @@ import { ref } from "vue";
 import hubApi from "@/api/hubsoftApi";
 import fetchApi from "@/api";
 import { useWindowSize } from "vue-window-size";
+import Dialog from "../Dialog/Dialog.vue";
+import OnuModalDialog from "../OnuModalDialog/OnuModalDialog.vue";
+
+defineProps(["cto"]);
 
 const loadingHubsoftData = ref(false);
 const client = defineModel();
 const hubSoftClientData = ref(null);
 const emit = defineEmits(["deleteClient"]);
 const { width } = useWindowSize();
+const onuKey = ref(1);
+const openDialog = ref(false);
+const selectedService = ref(null);
 
 const normalizeName = (name) => {
   if (name.includes("(")) {
     return name.split("(")[0].trim();
   }
-
+  name.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   return name.trim();
 };
 
@@ -63,12 +70,41 @@ const getVendor = async (mac) => {
 const loadServices = ref(false);
 const showServicesAuthStatus = ref(false);
 
+const enableService = async (service) => {
+  if (!service || !service.id_cliente_servico) return;
+  if (
+    !confirm(
+      `Deseja realmente habilitar o serviço ${service.nome} - ${service.login}?`
+    )
+  )
+    return;
+
+  loadServices.value = true;
+  try {
+    await hubApi.post(
+      `/api/v1/integracao/cliente/cliente_servico/ativar/${service.id_cliente_servico}`,
+      {
+        id_cliente_servico: service.id_cliente_servico,
+      }
+    );
+  } catch (error) {
+    console.error("erro ao habilitar serviço " + error.message);
+  } finally {
+    loadServices.value = false;
+  }
+};
+
 const port = ref("443");
 const protocol = ref("https");
 
 const openNewTab = (ipv4) => {
   if (!ipv4) return;
   window.open(`${protocol.value}://${ipv4}:${port.value}`, "_blank");
+};
+
+const setOnuProvision = (service) => {
+  selectedService.value = service;
+  openDialog.value = true;
 };
 </script>
 
@@ -112,17 +148,22 @@ const openNewTab = (ipv4) => {
               >Remover cliente</v-btn
             >
             <div
-              class="d-flex flex-column justify-center flex-wrap flex-md-row ga-3"
+              class="d-flex flex-column justify-center flex-wrap ga-3"
               v-if="showServicesAuthStatus"
             >
               <v-card
                 variant="tonal"
                 class="mt-3"
                 width="auto"
+                :loading="loadingHubsoftData"
+                :title="service.nome"
                 v-for="(service, index) in hubSoftClientData.servicos"
                 :color="service.ultima_conexao.conectado ? 'green' : 'red'"
                 :key="service.id_serivco"
               >
+                <template #append>
+                  <v-btn icon="mdi-reload" @click="findClientOnHubsoft"></v-btn>
+                </template>
                 <v-card-item>
                   <div>
                     <div class="mb-1">
@@ -213,6 +254,14 @@ const openNewTab = (ipv4) => {
                     </div>
                   </div>
                 </v-card-item>
+                <v-card-actions>
+                  <v-btn @click="setOnuProvision(service)" variant="outlined"
+                    >Provisionar Cpe</v-btn
+                  >
+                  <v-btn @click="enableService(service)" variant="outlined"
+                    >Habilitar serviço</v-btn
+                  >
+                </v-card-actions>
               </v-card>
               <div class="text-caption mt-3">
                 Sessões de clientes empresariais não serão carregadas
@@ -233,4 +282,19 @@ const openNewTab = (ipv4) => {
       </v-card>
     </template>
   </v-dialog>
+  <Dialog
+    :isOpen="openDialog"
+    @update:modal-value="openDialog = false"
+    :size="800"
+  >
+    <OnuModalDialog
+      :key="onuKey"
+      @update:force-render="onuKey++"
+      :hubsoft-data="{
+        selectedClient: hubSoftClientData,
+        selectedService,
+        cto,
+      }"
+    />
+  </Dialog>
 </template>

@@ -4,24 +4,24 @@ import { useUserStore } from "@/stores/user";
 import fetchApi from "@/api";
 import hubApi from "@/api/hubsoftApi";
 
-const { formData } = defineProps(["formData"]);
+const { formData, hubsoftData } = defineProps(["formData", "hubsoftData"]);
 const emit = defineEmits([
   "update:windowNumber",
   "update:onuRegisterWithSuccess",
 ]);
 
 const formRef = ref(null);
-const cto = ref("");
+const cto = ref(hubsoftData?.cto);
 const tecnico = ref("");
 const userStore = useUserStore();
 const loadingSubmit = ref(false);
 const isDisabledVlanInput = ref(true);
 const clientsFound = ref([]);
 const search = ref("");
-const selectedClient = ref(null);
-const selectedService = ref(null);
+const selectedClient = ref(hubsoftData?.selectedClient);
+const selectedService = ref(hubsoftData?.selectedService);
 const interfaces = ref([]);
-const selectedInterface = ref(null);
+const selectedInterface = ref(hubsoftData?.selectedInterface);
 
 const inputRules = [
   (value) => {
