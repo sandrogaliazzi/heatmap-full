@@ -717,11 +717,12 @@ class oltController {
           }
 
           let dataBuffer = "";
-          let jsonOutput = []; // Change to an array to store ONU data
+          let jsonOutput = [];
+          let currentGpon = ""; // 👈 variável que armazena a interface atual
 
           stream
             .on("close", () => {
-              res.json(jsonOutput); // Send the modified JSON as the response
+              res.json(jsonOutput);
               conn.end();
             })
             .on("data", (data) => {
@@ -729,39 +730,54 @@ class oltController {
               if (dataBuffer.includes("\n")) {
                 const lines = dataBuffer.split("\n");
                 dataBuffer = lines.pop();
-                let onuData = {}; // Create an object to store ONU data temporarily
+                let onuData = {};
 
                 for (const line of lines) {
-                  // console.log("Output: " + line);
+                  const trimmedLine = line.trim();
 
-                  const onuAliasMatch = line.match(
-                    /^\s*(\d+)-([\w-]+)\s+\(([\w-]+)\):/
+                  // 👇 Detecta a interface atual (ex: "Interface gpon1/1")
+                  const interfaceMatch =
+                    trimmedLine.match(/^Interface\s+(\S+)/);
+                  if (interfaceMatch) {
+                    currentGpon = interfaceMatch[1]; // guarda gpon1/1
+                    continue;
+                  }
+
+                  // 👇 Detecta início de uma nova ONU
+                  const onuAliasMatch = trimmedLine.match(
+                    /^(\d+)-([\w-]+)\s+\(([\w-]+)\):/
                   );
                   if (onuAliasMatch) {
                     if (Object.keys(onuData).length > 0) {
-                      jsonOutput.push(onuData); // Add the previous ONU data to the output array
+                      jsonOutput.push(onuData);
                     }
                     onuData = {
                       oltIp: host,
+                      oltGpon: currentGpon, // 👈 adiciona aqui
                       name: onuAliasMatch[2],
                       mac: onuAliasMatch[3],
                     };
-                  } else if (line.includes("Flow profile:")) {
-                    onuData.flowProfile = line.split(":")[1].trim();
-                  } else if (line.includes("Ports VLAN translation profile:")) {
+                  } else if (trimmedLine.includes("Flow profile:")) {
+                    onuData.flowProfile = trimmedLine.split(":")[1].trim();
+                  } else if (
+                    trimmedLine.includes("Ports VLAN translation profile:")
+                  ) {
                     onuData.portsVlanTranslation = {};
-                  } else if (line.includes("Ports Ethernet profile:")) {
+                  } else if (trimmedLine.includes("Ports Ethernet profile:")) {
                     onuData.portsEthernet = {};
                   } else if (
                     onuData.portsVlanTranslation &&
-                    line.includes(":")
+                    trimmedLine.includes(":")
                   ) {
-                    const [port, vlan] = line
+                    const [port, vlan] = trimmedLine
                       .split(":")
                       .map((str) => str.trim());
                     onuData.portsVlanTranslation[port] = vlan;
-                  } else if (onuData.portsEthernet && line.includes(":")) {
-                    const [port, status] = line
+                  } else if (
+                    onuData.portsEthernet &&
+                    trimmedLine.includes(":")
+                  ) {
+                    const [port, status] = trimmedLine
                       .split(":")
                       .map((str) => str.trim());
                     onuData.portsEthernet[port] = status;
@@ -769,17 +785,16 @@ class oltController {
                 }
 
                 if (Object.keys(onuData).length > 0) {
-                  jsonOutput.push(onuData); // Add the last ONU data to the output array
+                  jsonOutput.push(onuData);
                 }
               }
             });
 
           stream.write("terminal length 0\n");
-          stream.write(`sh gpon onu \n`);
+          stream.write(`show gpon onu\n`);
           new Promise((resolve) => setTimeout(resolve, 300)).then(() =>
             stream.write("exit\n")
           );
-          //stream.write("exit\n");
         });
       })
       .on("error", (err) => {
@@ -853,71 +868,67 @@ class oltController {
   };
 
   static EditarOnu = (req, res) => {
-    let host = req.body.oltIp;
-    let gpon = req.body.Interface;
-    let newAlias = req.body.onuAlias;
-    let onuMac = req.body.Serial;
-    console.log(req.body);
+    const { oltGpon, newAlias, mac, oltIp } = req.body;
+    const conn = new Client();
+    const host = oltIp;
     const username = process.env.PARKS_USERNAME;
     const password = `#${process.env.PARKS_PASSWORD}`;
-    const conn = new Client();
 
     conn
       .on("ready", () => {
+        console.log("Conectado à OLT:", oltIp);
+
         conn.shell((err, stream) => {
           if (err) {
-            console.error(err);
-            res.status(500).json({ error: "Error connecting to the OLT" });
-            return;
+            console.error("Erro ao iniciar shell:", err);
+            return res.status(500).json({ status: "ERROR", msg: err.message });
           }
-
-          let dataBuffer = "";
-          let onus = [];
 
           stream
             .on("close", () => {
-              res.json(onus);
+              console.log("Sessão SSH encerrada.");
               conn.end();
+              res
+                .status(200)
+                .json({ status: "OK", msg: "Onu editada com sucesso" });
             })
             .on("data", (data) => {
-              dataBuffer += data.toString();
-              if (dataBuffer.includes("\n")) {
-                const lines = dataBuffer.split("\n");
-
-                dataBuffer = lines.pop();
-                for (const line of lines) {
-                  if (line.includes("|") && !line.includes("Interface")) {
-                    const values = line.split("|").map((value) => value.trim());
-                    const [gpon, onuMac, onuModel] = values;
-
-                    onus.push({
-                      onuMac,
-                      gpon,
-                      onuModel,
-                    });
-                  }
-                }
-              }
+              console.log(data.toString()); // apenas loga o output
+            })
+            .stderr.on("data", (data) => {
+              console.error("STDERR:", data.toString());
             });
-          stream.write("conf t\n");
-          stream.write(`interface ${gpon} \n`);
-          stream.write(`onu ${onuMac} alias ${newAlias} \n`);
-          stream.write("exit\n");
-          stream.write("exit\n");
-          stream.write("copy r s\n");
-          stream.write(`show gpon onu ${onuMac} status\n`);
-          stream.write("exit\n");
+
+          const comandos = [
+            "configure terminal",
+            `interface ${oltGpon}`,
+            `onu ${mac} alias ${newAlias}`,
+            "end",
+            "copy r s",
+            "exit", // garante fechamento do shell
+          ];
+
+          console.log("Enviando script para OLT...");
+          let i = 0;
+
+          const enviarComando = () => {
+            if (i < comandos.length) {
+              const cmd = comandos[i];
+              stream.write(cmd + "\n");
+              console.log("➡️  " + cmd);
+              i++;
+              setTimeout(enviarComando, 300);
+            }
+          };
+
+          enviarComando();
         });
       })
-      .on("error", (err) => {
-        console.error(err);
-        res.status(500).json({ error: "Error connecting to the OLT" });
-      })
       .connect({
-        host: host,
+        host,
         port: 22,
-        username: username,
-        password: password,
+        username,
+        password,
       });
   };
 
@@ -1017,6 +1028,72 @@ class oltController {
         port: 22,
         username: username,
         password: password,
+      });
+  };
+
+  static deleteOnu = (req, res) => {
+    const { oltIp, mac, oltGpon } = req.body;
+
+    const conn = new Client();
+    const host = oltIp;
+    const username = process.env.PARKS_USERNAME;
+    const password = `#${process.env.PARKS_PASSWORD}`;
+
+    conn
+      .on("ready", () => {
+        console.log("Conectado à OLT:", oltIp);
+
+        conn.shell((err, stream) => {
+          if (err) {
+            console.error("Erro ao iniciar shell:", err);
+            return res.status(500).json({ status: "ERROR", msg: err.message });
+          }
+
+          stream
+            .on("close", () => {
+              console.log("Sessão SSH encerrada.");
+              conn.end();
+              res
+                .status(200)
+                .json({ status: "OK", msg: "Onu desautorizada com sucesso" });
+            })
+            .on("data", (data) => {
+              console.log(data.toString()); // apenas loga o output
+            })
+            .stderr.on("data", (data) => {
+              console.error("STDERR:", data.toString());
+            });
+
+          const comandos = [
+            "configure terminal",
+            `interface ${oltGpon}`,
+            `no onu ${mac}`,
+            "end",
+            "copy r s",
+            "exit", // garante fechamento do shell
+          ];
+
+          console.log("Enviando script para OLT...");
+          let i = 0;
+
+          const enviarComando = () => {
+            if (i < comandos.length) {
+              const cmd = comandos[i];
+              stream.write(cmd + "\n");
+              console.log("➡️  " + cmd);
+              i++;
+              setTimeout(enviarComando, 300);
+            }
+          };
+
+          enviarComando();
+        });
+      })
+      .connect({
+        host,
+        port: 22,
+        username,
+        password,
       });
   };
 

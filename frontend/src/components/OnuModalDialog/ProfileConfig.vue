@@ -152,8 +152,14 @@ const getVlanTranslations = async () => {
 const cpeBridgeTranslation = ref({});
 const translationSelection = ref(null);
 
-const mountCpeBridgeScript = (data) => {
-  cpeBridgeTranslation.value[data.port] = data.translation;
+watch(translationSelection, (newTranslation) => {
+  if (newTranslation) {
+    cpeBridgeTranslation.value[newTranslation.port] =
+      newTranslation.translation;
+  }
+});
+
+const mountCpeBridgeScript = () => {
   return gerarScriptOnu(
     cpeBridgeTranslation.value,
     selectedGponProfile.value.name,
@@ -194,7 +200,7 @@ const handleSubmit = async () => {
   if (isVEIPprofile.value) {
     script.value = mountCpeVEIPprofile();
   } else {
-    script.value = mountCpeBridgeScript(translationSelection.value);
+    script.value = mountCpeBridgeScript();
   }
 
   provisionDialog.value = true;

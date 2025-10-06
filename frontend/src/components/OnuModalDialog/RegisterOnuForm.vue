@@ -172,7 +172,7 @@ const handleSubmit = async () => {
       onuModel: formData.onuModel,
       oltRamal: formData.oltRamal,
       onuAlias: toParksTextFormat(
-        normalizeName(selectedClient.value.nome_razaosocial)
+        normalizeName(selectedClient.value.nome_razaosocial.slice(0, 40))
       ),
       sinalTX: formData["Power Level"],
       sinalRX: formData["RSSI"],

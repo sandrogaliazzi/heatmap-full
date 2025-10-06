@@ -2,8 +2,12 @@
 import { ref, computed } from "vue";
 import fetchApi from "@/api";
 import signalChart from "../RamalModalDialog/signalChart.vue";
+import { useNotificationStore } from "@/stores/notification";
+
+const notification = useNotificationStore();
 
 const { onuList } = defineProps(["onuList"]);
+const emit = defineEmits(["deleteOnu", "updateAlias"]);
 
 const isLoadingSignal = ref(false);
 const signalList = ref({});
@@ -16,6 +20,7 @@ const showChart = ref(false);
 const isLoadingClientHistory = ref(false);
 const apiDataLoaded = ref(false);
 const chartKey = ref(0);
+const awatingApi = ref(false);
 
 const checkOnuSignal = async (onu) => {
   isLoadingSignal.value = true;
@@ -108,6 +113,105 @@ const checkAllSignal = async (onuList) => {
   const signals = onuList.map(async (onu) => await checkOnuSignal(onu));
 
   await Promise.all(signals);
+};
+
+const deleteOnuParks = async (onu) => {
+  try {
+    const response = await fetchApi.post("deletar-onu", {
+      oltGpon: onu.oltGpon,
+      mac: onu.mac,
+      oltIp: onu.oltIp,
+    });
+
+    if (response.status === 200) {
+      notification.setNotification({
+        status: "success",
+        msg: "Onu desautorizada com sucesso",
+      });
+      emit("deleteOnu", onu);
+    }
+  } catch (error) {
+    notification.setNotification({
+      status: "error",
+      msg: "Erro ao desautorizar onu",
+    });
+    console.log("erro ao desautorizar onu", error.message);
+  }
+};
+
+const deleteOnuFiberHome = async (onu) => {
+  try {
+    const response = await fetchApi.post("deletar-onu-fiberhome", {
+      slot: onu.slot,
+      pon: onu.pon,
+      mac: onu.mac,
+    });
+    if (response.status === 200) {
+      notification.setNotification({
+        status: "success",
+        msg: "Onu desautorizada com sucesso",
+      });
+      emit("deleteOnu", onu);
+    }
+  } catch (error) {
+    console.log("erro ao desautorizar onu", error.message);
+    notification.setNotification({
+      status: "error",
+      msg: "Erro ao desautorizar onu",
+    });
+  }
+};
+
+const deleteOnu = async (onu) => {
+  if (
+    confirm(
+      `Deseja desautorizar a onu do cliente ${onu.name} com mac ${onu.mac}?`
+    )
+  ) {
+    awatingApi.value = true;
+    if (onu.oltGpon) {
+      await deleteOnuParks(onu);
+    } else {
+      await deleteOnuFiberHome(onu);
+    }
+    awatingApi.value = false;
+  }
+};
+
+const setAlias = async (onu) => {
+  if (confirm(`Deseja editar o alias da onu ${onu.name} com mac ${onu.mac}?`)) {
+    const newAlias = prompt(
+      `Digite o novo alias da onu ${onu.name} com mac ${onu.mac}`,
+      onu.alias
+    );
+
+    if (newAlias) {
+      awatingApi.value = true;
+      await updateAlias(onu, newAlias);
+      awatingApi.value = false;
+    }
+  }
+};
+
+const updateAlias = async (onu, newAlias) => {
+  try {
+    const response = await fetchApi.post("atualizar-alias-onu", {
+      oltGpon: onu.oltGpon,
+      mac: onu.mac,
+      oltIp: onu.oltIp,
+      newAlias: newAlias,
+    });
+
+    if (response.status === 200) {
+      notification.setNotification({
+        status: "success",
+        msg: "Alias atualizado com sucesso",
+      });
+      emit("updateAlias", { ...onu, newAlias: newAlias });
+    }
+  } catch (error) {
+    console.log("erro ao atualizar alias", error.message);
+  }
 };
 
 const showClientSignalHistory = async (client) => {
@@ -218,26 +322,51 @@ const showClientSignalHistory = async (client) => {
               >
               <div class="d-flex flex-column ga-2">
                 <v-btn
-                  color="warning"
+                  append-icon="mdi-menu-down"
                   variant="tonal"
-                  size="small"
                   rounded="xl"
+                  size="small"
                   class="ml-2 mt-2 mt-sm-0"
-                  @click="checkOnuSignal(item)"
-                  :loading="isLoadingSignal"
-                  >Verificar Sinal</v-btn
-                >
-                <v-btn
-                  color="orange"
-                  variant="plain"
-                  size="small"
-                  rounded="xl"
-                  :loading="isLoadingClientHistory"
-                  prepend-icon="mdi-history"
-                  v-if="!item.onuNumber"
-                  @click="showClientSignalHistory(item)"
-                  >histórico de sinal</v-btn
-                >
+                  >menu
+                  <v-menu activator="parent">
+                    <v-list density="compact">
+                      <v-list-item>
+                        <v-btn
+                          prepend-icon="mdi-broadcast"
+                          size="small"
+                          @click="checkOnuSignal(item)"
+                          >Verificar sinal</v-btn
+                        >
+                      </v-list-item>
+                      <v-list-item>
+                        <v-btn
+                          prepend-icon="mdi-history"
+                          size="small"
+                          :disabled="item.hasOwnProperty('onuNumber')"
+                          @click="showClientSignalHistory(item)"
+                          >Histórico sinal</v-btn
+                        >
+                      </v-list-item>
+                      <v-list-item>
+                        <v-btn
+                          prepend-icon="mdi-delete"
+                          size="small"
+                          @click="deleteOnu(item)"
+                          >Desautorizar onu</v-btn
+                        >
+                      </v-list-item>
+                      <v-list-item>
+                        <v-btn
+                          prepend-icon="mdi-pencil"
+                          size="small"
+                          :disabled="item.hasOwnProperty('onuNumber')"
+                          @click="setAlias(item)"
+                          >Editar alias</v-btn
+                        >
+                      </v-list-item>
+                    </v-list>
+                  </v-menu>
+                </v-btn>
               </div>
             </v-list-item-title>
           </v-list-item>
@@ -245,4 +374,17 @@ const showClientSignalHistory = async (client) => {
       </template>
     </v-virtual-scroll>
   </v-list>
+  <v-dialog
+    v-model="awatingApi"
+    persistent
+    fullscreen
+    style="height: 100vh"
+    class="d-flex flex-column justify-center align-center"
+  >
+    <v-progress-linear
+      indeterminate
+      color="orange"
+      size="128"
+    ></v-progress-linear>
+  </v-dialog>
 </template>

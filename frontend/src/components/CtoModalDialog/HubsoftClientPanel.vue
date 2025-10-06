@@ -5,6 +5,7 @@ import fetchApi from "@/api";
 import { useWindowSize } from "vue-window-size";
 import Dialog from "../Dialog/Dialog.vue";
 import OnuModalDialog from "../OnuModalDialog/OnuModalDialog.vue";
+import ClientesOnuCard from "../ClientesOnuModalDialog/ClientesOnuCard.vue";
 
 defineProps(["cto"]);
 
@@ -15,6 +16,7 @@ const emit = defineEmits(["deleteClient"]);
 const { width } = useWindowSize();
 const onuKey = ref(1);
 const openDialog = ref(false);
+const openDialog2 = ref(false);
 const selectedService = ref(null);
 
 const normalizeName = (name) => {
@@ -100,6 +102,10 @@ const protocol = ref("https");
 const openNewTab = (ipv4) => {
   if (!ipv4) return;
   window.open(`${protocol.value}://${ipv4}:${port.value}`, "_blank");
+};
+
+const deleteOnu = async () => {
+  return;
 };
 
 const setOnuProvision = (service) => {
@@ -255,11 +261,17 @@ const setOnuProvision = (service) => {
                   </div>
                 </v-card-item>
                 <v-card-actions>
-                  <v-btn @click="setOnuProvision(service)" variant="outlined"
+                  <v-btn @click="setOnuProvision(service)" variant="text"
                     >Provisionar Cpe</v-btn
                   >
-                  <v-btn @click="enableService(service)" variant="outlined"
+                  <v-btn @click="enableService(service)" variant="text"
                     >Habilitar serviço</v-btn
+                  >
+                  <v-btn
+                    @click="openDialog2 = true"
+                    variant="text"
+                    color="error"
+                    >Desautorizar Cpe</v-btn
                   >
                 </v-card-actions>
               </v-card>
@@ -296,5 +308,8 @@ const setOnuProvision = (service) => {
         cto,
       }"
     />
+  </Dialog>
+  <Dialog :isOpen="openDialog2" @update:modal-value="openDialog2 = false">
+    <ClientesOnuCard :clients="[client]" :city="'MORUNGAVA'" />
   </Dialog>
 </template>

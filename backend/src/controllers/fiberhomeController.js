@@ -375,6 +375,90 @@ class FiberHomeController {
     });
   }
 
+  static async deleteOnu(req, res) {
+    const { slot, pon, mac, onuIdType = "MAC" } = req.body;
+
+    return new Promise((resolve, reject) => {
+      const USER = process.env.UNM_USERNAME;
+      const PASS = process.env.UNM_PASSWORD;
+      const PORT = 3337;
+      const HOST = "192.168.21.9";
+      const OLTID = "192.168.200.2";
+
+      let buffer = "";
+      let ctag = Math.floor(Math.random() * 9000) + 1000;
+      let step = 0;
+
+      const client = new net.Socket();
+
+      client.connect(PORT, HOST, () => {
+        const loginCmd = `LOGIN:::${ctag}::UN=${USER},PWD=${PASS};\r\n`;
+        console.log("➡️ Enviando:", loginCmd.trim());
+        client.write(loginCmd);
+      });
+
+      client.on("data", (data) => {
+        buffer += data.toString();
+
+        // 1️⃣ LOGIN
+        if (step === 0 && buffer.includes("COMPLD")) {
+          step = 1;
+          buffer = "";
+          ctag++;
+          const delCmd = `DEL-ONU::OLTID=${OLTID},PONID=1-1-${slot}-${pon}:CTAG::ONUIDTYPE=${onuIdType},ONUID=${mac};\r\n`;
+          console.log("➡️ Enviando:", delCmd.trim());
+          client.write(delCmd);
+          return;
+        }
+
+        // 2️⃣ DEL-ONU concluído
+        if (
+          step === 1 &&
+          buffer.includes("COMPLD") &&
+          buffer.trim().endsWith(";")
+        ) {
+          console.log("✅ ONU deletada com sucesso!");
+          client.end();
+          return resolve(
+            res.status(200).json({
+              success: true,
+              message: "ONU deletada com sucesso",
+              response: buffer,
+            })
+          );
+        }
+
+        // 3️⃣ Erro retornado pelo UNM
+        if (buffer.includes("DENY") || buffer.includes("FAULT")) {
+          console.error("⚠️ Erro ao deletar ONU:", buffer);
+          client.end();
+          return reject(
+            res.status(400).json({
+              success: false,
+              error: "Falha ao deletar ONU",
+              response: buffer,
+            })
+          );
+        }
+      });
+
+      client.on("error", (err) => {
+        console.error("❌ Erro de conexão:", err.message);
+        client.end();
+        return reject(
+          res.status(500).json({
+            success: false,
+            error: `Erro de conexão com UNM2000: ${err.message}`,
+          })
+        );
+      });
+
+      client.on("close", () => {
+        console.log("🔚 Conexão encerrada");
+      });
+    });
+  }
+
   static async addAndConfigOnu(req, res) {
     const { slot, pon, mac, onuAlias, onuType, vlan } = req.body;
     let onuNumber;

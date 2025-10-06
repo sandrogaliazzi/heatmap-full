@@ -111,6 +111,10 @@ const olts = [
     ip: "192.168.216.2",
     name: "PARKS 16",
   },
+  {
+    ip: "192.168.218.2",
+    name: "PARKS 18",
+  },
 ];
 
 const fetchFiberhomeOnu = async () => {
@@ -202,6 +206,19 @@ const findOnuListFromCto = () => {
   }
 };
 
+const deleteOnu = (onu) => {
+  onuList.value = onuList.value.filter((o) => o.mac !== onu.mac);
+};
+
+const updateAlias = (onu) => {
+  onuList.value = onuList.value.map((o) => {
+    if (o.mac === onu.mac) {
+      o.name = onu.newAlias;
+    }
+    return o;
+  });
+};
+
 onMounted(async () => {
   await fetchAllOnu();
   findOnuListFromCto();
@@ -251,7 +268,11 @@ onMounted(async () => {
       <v-row no-gutters>
         <v-col cols="12">
           <div v-if="onuList.length" class="d-flex flex-column">
-            <OnuList :onu-list="filterOnuList || onuList" />
+            <OnuList
+              :onu-list="filterOnuList || onuList"
+              @delete-onu="deleteOnu"
+              @update-alias="updateAlias"
+            />
             <v-btn
               v-if="onuList.length <= 16"
               @click="emit('exit')"

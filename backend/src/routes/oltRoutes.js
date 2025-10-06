@@ -29,6 +29,9 @@ router
   .post("/verificar-onu-name-olt", auth, oltController.VerificarNomeOnuOlt)
   .post("/liberar-onu", auth, oltController.liberarOnu)
   .post("/liberar-onu-avulsa", auth, oltController.liberarOnuAvulsa)
-  .post("/editar-onu", auth, OnuController.EditOnu, oltController.EditarOnu);
+  .post("/editar-onu", auth, OnuController.EditOnu, oltController.EditarOnu)
+  .post("/deletar-onu", auth, oltController.deleteOnu)
+  .post("/deletar-onu-fiberhome", auth, FiberHomeController.deleteOnu)
+  .post("/atualizar-alias-onu", auth, oltController.EditarOnu);
 
 export default router;
