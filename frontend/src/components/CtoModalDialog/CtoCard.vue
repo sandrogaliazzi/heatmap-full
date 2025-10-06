@@ -355,8 +355,7 @@ const serviceLocation = ref("teste");
               <CtoClientsList
                 v-if="clients.length > 0"
                 :clients="clients"
-                :cto="cto.id"
-                :cto-name="cto.name"
+                :cto="cto"
                 :clients-with-location="clientsWithLocation"
                 @adduser:location="(client) => addUserLocation(client)"
                 @delete-user="loadCtoData"

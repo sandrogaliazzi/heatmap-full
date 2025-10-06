@@ -104,10 +104,6 @@ const openNewTab = (ipv4) => {
   window.open(`${protocol.value}://${ipv4}:${port.value}`, "_blank");
 };
 
-const deleteOnu = async () => {
-  return;
-};
-
 const setOnuProvision = (service) => {
   selectedService.value = service;
   openDialog.value = true;
@@ -269,6 +265,7 @@ const setOnuProvision = (service) => {
                   >
                   <v-btn
                     @click="openDialog2 = true"
+                    v-if="cto"
                     variant="text"
                     color="error"
                     >Desautorizar Cpe</v-btn
@@ -305,11 +302,11 @@ const setOnuProvision = (service) => {
       :hubsoft-data="{
         selectedClient: hubSoftClientData,
         selectedService,
-        cto,
+        cto: cto.name,
       }"
     />
   </Dialog>
   <Dialog :isOpen="openDialog2" @update:modal-value="openDialog2 = false">
-    <ClientesOnuCard :clients="[client]" :city="'MORUNGAVA'" />
+    <ClientesOnuCard :clients="[client]" :city="cto.city" />
   </Dialog>
 </template>
