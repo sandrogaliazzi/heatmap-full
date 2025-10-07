@@ -3,7 +3,7 @@ import ramalLogs from "../models/ramalModel.js";
 class RamalLogsController {
   static SaveRamalLog = (req, res) => {
     const newLog = new ramalLogs(req.body);
-    newLog.save(err => {
+    newLog.save((err) => {
       if (err) {
         res
           .status(500)
@@ -85,6 +85,40 @@ class RamalLogsController {
       return res
         .status(500)
         .json({ msg: "Erro interno no servidor", error: error.message });
+    }
+  };
+
+  static GetRamalLogs = async (req, res) => {
+    try {
+      const { date } = req.params;
+
+      if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        return res
+          .status(400)
+          .send({ message: "Data inválida. Use o formato YYYY-MM-DD." });
+      }
+
+      // Criar intervalo em formato de string ISO
+      const startOfDay = `${date}T00:00:00.000Z`;
+      const endOfDay = `${date}T23:59:59.999Z`;
+
+      const docs = await ramalLogs
+        .find({
+          date_time: { $gte: startOfDay, $lte: endOfDay }, // Comparação lexicográfica
+        })
+        .sort({ date_time: -1 })
+        .exec();
+
+      if (!docs || docs.length === 0) {
+        return res
+          .status(404)
+          .send({ message: "Nenhum log registrado para essa data." });
+      }
+
+      res.status(200).send({ ramalHistory: docs });
+    } catch (err) {
+      console.error("Erro ao buscar logs:", err);
+      res.status(500).send({ message: "Erro interno ao buscar logs." });
     }
   };
 

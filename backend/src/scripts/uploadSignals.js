@@ -39,7 +39,7 @@ async function isExecutionNeeded() {
 async function SaveRamalLog(logData) {
   try {
     const { id } = logData;
-    logData.date_time = new Date().toISOString(); // Garante que o novo registro usa o formato ISO
+    logData.date_time = new Date().toISOString();
 
     const logCount = await RamalLog.countDocuments({ id });
 
@@ -93,7 +93,7 @@ function VerificarSinalPon(oltIp, oltPon) {
               conn.end();
               resolve(jsonOutput);
             })
-            .on("data", data => {
+            .on("data", (data) => {
               dataBuffer += data.toString();
               if (dataBuffer.includes("\n")) {
                 const items = [];
@@ -163,6 +163,45 @@ async function savePongSignals() {
   }
 
   console.log("Sinais cadastrados com sucesso.");
+}
+
+export async function getPonSignals() {
+  // const ramais = await getRamais();
+
+  const ramais = [
+    {
+      oltIp: "192.168.213.2",
+      oltPon: "gpon1/1",
+      oltRamal: "RAMAL 1",
+      oltName: "OLT 13 PRB",
+    },
+    {
+      oltIp: "192.168.213.2",
+      oltPon: "gpon1/2",
+      oltRamal: "RAMAL 2",
+      oltName: "OLT 13 PRB",
+    },
+  ];
+
+  const ramals = [];
+
+  for (const ramal of ramais) {
+    const { oltIp, oltPon, oltRamal, oltName } = ramal;
+    const ponSignal = await VerificarSinalPon(oltIp, oltPon);
+
+    if (ponSignal.length > 0) {
+      const data = ponSignal.map((pon) => ({
+        oltIp,
+        oltPon,
+        oltRamal,
+        oltName,
+        ...pon,
+      }));
+      ramals.push(data);
+    }
+  }
+
+  return ramals.flat();
 }
 
 export default function startUpdateLoop() {

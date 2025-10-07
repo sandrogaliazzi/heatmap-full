@@ -3,6 +3,7 @@ import { ref, onMounted, inject, computed } from "vue";
 import fetchApi from "@/api";
 
 import PonSignal from "./PonSingal";
+import BarSignalsChart from "./BarSignalsChart.vue";
 
 const isLoadingRamals = ref(true);
 const ramals = ref([]);
@@ -12,6 +13,7 @@ const average = ref(null);
 const gponData = ref([]);
 const cardId = ref("");
 const loading = ref(false);
+const showBarChart = ref(false);
 
 const closeDialog = inject("closeDialog");
 
@@ -100,6 +102,12 @@ onMounted(async () => {
             <v-icon>mdi-circle-box</v-icon>
           </div>
           <div>
+            <v-btn
+              variant="text"
+              prepend-icon="mdi-chart-box"
+              @click="showBarChart = true"
+              text="Ver relatorio"
+            ></v-btn>
             <v-btn variant="text" icon="mdi-close" @click="closeDialog"></v-btn>
           </div>
         </div>
@@ -203,4 +211,7 @@ onMounted(async () => {
       </v-container>
     </v-card-text>
   </v-card>
+  <v-dialog v-model="showBarChart" fullscreen>
+    <BarSignalsChart @close-dialog="showBarChart = false" :ramals="ramals" />
+  </v-dialog>
 </template>
