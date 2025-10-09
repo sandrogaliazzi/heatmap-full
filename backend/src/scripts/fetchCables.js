@@ -6,12 +6,12 @@ const __filename = fileURLToPath(import.meta.url);
 
 const __dirname = path.dirname(__filename);
 
-const filePath = path.join(__dirname, "/TOMODAT-14-08-2025.kml");
+const filePath = path.join(__dirname, "../kmlTomodat/TOMODAT-09-10-2025.kml");
 
 function formatCoordinates(coordsArray) {
   const formatedCoordList = [];
 
-  coordsArray.forEach(dot => {
+  coordsArray.forEach((dot) => {
     const [lng, lat] = dot;
 
     formatedCoordList.push({
@@ -27,10 +27,10 @@ function parseKmlCableDataToJson(kmlData) {
   const kmlPoints = kmlData.features;
 
   const cables = kmlPoints.filter(
-    point => point.geometry.type === "LineString"
+    (point) => point.geometry.type === "LineString"
   );
 
-  return cables.map(cable => {
+  return cables.map((cable) => {
     return {
       name: cable.properties.name,
       color: cable.properties.stroke,
