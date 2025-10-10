@@ -3,7 +3,8 @@ import { ref, onMounted, inject, computed } from "vue";
 import fetchApi from "@/api";
 
 import PonSignal from "./PonSingal";
-import BarSignalsChart from "./BarSignalsChart.vue";
+import TableSignalsData from "./TableSignalsData.vue";
+import ClientTableData from "./ClientTableData.vue";
 
 const isLoadingRamals = ref(true);
 const ramals = ref([]);
@@ -13,7 +14,8 @@ const average = ref(null);
 const gponData = ref([]);
 const cardId = ref("");
 const loading = ref(false);
-const showBarChart = ref(false);
+const showReport = ref(false);
+const showClientReport = ref(false);
 
 const closeDialog = inject("closeDialog");
 
@@ -102,12 +104,21 @@ onMounted(async () => {
             <v-icon>mdi-circle-box</v-icon>
           </div>
           <div>
-            <v-btn
-              variant="text"
-              prepend-icon="mdi-chart-box"
-              @click="showBarChart = true"
-              text="Ver relatorio"
-            ></v-btn>
+            <v-btn variant="text" prepend-icon="mdi-chart-box">
+              RELATORIO DE SINAIS
+              <v-menu activator="parent">
+                <v-list density="compact">
+                  <v-list-item
+                    title="Por ramal"
+                    @click="showReport = true"
+                  ></v-list-item>
+                  <v-list-item
+                    title="Por cliente"
+                    @click="showClientReport = true"
+                  ></v-list-item>
+                </v-list>
+              </v-menu>
+            </v-btn>
             <v-btn variant="text" icon="mdi-close" @click="closeDialog"></v-btn>
           </div>
         </div>
@@ -139,22 +150,19 @@ onMounted(async () => {
             ></v-select>
           </v-col>
         </v-row>
-        <v-row no-gutters>
-          <v-col cols="12">
-            <div v-if="!isLoadingRamals">
+        <v-row no-gutters v-if="!isLoadingRamals">
+          <v-col v-for="ramal in filterRamal || ramals" :key="ramal._id">
+            <div>
               <v-card
-                v-for="ramal in filterRamal || ramals"
-                :key="ramal._id"
                 :title="ramal.oltName.split('-').join(' ')"
                 :subtitle="ramal.oltRamal"
                 variant="elevated"
                 class="mb-3"
+                max-width="400px"
+                min-width="300px"
                 :loading="loading && cardId === ramal._id"
                 link
               >
-                <template #prepend>
-                  <v-icon icon="mdi-signal" color="orange"></v-icon>
-                </template>
                 <v-card-text v-if="ponSignals && cardId == ramal._id">
                   <p>
                     <v-icon icon="mdi-chevron-double-up"></v-icon>
@@ -193,7 +201,11 @@ onMounted(async () => {
                 </v-card-text>
               </v-card>
             </div>
-            <div v-else>
+          </v-col>
+        </v-row>
+        <v-row v-else>
+          <v-col>
+            <div>
               <div class="d-flex justify-center align-center">
                 <v-progress-circular
                   color="orange"
@@ -211,7 +223,13 @@ onMounted(async () => {
       </v-container>
     </v-card-text>
   </v-card>
-  <v-dialog v-model="showBarChart" fullscreen>
-    <BarSignalsChart @close-dialog="showBarChart = false" :ramals="ramals" />
+  <v-dialog v-model="showReport" fullscreen>
+    <TableSignalsData @close-dialog="showReport = false" :ramals="ramals" />
+  </v-dialog>
+  <v-dialog v-model="showClientReport" fullscreen>
+    <ClientTableData
+      @close-dialog="showClientReport = false"
+      :ramals="ramals"
+    />
   </v-dialog>
 </template>

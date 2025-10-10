@@ -39,20 +39,21 @@ const loadData = async () => {
 
     const logs = response.data.ramalHistory || [];
 
-    data.value = logs.map((item) => {
-      const ramal = ramals.find((r) => r._id === item.id);
+    data.value = logs.flatMap((item) =>
+      item.gpon_data.map((client) => {
+        classifySignal(client.rx, clientsRxCounter);
+        classifySignal(client.tx, clientsTxCounter);
 
-      classifySignal(item.avgSignal.rx, clientsRxCounter);
-      classifySignal(item.avgSignal.tx, clientsTxCounter);
-
-      return {
-        oltRamal: ramal.oltRamal,
-        rx: item.avgSignal.rx,
-        tx: item.avgSignal.tx,
-        oltName: ramal.oltName,
-        clients: item.gpon_data.sort((a, b) => a.rx - b.rx),
-      };
-    });
+        return {
+          id: Math.random().toString(36).substring(2, 10),
+          oltRamal: ramals.find((r) => r._id === item.id)?.oltRamal,
+          rx: client.rx,
+          tx: client.tx,
+          oltName: ramals.find((r) => r._id === item.id)?.oltName,
+          alias: client.alias,
+        };
+      })
+    );
 
     isLoadingData.value = false;
     notFound.value = false;
@@ -68,28 +69,23 @@ const loadData = async () => {
 
 const search = ref("");
 const headers = [
+  { key: "alias", title: "ciente" },
   {
     align: "start",
     key: "oltRamal",
     sortable: false,
     title: "Ramal",
   },
-  { key: "rx", title: "Rx média" },
-  { key: "tx", title: "Tx média" },
+  { key: "rx", title: "Rx" },
+  { key: "tx", title: "Tx" },
   { key: "oltName", title: "OLT" },
-  { key: "data-table-expand", align: "end" },
 ];
 
 function getSignalColor(signal) {
   if (signal >= -20) return "green";
-  if (signal >= -29 && signal < -20) return "warning";
-  if (signal < -29) return "red";
+  if (signal >= -26 && signal < -20) return "warning";
+  if (signal < -27) return "red";
 }
-
-const copyName = (name) => {
-  const formatedName = name.split("-").slice(1).join(" ").trim();
-  navigator.clipboard.writeText(formatedName);
-};
 
 onMounted(() => {
   loadData();
@@ -151,9 +147,10 @@ onMounted(() => {
             ></pie-signal-chart>
           </v-card-text>
         </v-card>
+
         <v-text-field
           v-model="search"
-          label="Pesquisar ramal"
+          label="Pesquisar Cliente"
           class="mb-3"
           prepend-inner-icon="mdi-magnify"
           variant="outlined"
@@ -164,7 +161,7 @@ onMounted(() => {
         <v-data-table
           :headers="headers"
           :items="data"
-          item-value="oltRamal"
+          item-value="id"
           :search="search"
         >
           <template v-slot:item.rx="{ item }">
@@ -172,64 +169,6 @@ onMounted(() => {
           </template>
           <template v-slot:item.tx="{ item }">
             <v-chip :color="getSignalColor(item.tx)">{{ item.tx }}</v-chip>
-          </template>
-          <template
-            v-slot:item.data-table-expand="{
-              internalItem,
-              isExpanded,
-              toggleExpand,
-            }"
-          >
-            <v-btn
-              :append-icon="
-                isExpanded(internalItem) ? 'mdi-chevron-up' : 'mdi-chevron-down'
-              "
-              text="Mostrar Clientes"
-              class="text-none"
-              color="medium-emphasis"
-              size="small"
-              variant="text"
-              border
-              slim
-              @click="toggleExpand(internalItem)"
-            ></v-btn>
-          </template>
-          <template v-slot:expanded-row="{ columns, item }">
-            <tr>
-              <td :colspan="columns.length" class="py-2">
-                <v-sheet rounded="lg" border>
-                  <v-table density="compact">
-                    <tbody class="bg-surface-light">
-                      <tr>
-                        <th>alias</th>
-                        <th>tx</th>
-                        <th>rx</th>
-                      </tr>
-                    </tbody>
-
-                    <tbody>
-                      <tr v-for="client in item.clients" :key="client.alias">
-                        <td class="py-2">
-                          <div class="d-flex align-center ga-5">
-                            <span>{{ client.alias }}</span>
-                            <v-btn
-                              size="x-small"
-                              rounded="xl"
-                              variant="outlined"
-                              prepend-icon="mdi-pen"
-                              text="copiar nome"
-                              @click="copyName(client.alias)"
-                            ></v-btn>
-                          </div>
-                        </td>
-                        <td class="py-2">{{ client.tx }}</td>
-                        <td class="py-2">{{ client.rx }}</td>
-                      </tr>
-                    </tbody>
-                  </v-table>
-                </v-sheet>
-              </td>
-            </tr>
           </template>
         </v-data-table>
       </template>

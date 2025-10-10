@@ -86,8 +86,6 @@ const loadData = async () => {
       };
     });
 
-    console.log(tableData.value);
-
     // Monta as labels e datasets
     const labels = logs.map(
       (item) => ramals.find((r) => r._id === item.id)?.oltRamal

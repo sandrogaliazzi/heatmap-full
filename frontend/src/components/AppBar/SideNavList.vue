@@ -228,7 +228,11 @@ const onCloseDialog = (value) => {
   <DialogBox :isOpen="openClientsOnuDialog" @update:modalValue="onCloseDialog">
     <ClientesOnuCard />
   </DialogBox>
-  <DialogBox :isOpen="openRamalDialog" @update:modalValue="onCloseDialog">
+  <DialogBox
+    :isOpen="openRamalDialog"
+    @update:modalValue="onCloseDialog"
+    size="1000"
+  >
     <RamalCard />
   </DialogBox>
   <DialogBox

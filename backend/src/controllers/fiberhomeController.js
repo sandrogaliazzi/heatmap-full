@@ -777,5 +777,3 @@ class FiberHomeController {
 }
 
 export default FiberHomeController;
-
-//FiberHomeController.getAllONUsFromUNM().then(console.log).catch(console.error);
