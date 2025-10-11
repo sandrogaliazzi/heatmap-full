@@ -6,6 +6,7 @@ import { useWindowSize } from "vue-window-size";
 import Dialog from "../Dialog/Dialog.vue";
 import OnuModalDialog from "../OnuModalDialog/OnuModalDialog.vue";
 import ClientesOnuCard from "../ClientesOnuModalDialog/ClientesOnuCard.vue";
+import { useNotificationStore } from "@/stores/notification";
 
 defineProps(["cto"]);
 
@@ -18,6 +19,7 @@ const onuKey = ref(1);
 const openDialog = ref(false);
 const openDialog2 = ref(false);
 const selectedService = ref(null);
+const notification = useNotificationStore();
 
 const normalizeName = (name) => {
   if (name.includes("(")) {
@@ -107,6 +109,30 @@ const openNewTab = (ipv4) => {
 const setOnuProvision = (service) => {
   selectedService.value = service;
   openDialog.value = true;
+};
+
+const resetMac = async (service) => {
+  try {
+    const response = await hubApi.post(
+      "/api/v1/integracao/cliente/reset_mac_addr",
+      {
+        id_cliente_servico: service.id_cliente_servico,
+      }
+    );
+
+    if (response.data.status === "success") {
+      notification.setNotification({
+        status: "success",
+        msg: response.data.msg,
+      });
+    }
+  } catch (error) {
+    console.error("erro ao resetar mac " + error.message);
+    notification.setNotification({
+      status: "error",
+      msg: "Erro ao resetar mac",
+    });
+  }
 };
 </script>
 
@@ -256,20 +282,27 @@ const setOnuProvision = (service) => {
                     </div>
                   </div>
                 </v-card-item>
-                <v-card-actions>
-                  <v-btn @click="setOnuProvision(service)" variant="text"
-                    >Provisionar Cpe</v-btn
-                  >
-                  <v-btn @click="enableService(service)" variant="text"
-                    >Habilitar serviço</v-btn
-                  >
-                  <v-btn
-                    @click="openDialog2 = true"
-                    v-if="cto"
-                    variant="text"
-                    color="error"
-                    >Desautorizar Cpe</v-btn
-                  >
+                <v-card-actions class="d-flex flex-column align-start">
+                  <div>
+                    <v-btn @click="setOnuProvision(service)" variant="text"
+                      >Provisionar Cpe</v-btn
+                    >
+                    <v-btn @click="resetMac(service)" variant="text"
+                      >Recapturar Mac</v-btn
+                    >
+                  </div>
+                  <div>
+                    <v-btn @click="enableService(service)" variant="text"
+                      >Habilitar serviço</v-btn
+                    >
+                    <v-btn
+                      @click="openDialog2 = true"
+                      v-if="cto"
+                      variant="text"
+                      color="error"
+                      >Desautorizar Cpe</v-btn
+                    >
+                  </div>
                 </v-card-actions>
               </v-card>
               <div class="text-caption mt-3">
