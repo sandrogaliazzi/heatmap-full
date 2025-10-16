@@ -43,6 +43,13 @@ const getRamals = async () => {
   try {
     const oltRamals = await fetchApi("ramais");
     ramals.value = oltRamals.data;
+    // ramals.value.push({
+    //   oltRamal: "PON TESTE",
+    //   oltIp: "162.168.200.2",
+    //   oltPon: "1/1",
+    //   ponVlan: "1010",
+    //   oltName: "FIBERHOME",
+    // });
     isLoadingRamals.value = false;
   } catch (error) {
     // handle this shit later
@@ -58,6 +65,7 @@ function calculateAverages(data) {
   let totalRx = 0;
 
   for (const item of data) {
+    if (Number.isNaN(item.tx) || Number.isNaN(item.rx)) continue;
     totalTx += item.tx;
     totalRx += item.rx;
   }
@@ -71,6 +79,33 @@ function calculateAverages(data) {
   };
 }
 
+const getOnuSignalsFromFiberHome = async (slot, pon) => {
+  try {
+    const onus = await fetchApi.get("listar-onu-fiberhome");
+
+    const filterBySlotAndPon = onus.data.onus.filter(
+      (onu) => onu.slot === slot && onu.pon === pon
+    );
+
+    if (filterBySlotAndPon.length === 0) {
+      return { data: [] };
+    }
+    const signals = await fetchApi.post(
+      "verificar-onu-fiberhome",
+      filterBySlotAndPon
+    );
+
+    return signals.data.map((onu) => ({
+      alias: onu.name,
+      rx: parseFloat(onu["RSSI"].split("dBm")[0]),
+      tx: parseFloat(onu["Power Level"].split("dBm")[0]),
+      status: "ACTIVE",
+    }));
+  } catch (error) {
+    console.log(error);
+  }
+};
+
 const selectRamal = async (ramal) => {
   cardId.value = ramal._id;
   loading.value = true;
@@ -78,10 +113,17 @@ const selectRamal = async (ramal) => {
 
   const { oltIp, oltPon } = ramal;
 
-  const ponSignalsData = await fetchApi.post("verificar-pon", {
-    oltIp,
-    oltPon,
-  });
+  let ponSignalsData = [];
+
+  if (ramal.oltName.includes("FIBERHOME")) {
+    const [slot, pon] = oltPon.split("/");
+    ponSignalsData.data = await getOnuSignalsFromFiberHome(slot, pon);
+  } else {
+    ponSignalsData = await fetchApi.post("verificar-pon", {
+      oltIp,
+      oltPon,
+    });
+  }
 
   ponSignals.value = ponSignalsData.data;
   average.value = calculateAverages(ponSignalsData.data);

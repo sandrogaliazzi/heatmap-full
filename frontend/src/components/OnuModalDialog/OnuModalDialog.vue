@@ -10,7 +10,7 @@ import RegisterOnuForm from "./RegisterOnuForm";
 import AfterOnuSubmit from "./AfterOnuSubmit";
 
 const baseOltIp = "192.168";
-const oltIpRange = [202, 203, 204, 205, 206, 207, 208, 209, 212, 213, 216, 218];
+const oltIpRange = [202, 203, 204, 205, 206, 207, 208, 209, 212, 213, 215, 216];
 const loadingApi = ref(true);
 const oltRamals = ref([]);
 const unauthorizedOnuList = ref([]);

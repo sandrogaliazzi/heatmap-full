@@ -35,9 +35,9 @@ function parseOnuListFromUnm(tl1Output) {
   const results = [];
 
   for (const line of lines) {
-    if (line.startsWith("192.168.200.2")) {
+    if (line.startsWith("192.168.")) {
       const cols = line.trim().split(/\s{2,}|\t+/);
-
+      const oltIp = cols[0];
       const ponidParts = cols[1].split("-");
       const slot = ponidParts[ponidParts.length - 2];
       const pon = ponidParts[ponidParts.length - 1];
@@ -49,6 +49,7 @@ function parseOnuListFromUnm(tl1Output) {
         flowProfile: `bridge_vlan_${formatVlan(slot, pon)}`,
         slot: slot,
         pon: pon,
+        oltIp: oltIp,
       });
     }
   }
@@ -602,7 +603,6 @@ class FiberHomeController {
               if (currentOnuIndex < onuList.length) {
                 const onu = onuList[currentOnuIndex];
                 const command = `show optic_module slot ${onu.slot} link ${onu.pon} onu ${onu.onuNumber}\r\n`;
-                console.log(`Buscando sinal da ONU: ${onu.mac}`);
                 client.write(command);
                 buffer = "";
                 step++;
@@ -618,9 +618,6 @@ class FiberHomeController {
               const signalData = this.parseOpticModuleOutput(buffer, onu);
 
               results.push(signalData);
-              console.log(
-                `Sinal da ONU ${onu.mac}: RX=${signalData.rxPower} dBm, TX=${signalData.txPower} dBm`
-              );
 
               // Prepara para próxima ONU
               currentOnuIndex++;
@@ -630,7 +627,6 @@ class FiberHomeController {
                 // Próxima ONU
                 const nextOnu = onuList[currentOnuIndex];
                 const command = `show optic_module slot ${nextOnu.slot} link ${nextOnu.pon} onu ${nextOnu.onuNumber}\r\n`;
-                console.log(`Buscando sinal da próxima ONU: ${nextOnu.mac}`);
                 client.write(command);
               } else {
                 // Todas as ONUs processadas, volta para diretório anterior

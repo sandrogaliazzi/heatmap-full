@@ -129,7 +129,6 @@ const selectedClient = ref(null);
           variant="text"
           size="small"
           class="d-none d-md-flex"
-          v-role="['adm']"
           @click.stop="deleteClient(client.id)"
         ></v-btn>
       </template>
