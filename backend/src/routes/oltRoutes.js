@@ -36,6 +36,10 @@ router
   .post("/editar-onu", auth, OnuController.EditOnu, oltController.EditarOnu)
   .post("/deletar-onu", auth, oltController.deleteOnu)
   .post("/deletar-onu-fiberhome", auth, FiberHomeController.deleteOnu)
-  .post("/atualizar-alias-onu", auth, oltController.EditarOnu);
+  .post("/atualizar-alias-onu", auth, oltController.EditarOnu)
+  .post("/add-olt", auth, oltController.addOlt)
+  .get("/listar-olt", auth, oltController.listarOlt)
+  .get("/editar-status-olt", auth, oltController.toggleOltActiveStatus)
+  .delete("/delete-olt", auth, oltController.deleteOlt);
 
 export default router;

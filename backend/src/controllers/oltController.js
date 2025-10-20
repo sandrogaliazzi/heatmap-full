@@ -1,4 +1,5 @@
 import ramaisModel from "../models/ramaisOlt.js";
+import oltModel from "../models/oltModel.js";
 import { Client } from "ssh2";
 import dotenv from "dotenv";
 import OnuClient from "../models/onuClient.js";
@@ -1161,6 +1162,67 @@ class oltController {
         username,
         password,
       });
+  };
+
+  static addOlt = (req, res) => {
+    const olt = new oltModel(req.body);
+    olt.save((err) => {
+      if (err) {
+        res
+          .status(500)
+          .send({ message: `${err.message} - falha ao cadastrar OLT.` });
+      } else {
+        res.status(201).send(olt.toJSON());
+      }
+    });
+  };
+
+  static listOlts = (req, res) => {
+    oltModel.find((err, olt) => {
+      if (err) {
+        res
+          .status(500)
+          .send({ message: `${err.message} - falha ao buscar OLT.` });
+      } else {
+        res.status(200).send(olt);
+      }
+    });
+  };
+
+  static deleteOnu = (req, res) => {
+    const id = req.params.id;
+    oltModel.deleteOne({ _id: id }, (err) => {
+      if (err) {
+        res
+          .status(500)
+          .send({ message: `${err.message} - falha ao deletar OLT.` });
+      } else {
+        res.status(200).send({ message: "OLT deletada com sucesso." });
+      }
+    });
+  };
+
+  static toggleOltActiveStatus = (req, res) => {
+    const id = req.params.id;
+    const status = req.params.status === "ativo" ? true : false;
+    oltModel.find(id, (err, olt) => {
+      if (err) {
+        res
+          .status(500)
+          .send({ message: `${err.message} - falha ao buscar OLT.` });
+      } else {
+        olt.active = status;
+        olt.save((err) => {
+          if (err) {
+            res
+              .status(500)
+              .send({ message: `${err.message} - falha ao atualizar OLT.` });
+          } else {
+            res.status(200).send(olt.toJSON());
+          }
+        });
+      }
+    });
   };
 }
 

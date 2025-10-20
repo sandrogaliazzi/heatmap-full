@@ -9,6 +9,7 @@ import LogsList from "@/components/Dashboard/LogsList";
 import CameraList from "@/components/Dashboard/CameraList";
 import DashboardComercial from "@/views/DashboardComercialView";
 import ViabilityView from "@/views/ViabilityView.vue";
+import OltList from "@/components/Dashboard/OltList.vue";
 
 import { useUserStore } from "@/stores/user";
 import { storeToRefs } from "pinia";
@@ -40,6 +41,12 @@ const router = createRouter({
           path: "/users",
           name: "user-list",
           component: UserList,
+          meta: { requiresAuth: true, allowedRoles: ["adm"] },
+        },
+        {
+          path: "/olt",
+          name: "olt-list",
+          component: OltList,
           meta: { requiresAuth: true, allowedRoles: ["adm"] },
         },
         {

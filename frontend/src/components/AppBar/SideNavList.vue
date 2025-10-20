@@ -151,6 +151,14 @@ const onCloseDialog = (value) => {
           v-role="['adm']"
         ></v-list-item>
         <v-list-item
+          prepend-icon="mdi-dip-switch"
+          title="olts"
+          color="orange"
+          value="olts"
+          to="/olt"
+          v-role="['adm']"
+        ></v-list-item>
+        <v-list-item
           prepend-icon="mdi-web"
           title="Ativações"
           color="orange"
