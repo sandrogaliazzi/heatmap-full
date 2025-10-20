@@ -1189,7 +1189,7 @@ class oltController {
     });
   };
 
-  static deleteOnu = (req, res) => {
+  static deleteOlt = (req, res) => {
     const id = req.params.id;
     oltModel.deleteOne({ _id: id }, (err) => {
       if (err) {
