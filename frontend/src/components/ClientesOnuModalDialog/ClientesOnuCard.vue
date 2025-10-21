@@ -12,116 +12,32 @@ const vLanList = ref([]);
 const selectedVlan = ref(null);
 const closeDialog = inject("closeDialog");
 const query = ref("");
+const heatmapOlts = ref([]);
 
-const oltListByCity = {
-  "NOVA HARTZ": [
-    { ip: "192.168.202.2", name: "PARKS 1" },
-    { ip: "192.168.203.2", name: "PARKS 2" },
-    { ip: "192.168.204.2", name: "PARKS 3" },
-  ],
-  SAPIRANGA: [
-    { ip: "192.168.207.2", name: "PARKS 6" },
-    { ip: "192.168.209.2", name: "PARKS 8" },
-  ],
-  ARARICA: [
-    { ip: "192.168.207.2", name: "PARKS 6" },
-    { ip: "192.168.209.2", name: "PARKS 8" },
-  ],
-  IGREJINHA: [
-    { ip: "172.16.9.6", name: "PARKS 10" },
-    { ip: "172.16.9.10", name: "PARKS 9" },
-  ],
-  "TRES COROAS": [{ ip: "172.16.9.10", name: "PARKS 9" }],
-  PAROBE: [
-    { ip: "192.168.212.2", name: "PARKS 12" },
-    { ip: "192.168.213.2", name: "PARKS 13" },
-  ],
-  "M. PEDRA": [{ ip: "192.168.205.2", name: "PARKS 4" }],
-  "FAZ. FIALHO": [
-    { ip: "192.168.206.2", name: "PARKS 5" },
-    { ip: "192.168.208.2", name: "PARKS 7" },
-    { ip: "192.168.205.2", name: "PARKS 4" },
-  ],
-  "SÃO JOÃO DO DESERTO": [
-    { ip: "172.16.11.2", name: "PARKS 11" },
-    { ip: "192.168.215.2", name: "PARKS 15" },
-  ],
-  MORUNGAVA: [
-    { ip: "192.168.216.2", name: "PARKS 16" },
-    { ip: "192.168.215.2", name: "PARKS 15" },
-  ],
+const getOltList = async () => {
+  try {
+    const response = await fetchApi.get("listar-olt");
+    heatmapOlts.value = response.data.filter((olt) => olt.active);
+  } catch (error) {
+    console.log("erro ao buscar equipamentos", error.message);
+  }
 };
 
-const olts = [
-  {
-    ip: "192.168.202.2",
-    name: "PARKS 1",
-  },
-  {
-    ip: "192.168.203.2",
-    name: "PARKS 2",
-  },
-  {
-    ip: "192.168.204.2",
-    name: "PARKS 3",
-  },
-  {
-    ip: "192.168.205.2",
-    name: "PARKS 4",
-  },
-  {
-    ip: "192.168.206.2",
-    name: "PARKS 5",
-  },
-  {
-    ip: "192.168.207.2",
-    name: "PARKS 6",
-  },
-  {
-    ip: "192.168.208.2",
-    name: "PARKS 7",
-  },
-  {
-    ip: "192.168.209.2",
-    name: "PARKS 8",
-  },
-  {
-    ip: "192.168.212.2",
-    name: "PARKS 12",
-  },
-  {
-    ip: "192.168.213.2",
-    name: "PARKS 13",
-  },
-  {
-    ip: "172.16.9.10",
-    name: "PARKS 9",
-  },
-  {
-    ip: "172.16.9.6",
-    name: "PARKS 10",
-  },
-  {
-    ip: "172.16.11.2",
-    name: "PARKS 11",
-  },
-  // {
-  //   ip: "192.168.214.2",
-  //   name: "PARKS 14",
-  // },
-  // {
-  //   ip: "192.168.215.2",
-  //   name: "PARKS 15",
-  // },
-  {
-    ip: "192.168.216.2",
-    name: "PARKS 16",
-  },
-  {
-    ip: "192.168.218.2",
-    name: "PARKS 18",
-  },
-];
+const filterOltsByCity = (city) => {
+  switch (city) {
+    case "SAPIRANGA":
+      return heatmapOlts.value.filter((olt) => olt.oltPop === "ARARICA");
+    case "TRES COROAS":
+      return heatmapOlts.value.filter((olt) => olt.oltPop === "IGREJINHA");
+    case "SÃO JOÃO DO DESERTO":
+      return heatmapOlts.value.filter(
+        (olt) =>
+          olt.oltPop === "SAO JOÃO DO DESERTO" || olt.oltPop === "MORUNGAVA"
+      );
+    default:
+      return heatmapOlts.value.filter((olt) => olt.oltPop === city);
+  }
+};
 
 const fetchFiberhomeOnu = async () => {
   try {
@@ -134,18 +50,21 @@ const fetchFiberhomeOnu = async () => {
 };
 
 const fetchAllOnu = async () => {
-  const oltList = city && city !== "INDEFINIDO" ? oltListByCity[city] : olts;
+  const oltList =
+    city && city !== "INDEFINIDO" ? filterOltsByCity(city) : heatmapOlts.value;
   const promiseList = oltList.map(async (olt) => {
+    if (olt.oltName.includes("FIBERHOME")) {
+      const onus = await fetchFiberhomeOnu();
+      return onus;
+    }
     const onuData = await fetchApi.post("verificar-onu-name-olt", {
-      oltIp: olt.ip,
+      oltIp: olt.ipv4,
     });
     return onuData.data;
   });
 
-  const parksOnuData = await Promise.all(promiseList);
-  const fiberhomeOnuData =
-    !city || city === "NOVA HARTZ" ? await fetchFiberhomeOnu() : [];
-  onuList.value = [...parksOnuData.flat(), ...fiberhomeOnuData];
+  const onuData = await Promise.all(promiseList);
+  onuList.value = [...onuData.flat()];
   onuListCopy.value = onuList.value;
   vLanList.value = onuList.value
     .map((onu) => {
@@ -226,6 +145,7 @@ const updateAlias = (onu) => {
 };
 
 onMounted(async () => {
+  await getOltList();
   await fetchAllOnu();
   findOnuListFromCto();
 });

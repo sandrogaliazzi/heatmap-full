@@ -2,10 +2,13 @@
 import { ref, onMounted, computed } from "vue";
 import fetchApi from "@/api";
 import hubApi from "@/api/hubsoftApi";
+import { useNotificationStore } from "@/stores/notification";
 
 const oltList = ref([]);
 const query = ref("");
 const panel = ref([]);
+const syncWithHubLoading = ref(false);
+const notification = useNotificationStore();
 
 const fetchOltList = async () => {
   try {
@@ -20,13 +23,102 @@ const fetchOltList = async () => {
   }
 };
 
+const heatmapOlts = ref([]);
+
+const getHeatmapOltList = async () => {
+  try {
+    const response = await fetchApi.get("listar-olt");
+    heatmapOlts.value = response.data;
+    console.log("heatmapOlts", heatmapOlts.value);
+  } catch (error) {
+    console.log("erro ao buscar equipamentos", error.message);
+  }
+};
+
+const oltPop = (oltName) => {
+  const pop = oltName.split(" ").slice(3).join(" ");
+  return pop;
+};
+
+const addOlt = async (olt) => {
+  try {
+    await fetchApi.post("/add-olt", {
+      oltIp: olt.ipv4,
+      ipv4: olt.ipv4,
+      hubsoft_id: olt.id_equipamento,
+      oltName: olt.nome,
+      oltPop: oltPop(olt.nome),
+      active: true,
+    });
+  } catch (error) {
+    console.log("erro ao adicionar olt", error.message);
+  }
+};
+
+const matchOlt = (olt) => {
+  return heatmapOlts.value.find(
+    (holt) => holt.hubsoft_id == olt.id_equipamento
+  );
+};
+
+const syncWithHub = async () => {
+  syncWithHubLoading.value = true;
+  try {
+    const oltsNotSync = oltList.value.filter(
+      (olt) =>
+        !heatmapOlts.value.find((holt) => holt.hubsoft_id == olt.id_equipamento)
+    );
+    await Promise.all(oltsNotSync.map((olt) => addOlt(olt)));
+    notification.setNotification({
+      status: "success",
+      msg: oltsNotSync.length + " Olts sincronizados com sucesso",
+    });
+    syncWithHubLoading.value = false;
+  } catch (error) {
+    console.log("erro ao sincronizar olts", error.message);
+    notification.setNotification({
+      status: "error",
+      msg: "Erro ao sincronizar olts",
+    });
+    syncWithHubLoading.value = false;
+  } finally {
+    syncWithHubLoading.value = false;
+  }
+};
+
 const filteredOltList = computed(() => {
   return oltList.value.filter((olt) =>
     olt.nome.toLowerCase().includes(query.value.toLowerCase())
   );
 });
 
+const changeOltActiveStatus = async (status, olt) => {
+  try {
+    const response = await fetchApi.post("/editar-status-olt", {
+      id: olt.id_equipamento,
+      status,
+    });
+    if (response.status === 200) {
+      notification.setNotification({
+        status: "success",
+        msg: "Status alterado com sucesso",
+      });
+      heatmapOlts.value.find(
+        (holt) => holt.hubsoft_id == olt.id_equipamento
+      ).active = status;
+      getHeatmapOltList();
+    }
+  } catch (error) {
+    console.log("erro ao alterar status", error.message);
+    notification.setNotification({
+      status: "error",
+      msg: "Erro ao alterar status",
+    });
+  }
+};
+
 onMounted(async () => {
+  await getHeatmapOltList();
   oltList.value = await fetchOltList();
   console.log("oltList", oltList.value);
 });
@@ -46,6 +138,15 @@ onMounted(async () => {
         >
         </v-text-field>
       </v-form>
+      <v-btn
+        color="primary"
+        class="mt-2"
+        block
+        variant="text"
+        @click="syncWithHub"
+        :loading="syncWithHubLoading"
+        >sincronizar com hub</v-btn
+      >
     </v-col>
     <v-col cols="12" md="10" class="scrollable-column">
       <v-expansion-panels>
@@ -57,10 +158,12 @@ onMounted(async () => {
           multiple
         >
           <v-expansion-panel-text>
-            <div class="mb-4 d-flex ga-3">
-              <v-btn color="success">habilitar olt no heatmap</v-btn>
-              <v-btn color="error">Desabilitar olt no heatmap</v-btn>
-            </div>
+            <v-switch
+              :model-value="matchOlt(olt)?.active"
+              color="primary"
+              label="ativo no heatmap"
+              @update:model-value="changeOltActiveStatus($event, olt)"
+            ></v-switch>
             <v-list>
               <v-list-item
                 v-for="oltInterface in olt.interfaces"

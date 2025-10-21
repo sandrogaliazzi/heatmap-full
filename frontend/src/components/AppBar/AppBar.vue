@@ -13,6 +13,7 @@ import { useWindowSize } from "vue-window-size";
 const isSearchBarVisible = ref(false);
 const isCtoMarkerVisible = ref(false);
 const drawer = ref(false);
+const logoutDialog = ref(false);
 
 const heatmapStore = useHeatMapStore();
 const tomodatStore = useTomodatStore();
@@ -61,6 +62,16 @@ const handleUserLocation = () => {
 </script>
 
 <template>
+  <!-- Logout dialog -->
+
+  <v-dialog v-model="logoutDialog">
+    <v-card title="encerrar sessão?" width="400" class="mx-auto">
+      <v-card-actions>
+        <v-btn variant="text" color="error" @click="logout">Sim</v-btn>
+        <v-btn variant="text" @click="logoutDialog = false">cancelar</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
   <v-app-bar>
     <v-app-bar-nav-icon @click.stop="drawer = !drawer"></v-app-bar-nav-icon>
     <v-app-bar-title>
@@ -113,6 +124,6 @@ const handleUserLocation = () => {
       @toggleDrawMode="() => (setPolygonDrawMode = !setPolygonDrawMode)"
       v-role="['adm', 'tecnico', 'vendas']"
     />
-    <SideNavList @logout:user="logout" :user="userStore.user" />
+    <SideNavList @logout:user="logoutDialog = true" :user="userStore.user" />
   </v-navigation-drawer>
 </template>

@@ -124,24 +124,10 @@ const onCloseDialog = (value) => {
         v-role="['adm']"
         @click="openAtivacoesDialog = true"
       ></v-list-item>
-      <v-list-item
-        prepend-icon="mdi-logout"
-        title="Logout"
-        value="logout"
-        color="orange"
-        @click="emit('logout:user')"
-      ></v-list-item>
       <v-list-group value="Dashboard" prepend-icon="mdi-view-dashboard">
         <template v-slot:activator="{ props }">
           <v-list-item v-bind="props" title="Dashboard"></v-list-item>
         </template>
-        <!-- <v-list-item
-          prepend-icon="mdi-monitor-dashboard"
-          title="Adm Painel"
-          color="orange"
-          value="Dashboard"
-          to="/dashboard"
-        ></v-list-item> -->
         <v-list-item
           prepend-icon="mdi-account-group"
           title="Usuários"
@@ -158,31 +144,7 @@ const onCloseDialog = (value) => {
           to="/olt"
           v-role="['adm']"
         ></v-list-item>
-        <v-list-item
-          prepend-icon="mdi-web"
-          title="Ativações"
-          color="orange"
-          value="logs"
-          to="/logs"
-          v-role="['adm']"
-        ></v-list-item>
-        <v-list-item
-          prepend-icon="mdi-cctv"
-          title="Câmeras"
-          value="cameras"
-          color="orange"
-          to="/camera"
-          v-role="['adm', 'tecnico']"
-        ></v-list-item>
       </v-list-group>
-      <!-- <v-list-item
-        prepend-icon="mdi-set-top-box"
-        title="Cpes não autorizadas"
-        color="orange"
-        value="ONU"
-        v-role="['adm', 'tecnico']"
-        @click="openOnuDialog = true"
-      ></v-list-item> -->
       <v-list-item
         prepend-icon="mdi-cog-box"
         title="Provisionar CPE avulsa"
@@ -214,6 +176,13 @@ const onCloseDialog = (value) => {
         value="email"
         v-role="['adm', 'tecnico']"
         @click="openEmailDialog = true"
+      ></v-list-item>
+      <v-list-item
+        prepend-icon="mdi-logout"
+        title="Logout"
+        value="logout"
+        color="orange"
+        @click="emit('logout:user')"
       ></v-list-item>
     </v-list>
   </v-list>

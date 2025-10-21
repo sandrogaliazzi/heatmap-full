@@ -1203,9 +1203,8 @@ class oltController {
   };
 
   static toggleOltActiveStatus = (req, res) => {
-    const id = req.params.id;
-    const status = req.params.status === "ativo" ? true : false;
-    oltModel.find(id, (err, olt) => {
+    const { id, status } = req.body;
+    oltModel.findOne({ hubsoft_id: id }, (err, olt) => {
       if (err) {
         res
           .status(500)

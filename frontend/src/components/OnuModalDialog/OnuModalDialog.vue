@@ -9,8 +9,6 @@ import OnuList from "./UnAuthOnuList";
 import RegisterOnuForm from "./RegisterOnuForm";
 import AfterOnuSubmit from "./AfterOnuSubmit";
 
-const baseOltIp = "192.168";
-const oltIpRange = [202, 203, 204, 205, 206, 207, 208, 209, 212, 213, 215, 216];
 const loadingApi = ref(true);
 const oltRamals = ref([]);
 const unauthorizedOnuList = ref([]);
@@ -19,10 +17,16 @@ const selectedOnu = ref(null);
 const authorizedOnu = ref(null);
 const findMac = ref("");
 
-const oltIpList = oltIpRange.map((oltNumber) => `${baseOltIp}.${oltNumber}.2`);
-oltIpList.push("172.16.9.6");
-oltIpList.push("172.16.9.10");
-oltIpList.push("172.16.11.2");
+const heatmapOlts = ref([]);
+
+const getOltList = async () => {
+  try {
+    const response = await fetchApi.get("listar-olt");
+    return response.data.filter((olt) => olt.active);
+  } catch (error) {
+    console.log("erro ao buscar equipamentos", error.message);
+  }
+};
 
 const getOltRamals = async () => {
   try {
@@ -37,10 +41,14 @@ const getOltRamals = async () => {
 
 const getUnauthorizedOnuInfo = async () => {
   try {
-    const promiseList = oltIpList.map(async (oltIp) => {
-      const response = await fetchApi.post("listar-onu", { oltIp });
+    const promiseList = heatmapOlts.value.map(async (olt) => {
+      if (olt.oltName.includes("FIBERHOME")) {
+        const onus = await getUnauthorizedOnuInfoFromFiberhome();
+        return onus;
+      }
+      const response = await fetchApi.post("listar-onu", { oltIp: olt.oltIp });
 
-      return [...response.data, oltIp];
+      return [...response.data, olt.oltIp];
     });
 
     const results = await Promise.all(promiseList);
@@ -95,12 +103,9 @@ const unAuthOnuFilterByMAC = computed(() => {
 });
 
 const fetchAll = async () => {
+  heatmapOlts.value = await getOltList();
   oltRamals.value = await getOltRamals();
   unauthorizedOnuList.value = await mergeOnuAndRamalData();
-  fiberhomeOnuList.value = await getUnauthorizedOnuInfoFromFiberhome();
-  unauthorizedOnuList.value = unauthorizedOnuList.value.concat(
-    fiberhomeOnuList.value
-  );
   loadingApi.value = false;
 };
 
