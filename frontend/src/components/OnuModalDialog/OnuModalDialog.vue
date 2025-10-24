@@ -67,8 +67,6 @@ const getUnauthorizedOnuInfo = async () => {
   }
 };
 
-const fiberhomeOnuList = ref([]);
-
 const getUnauthorizedOnuInfoFromFiberhome = async () => {
   try {
     const response = await fetchApi.get("/descobrir-onu-fiberhome");
