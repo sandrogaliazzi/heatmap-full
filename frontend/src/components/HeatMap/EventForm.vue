@@ -240,7 +240,7 @@ const handleSubmit = async () => {
     switch (eventAction) {
       case "":
         const alarmConfig = {
-          descricao: openDescription.value,
+          descricao: upchatMsg.value,
           visivel_via_api: true,
           atendimento: true,
           pops: [{ id_pop: pop.value.id_pop }],
