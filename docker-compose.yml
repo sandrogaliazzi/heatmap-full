@@ -9,6 +9,8 @@ services:
     environment:
       - NODE_ENV=development
     restart: always
+    networks:
+      app-network:
 
   vue-app:
     build: ./frontend
@@ -24,3 +26,14 @@ services:
     depends_on:
       - node-api
     restart: always
+    networks:
+      app-network:
+
+networks:
+  app-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.25.0.0/24"
+          gateway: 172.25.0.1

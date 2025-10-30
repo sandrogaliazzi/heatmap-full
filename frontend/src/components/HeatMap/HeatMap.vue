@@ -16,6 +16,7 @@ import EventMarker from "./eventMarker.vue";
 import RightSideBar from "./RightSidebar.vue";
 import Cables from "./Cables.vue";
 import CtoViability from "../CtoModalDialog/CtoViability.vue";
+import EditAlert from "./EditAlert.vue";
 
 const store = useTomodatStore();
 const {
@@ -125,6 +126,7 @@ const getCeById = async (id) => {
 const onCloseMarker = () => {
   openEventModal.value = false;
   eventWindowLocation.value = null;
+  openUpchatModal.value = false;
   selectedEvent.value = {};
   eventAction.value = "";
 };
@@ -230,7 +232,14 @@ watch(mapRef, (googleMap) => {
 });
 
 //eventos
+const openUpchatModal = ref(false);
 const onUpdateEvent = (event) => {
+  if (!event || !event.info) return;
+  if (event.action === "upchat") {
+    selectedEvent.value = event.info;
+    openUpchatModal.value = true;
+    return;
+  }
   selectedEvent.value = event.info;
   openEventModal.value = true;
   eventAction.value = event.action;
@@ -292,6 +301,10 @@ onMounted(async () => {
       @reload-events="onReloadEvent"
       @close-marker="onCloseMarker"
     />
+  </DialogBox>
+
+  <DialogBox :isOpen="openUpchatModal" @update:modalValue="onCloseDialog">
+    <EditAlert :event="selectedEvent" @close-marker="onCloseMarker" />
   </DialogBox>
 
   <RightSideBar

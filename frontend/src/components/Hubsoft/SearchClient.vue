@@ -34,7 +34,7 @@ const searchClientByName = debounce(async (alias) => {
   loadingClients.value = true;
   try {
     const response = await hubApi.get(
-      `api/v1/integracao/cliente?busca=nome_razaosocial&termo_busca=${alias}&relacoes=endereco_instalacao`
+      `api/v1/integracao/cliente?busca=nome_razaosocial&termo_busca=${alias}&relacoes=endereco_instalacao,endereco_cadastral,endereco_cobranca,status_conexao`
     );
     if (response.status === 200) {
       clientsFound.value = response.data.clientes;

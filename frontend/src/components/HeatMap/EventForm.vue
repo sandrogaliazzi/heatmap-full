@@ -23,6 +23,8 @@ const startTime = ref(event.startTime || new Date().toLocaleString());
 const closeDialog = inject("closeDialog");
 const formRef = ref(null);
 const pop = ref(null);
+const upchatMsg = ref("");
+const activeUpchatMsg = ref(false);
 
 const inputRules = [
   (value) => {
@@ -240,8 +242,10 @@ const handleSubmit = async () => {
     switch (eventAction) {
       case "":
         const alarmConfig = {
-          descricao: upchatMsg.value,
-          visivel_via_api: true,
+          descricao: activeUpchatMsg.value
+            ? upchatMsg.value
+            : openDescription.value,
+          visivel_via_api: activeUpchatMsg.value,
           atendimento: true,
           pops: [{ id_pop: pop.value.id_pop }],
           interface_conexao: interfaceSelection.value.map((id) => ({
@@ -289,7 +293,6 @@ const popList = ref([]);
 
 onMounted(async () => {
   popList.value = await getPopList();
-  console.log(popList.value);
 });
 
 onUnmounted(() => emit("closeMarker"));
@@ -350,6 +353,7 @@ onUnmounted(() => emit("closeMarker"));
             <v-col>
               <v-select
                 label="Selecionar pop"
+                v-if="eventAction !== 'update'"
                 :items="popList"
                 :item-title="(item) => item.nome"
                 :item-value="(item) => item"
@@ -388,10 +392,29 @@ onUnmounted(() => emit("closeMarker"));
           >
           </v-text-field>
 
+          <v-switch
+            v-model="activeUpchatMsg"
+            label="Ativa mensagem UpChat"
+            hide-details
+            color="blue"
+            v-if="eventAction !== 'update'"
+          ></v-switch>
+
+          <v-textarea
+            v-if="activeUpchatMsg"
+            label="Mensagem upchat"
+            placeholder="Mensagem para o UpChat"
+            v-model="upchatMsg"
+            variant="filled"
+            auto-grow
+            :rules="inputRules"
+          ></v-textarea>
+
           <v-textarea
             clearable
             label="Descrição"
             v-model="openDescription"
+            :rules="inputRules"
           ></v-textarea>
         </template>
 

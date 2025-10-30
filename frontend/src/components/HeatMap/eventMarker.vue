@@ -70,6 +70,17 @@ import redWarningIcon from "@/assets/red-warning-icon.png";
 
         <v-btn
           class="text-none text-black mb-4"
+          color="pink-accent-2"
+          size="x-large"
+          variant="flat"
+          block
+          @click="emit('updateEvent', { info: event, action: 'upchat' })"
+        >
+          Editar Notificação UpChat
+        </v-btn>
+
+        <v-btn
+          class="text-none text-black mb-4"
           color="red-accent-2"
           size="x-large"
           variant="flat"

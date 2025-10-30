@@ -36,7 +36,7 @@ const findClientOnHubsoft = async (isDialogOpen) => {
     const response = await hubApi.get(
       `/api/v1/integracao/cliente?inativo=todos&ultima_conexao=sim&busca=nome_razaosocial&termo_busca=${normalizeName(
         client.value.name || client.value.client
-      )}`
+      )}&inclui_alarmes=sim`
     );
 
     if (
