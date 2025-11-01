@@ -10,6 +10,8 @@ import ClientForm from "./ClientForm.vue";
 import ReservadosList from "../Reservados/ReservadosList.vue";
 import SearchCard from "../AppBar/SearchCard.vue";
 import { useUserStore } from "@/stores/user";
+import { useTomodatStore } from "@/stores/tomodat.js";
+import { storeToRefs } from "pinia";
 
 const mapRef = ref(null);
 const isActive = ref(true);
@@ -21,9 +23,13 @@ const loadingData = ref(false);
 const drawer = ref(false);
 const range = ref(300);
 const selectedCto = ref(null);
-const { user } = useUserStore();
+const userStore = useUserStore();
 const openUserReservados = ref(false);
 const openSearch = ref(false);
+const store = useTomodatStore();
+
+const { getTomodatData } = store;
+const { user } = storeToRefs(userStore);
 
 const openClientForm = computed(() => {
   return selectedCto.value !== null;
@@ -112,9 +118,14 @@ const getCtosWithFreePorts = async (latitude, longitude, range) => {
   }
 };
 
+const loadingTomodat = ref(true);
+
 watch(mapRef, (googleMap) => {
   if (googleMap) {
-    googleMap.$mapPromise.then((map) => {
+    googleMap.$mapPromise.then(async (map) => {
+      console.log(user.value);
+      await getTomodatData(user.value);
+      loadingTomodat.value = false;
       map.addListener("click", (mapsMouseEvent) => {
         handleLocationUpdate(mapsMouseEvent, true);
       });
@@ -209,6 +220,16 @@ watch(mapRef, (googleMap) => {
     <ReservadosList v-if="user" :user="user" />
   </DialogBox>
   <DialogBox :isOpen="openSearch" @update:modalValue="openSearch = $event">
-    <SearchCard />
+    <SearchCard v-if="!loadingTomodat" />
+    <v-card v-else>
+      <v-card-title>Carregando dados, aguarde...</v-card-title>
+      <v-card-text class="d-flex justify-center align-center">
+        <v-progress-circular
+          size="48"
+          color="orange"
+          indeterminate
+        ></v-progress-circular>
+      </v-card-text>
+    </v-card>
   </DialogBox>
 </template>
