@@ -7,6 +7,12 @@ export default {
       goal: 19,
     },
     {
+      name: "ELVIS",
+      avatar: "../src/assets/SELLERS/ELVIS.png",
+      sellerClass: 0,
+      goal: 19,
+    },
+    {
       name: "LUIS FELIPE",
       avatar: "../src/assets/SELLERS/LUIS FELIPE.jpg",
       sellerClass: 0,
