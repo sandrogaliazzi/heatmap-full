@@ -74,6 +74,7 @@ const sellers = ref([
   "JESSICA",
   "GIACOMO",
   "EQUIPE CONECT",
+  "ANGELICA",
 ]);
 
 const colors = {

@@ -33,6 +33,12 @@ export default {
       goal: 62,
     },
     {
+      name: "ANGELICA",
+      avatar: "../src/assets/SELLERS/ANGELICA S.jpeg",
+      sellerClass: 1,
+      goal: 62,
+    },
+    {
       name: "JESSICA",
       avatar: "../src/assets/SELLERS/JESSICA.jpg",
       sellerClass: 1,

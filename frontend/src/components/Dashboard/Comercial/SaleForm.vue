@@ -58,6 +58,7 @@ const sellersName = ref([
   "EQUIPE CONECT",
   "DIEGO",
   "GIACOMO",
+  "ANGELICA",
 ]);
 
 const findClass = (name) => {
