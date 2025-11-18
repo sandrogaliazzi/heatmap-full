@@ -6,7 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 
 const __dirname = path.dirname(__filename);
 
-const filePath = path.join(__dirname, "../kmlTomodat/TOMODAT-20-10-2025.kml");
+const filePath = path.join(__dirname, "../kmlTomodat/TOMODAT-18-11-2025.kml");
 
 function formatCoordinates(coordsArray) {
   const formatedCoordList = [];
