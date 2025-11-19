@@ -52,6 +52,18 @@ class UserController {
     }
   };
 
+  static async atualizarAvatar(req, res) {
+    try {
+      const id = req.params.id;
+      let { avatar, avatar_id } = req.body;
+      let dados = { avatar, avatar_id };
+      await user.findByIdAndUpdate(id, { $set: dados });
+      res.status(200).send({ message: "Alteração realizada com sucesso." });
+    } catch (err) {
+      res.status(500).send({ message: err.message });
+    }
+  }
+
   static RegisterUser = async (req, res) => {
     try {
       let { name, password, category } = req.body;
@@ -115,12 +127,7 @@ class UserController {
 
         usuario.save((usuario.token = token));
 
-        let retorno = {
-          name: usuario.name,
-          category: usuario.category,
-          token: usuario.token,
-        };
-        res.status(201).send(retorno);
+        res.status(201).send(usuario);
       } else {
         res.status(404).send({ message: `Usuario ou senha invalidos.` });
       }

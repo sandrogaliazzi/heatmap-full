@@ -6,6 +6,8 @@ const UserSchema = new mongoose.Schema({
   password: { type: String, require: true },
   category: { type: String, require: true },
   token: { type: String },
+  avatar: { type: String },
+  avatar_id: { type: String },
 });
 
 const user = mongoose.model("user", UserSchema);

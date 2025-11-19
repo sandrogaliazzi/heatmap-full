@@ -23,6 +23,7 @@ import mkOs from "./mkOsRoutes.js";
 import fullTrack from "./fullTrackRoutes.js";
 import reservados from "./reservadosRoutes.js";
 import macVendor from "./macVendorRoutes.js";
+import uploadRoutes from "./uploadRoutes.js";
 
 const routes = (app) => {
   app.route("/").get((req, res) => {
@@ -57,7 +58,8 @@ const routes = (app) => {
     mkOs,
     fullTrack,
     reservados,
-    macVendor
+    macVendor,
+    uploadRoutes
   );
 };
 

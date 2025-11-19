@@ -22,6 +22,8 @@ const loadUsers = async () => {
   const response = await fetchApi("users");
 
   users.value = response.data;
+
+  console.log(users.value);
 };
 
 onMounted(async () => {

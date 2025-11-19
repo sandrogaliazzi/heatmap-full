@@ -4,6 +4,7 @@
 # Ignora arquivos .env em qualquer subpasta
 **/.env
 **/.env.local
+/backend/assets/images/
 
 # Outras coisas que quiser ignorar
 .DS_Store

@@ -15,6 +15,7 @@ import OsList from "../Ativacoes/OsList.vue";
 import ReservadosList from "../Reservados/ReservadosList.vue";
 import router from "@/router";
 import ProfileConfig from "../OnuModalDialog/ProfileConfig.vue";
+import UploadImage from "./UploadImage.vue";
 
 const tomodatStore = useTomodatStore();
 const { selectedCto } = storeToRefs(tomodatStore);
@@ -63,8 +64,8 @@ const onCloseDialog = (value) => {
     <v-list-group>
       <template #activator="{ props }">
         <v-list-item
-          :prepend-avatar="avatar"
           :title="user.name"
+          :prepend-avatar="user.avatar || avatar"
           :subtitle="user.category"
           v-bind="props"
         >
@@ -79,6 +80,13 @@ const onCloseDialog = (value) => {
           label="Dark Mode"
           class="ml-3"
         ></v-switch>
+      </v-list-item>
+      <v-list-item
+        title="editar foto"
+        value="editCamera"
+        prepend-icon="mdi-camera-account"
+      >
+        <UploadImage :user="user" />
       </v-list-item>
     </v-list-group>
     <v-divider class="my-2"></v-divider>

@@ -12,6 +12,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 //app.use(cors());
+app.use("/images", express.static(path.join(__dirname, "../assets/images")));
 
 db.on("error", console.log.bind(console, "erro de conexão"));
 db.once("open", () => {
@@ -28,7 +29,7 @@ app.get("/email", (req, res) => {
 app.get("/lista-email", (req, res) => {
   res.sendFile(path.join(__dirname, "/lista.html"));
 });
-app.use(express.json({ limit: "50mb" })); //add {limit: '50mb'} referente ao erro PayloadTooLargeError: request entity too large
+app.use(express.json({ limit: "50mb" }));
 
 routes(app);
 
