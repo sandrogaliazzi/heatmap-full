@@ -43,6 +43,22 @@ const setUserLocation = async (location) => {
   };
 };
 
+watch(
+  () => store.selectedCto,
+  (newCto) => {
+    if (newCto) {
+      const position = store.getSelectedCtoPosition;
+      if (position) {
+        handleLocationUpdate(
+          { latitude: position.lat, longitude: position.lng },
+          false
+        );
+        zoom.value = 18;
+      }
+    }
+  }
+);
+
 const handleRangeUpdate = (expand) => {
   range.value = expand ? (range.value += 100) : (range.value -= 100);
   handleLocationUpdate(userLocation.value, false);

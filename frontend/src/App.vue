@@ -21,6 +21,7 @@ const { tokenExpired } = storeToRefs(auth);
 const login = () => {
   tokenExpired.value = false;
   auth.stopTokenMonitoring();
+  localStorage.removeItem("user");
   router.push({ name: "Login" }).then(() => {
     router.go(0); // Reload the page to reset the state
   });
@@ -64,6 +65,7 @@ const login = () => {
             color="orange"
             variant="flat"
             rounded
+            to="/login"
             @click="login"
           >
             Fazer Login

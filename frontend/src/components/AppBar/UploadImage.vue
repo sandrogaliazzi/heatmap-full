@@ -8,7 +8,7 @@ const { user } = defineProps(["user"]);
 const userStore = useUserStore();
 
 const file = ref(null);
-const avatarImage = ref(avatar);
+const avatarImage = ref(user.avatar || avatar);
 
 const uploadImage = () => {
   console.log(file.value);
@@ -64,7 +64,7 @@ const saveImage = async () => {
     >
       <v-avatar
         color="surface-variant"
-        :image="user.avatar || avatarImage"
+        :image="avatarImage"
         size="120"
       ></v-avatar>
 
