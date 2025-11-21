@@ -35,9 +35,9 @@ class UserController {
   static atualizarUser = async (req, res) => {
     try {
       const id = req.params.id;
-      let { name, password, category } = req.body;
 
-      let dados = { name, category };
+      const dados = { ...req.body };
+      const { password } = req.body;
 
       if (password) {
         const encryptedPassword = await bcrypt.hash(password, 10);
@@ -66,27 +66,26 @@ class UserController {
 
   static RegisterUser = async (req, res) => {
     try {
-      let { name, password, category } = req.body;
+      const userData = { ...req.body };
 
-      if (!(name && password)) {
+      if (!(userData.name && userData.password)) {
         res.status(400).send("All input is required");
       }
 
-      let oldUser = await user.find({ name });
+      let oldUser = await user.find({ name: userData.name });
 
-      if (oldUser === name) {
+      if (oldUser === userData.name) {
         return res.status(409).send("User Already Exist. Please Login");
       } else {
-        let encryptedPassword = await bcrypt.hash(password, 10);
+        let encryptedPassword = await bcrypt.hash(userData.password, 10);
 
         let usuario = await user.create({
-          name,
-          category,
+          ...userData,
           password: encryptedPassword,
         });
 
         let token = jwt.sign(
-          { user_id: usuario._id, name },
+          { user_id: usuario._id, name: userData.name },
           process.env.TOKEN_KEY,
           {
             expiresIn: "180h",

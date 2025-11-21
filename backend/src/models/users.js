@@ -8,6 +8,9 @@ const UserSchema = new mongoose.Schema({
   token: { type: String },
   avatar: { type: String },
   avatar_id: { type: String },
+  sellerClass: { type: Number },
+  goal: { type: Number },
+  color: { type: String },
 });
 
 const user = mongoose.model("user", UserSchema);

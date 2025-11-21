@@ -3,6 +3,7 @@ import fetchApi from "@/api";
 import UserRegisterCard from "./UserRegisterCard.vue";
 import DialogBox from "../Dialog/Dialog.vue";
 import { ref, onMounted, computed } from "vue";
+import avatar from "@/assets/avatar.png";
 
 const users = ref([]);
 const loginData = ref([]);
@@ -22,8 +23,6 @@ const loadUsers = async () => {
   const response = await fetchApi("users");
 
   users.value = response.data;
-
-  console.log(users.value);
 };
 
 onMounted(async () => {
@@ -52,15 +51,6 @@ const filteredUsers = computed(() => {
   return users.value.filter((user) =>
     user.name.includes(query.value.toLowerCase())
   );
-});
-
-const userIcon = computed(() => {
-  return {
-    tecnico: "mdi-tools",
-    adm: "mdi-security",
-    vendas: "mdi-handshake",
-    convidado: "mdi-account",
-  };
 });
 
 const editUser = (id) => {
@@ -139,7 +129,7 @@ const deleteUser = async (id) => {
             v-for="user in filteredUsers || users"
             :title="user.name.toUpperCase()"
             :value="user.name"
-            :prepend-icon="userIcon[user.category]"
+            :prepend-avatar="user.avatar || avatar"
           >
             <v-list-item-subtitle class="mt-2">
               <p>{{ user.category }}</p>

@@ -1,7 +1,7 @@
 <script setup>
-import { ref } from "vue";
-import sellers from "./sellers";
+import { ref, onMounted, computed } from "vue";
 import fetchApi from "@/api";
+//import sellers from "./sellers";
 import SalesData from "./SalesData.vue";
 import moment from "moment-timezone";
 
@@ -13,17 +13,30 @@ const { title, sales, filter, metric } = defineProps([
 ]);
 
 const salesBySeller = ref([]);
+const sellers = ref([]);
+
+const loadSellers = async () => {
+  const response = await fetchApi("users");
+
+  return response.data
+    .filter((user) => user.category === "vendas" || user.name == "felipe")
+    .map((user) => ({ ...user, name: user.name.toUpperCase() }));
+};
+
+const externos = computed(() =>
+  sellers.value.filter((seller) => seller.sellerClass === 0)
+);
+
+const internos = computed(() =>
+  sellers.value.filter((seller) => seller.sellerClass === 1)
+);
 
 function getWeekNumber(date) {
-  // Configurando o fuso horário para Brasília
   moment.tz.setDefault("America/Sao_Paulo");
 
-  // Obtendo a data atual no fuso horário de Brasília
   const momentDate = date ? moment(date) : moment();
 
-  // Obtendo o número da semana atual
   const weekNumber = momentDate.isoWeek();
-
 
   return weekNumber;
 }
@@ -47,7 +60,9 @@ const fetchSales = async (seller) => {
           break;
         case "week":
           salesBySeller.value = response.data.filter(
-            (sale) => sale.weekNumber == getWeekNumber() && sale.date.split("-")[0] == new Date().getFullYear()
+            (sale) =>
+              sale.weekNumber == getWeekNumber() &&
+              sale.date.split("-")[0] == new Date().getFullYear()
           );
           break;
 
@@ -62,6 +77,10 @@ const fetchSales = async (seller) => {
     console.error(error);
   }
 };
+
+onMounted(async () => {
+  sellers.value = await loadSellers();
+});
 </script>
 
 <template>
@@ -70,7 +89,7 @@ const fetchSales = async (seller) => {
       <v-list density="compact" lines="one">
         <v-list-item type="subheader" title="Externo"></v-list-item>
         <v-list-item
-          v-for="seller in sellers.externos"
+          v-for="seller in externos"
           :value="seller.name"
           :key="seller.name"
           :prepend-avatar="seller.avatar"
@@ -118,7 +137,7 @@ const fetchSales = async (seller) => {
         </v-list-item>
         <v-list-item type="subheader" title="Interno"></v-list-item>
         <v-list-item
-          v-for="seller in sellers.internos"
+          v-for="seller in internos"
           :value="seller.name"
           :key="seller.name"
           :prepend-avatar="seller.avatar"

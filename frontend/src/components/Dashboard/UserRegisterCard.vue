@@ -2,10 +2,15 @@
 import { ref } from "vue";
 import fetchApi from "@/api";
 import { useNotificationStore } from "@/stores/notification";
+import avatar from "@/assets/avatar.png";
 
 const { user } = defineProps(["user"]);
 const password = ref("");
 const formRef = ref(null);
+const fileInput = ref(null);
+const color = ref(user.color || "#ffffff");
+const fileUploaded = ref(null);
+const avatarImage = ref(user.avatar || avatar);
 const notification = useNotificationStore();
 const emit = defineEmits([
   "update:userName",
@@ -59,14 +64,50 @@ const editUser = async (reqBody) => {
   }
 };
 
+const uploadImage = () => {
+  avatarImage.value = URL.createObjectURL(fileUploaded.value);
+};
+
+const saveImage = async () => {
+  const formData = new FormData();
+  formData.append("image", fileUploaded.value);
+
+  try {
+    const response = await fetchApi.post("/upload-image", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data.image;
+  } catch (error) {
+    console.error("Error uploading image:", error);
+  }
+};
+
 const handleSubmit = async () => {
   const { valid } = await formRef.value.validate();
 
+  let avatar,
+    avatar_id = "";
+
+  if (fileUploaded.value) {
+    const response = await saveImage();
+    avatar = response.url;
+    avatar_id = response.id;
+  }
   const reqBody = {
     name: user.name,
     category: user.category,
-    password: password.value,
+    sellerClass: user.sellerClass,
+    goal: user.goal,
+    avatar,
+    avatar_id,
+    color: color.value,
   };
+
+  if (password.value) {
+    reqBody.password = password.value;
+  }
 
   if (!valid) {
     notification.setNotification({
@@ -99,6 +140,34 @@ const handleSubmit = async () => {
     <v-card-text>
       <v-container>
         <v-row>
+          <v-col cols="12" class="d-flex justify-center mb-4">
+            <v-hover v-slot="{ isHovering, props }">
+              <div v-bind="props">
+                <v-img
+                  :src="avatarImage"
+                  :width="200"
+                  :height="200"
+                  cover
+                  rounded="circle"
+                >
+                  <v-expand-transition>
+                    <div
+                      v-if="isHovering"
+                      class="d-flex justify-center align-center bg-grey-lighten-1 opacity-70"
+                      style="height: 100%"
+                    >
+                      <v-btn
+                        icon="mdi-pen"
+                        variant="plain"
+                        class="opacity-100"
+                        @click="fileInput.click()"
+                      ></v-btn>
+                    </div>
+                  </v-expand-transition>
+                </v-img>
+              </div>
+            </v-hover>
+          </v-col>
           <v-col cols="12">
             <v-form
               ref="formRef"
@@ -106,11 +175,18 @@ const handleSubmit = async () => {
               autocomplete="off"
             >
               <v-col cols="12">
+                <v-file-input
+                  ref="fileInput"
+                  v-model="fileUploaded"
+                  v-show="false"
+                  @change="uploadImage"
+                ></v-file-input>
+              </v-col>
+              <v-col cols="12">
                 <v-text-field
                   prepend-icon="mdi-account"
                   variant="underlined"
-                  :value="user.name || ''"
-                  @input="emit('update:userName', $event.target.value)"
+                  v-model="user.name"
                   :rules="inputRules"
                 ></v-text-field>
               </v-col>
@@ -126,7 +202,6 @@ const handleSubmit = async () => {
                   "
                   @click:append-inner="togglePasswordVisibility"
                   variant="underlined"
-                  :rules="inputRules"
                 ></v-text-field>
               </v-col>
               <v-col cols="12">
@@ -149,6 +224,38 @@ const handleSubmit = async () => {
                   ></v-radio>
                 </v-radio-group>
               </v-col>
+              <v-col cols="12" v-if="user.category === 'vendas'">
+                <v-radio-group
+                  inline
+                  label="Tipo de Vendedor"
+                  v-model="user.sellerClass"
+                >
+                  <v-radio
+                    label="vendedor interno"
+                    :value="1"
+                    color="orange"
+                  ></v-radio>
+                  <v-radio
+                    label="vendedor externo"
+                    :value="0"
+                    color="orange"
+                  ></v-radio>
+                </v-radio-group>
+              </v-col>
+              <v-col cols="12" v-if="user.category === 'vendas'">
+                <v-text-field
+                  variant="underlined"
+                  v-model="user.goal"
+                  type="number"
+                  label="meta de vendas"
+                  prepend-icon="mdi-cash-multiple"
+                ></v-text-field>
+              </v-col>
+
+              <v-col cols="12">
+                <v-color-picker v-model="color"></v-color-picker>
+              </v-col>
+
               <v-col cols="12">
                 <v-btn
                   color="success"

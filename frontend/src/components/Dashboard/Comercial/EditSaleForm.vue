@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch } from "vue";
+import { ref, watch, onMounted, computed } from "vue";
 import moment from "moment-timezone";
 import fetchApi from "@/api";
 import { useNotificationStore } from "@/stores/notification";
@@ -9,33 +9,43 @@ const { sale } = defineProps(["sale"]);
 const emit = defineEmits(["close-form"]);
 
 function getCurrentWeekNumber(date) {
-  // Configurando o fuso horário para Brasília
   moment.tz.setDefault("America/Sao_Paulo");
 
-  // Obtendo a data atual no fuso horário de Brasília
   const momentDate = date ? moment(date) : moment();
 
-  // Obtendo o número da semana atual
   const weekNumber = momentDate.isoWeek();
 
   return weekNumber;
 }
 
-const findClass = (name) => {
-  return ["JESSICA", "NADINE", "JANICE", "EQUIPE CONECT"].indexOf(name) > -1
-    ? 0
-    : 1;
+const sellers = ref([]);
+
+const loadSellers = async () => {
+  const response = await fetchApi.get("/users");
+  return response.data
+    .filter((user) => user.category === "vendas" || user.name == "felipe")
+    .map((user) => ({ ...user, name: user.name.toUpperCase() }));
+};
+
+onMounted(async () => {
+  sellers.value = await loadSellers();
+});
+
+const findSellerClass = (sellerName) => {
+  const seller = sellers.value.find((seller) => seller.name === sellerName);
+  return seller ? seller.sellerClass : null;
 };
 
 const seller = ref(sale.seller);
 const planos = ref(planosJSON);
-const sellerClass = ref(findClass(sale.seller));
+const sellerClass = ref(findSellerClass(sale.seller));
 const date = ref(sale.date);
 const city = ref(sale.city || "");
 const weekNumber = ref(getCurrentWeekNumber(sale.date));
 const formRef = ref(null);
 const cardLoader = ref(false);
 const ticket = ref(sale.ticket);
+const ticketValue = ref(sale.ticketValue || null);
 const clientName = ref(sale.client);
 const notification = useNotificationStore();
 
@@ -47,22 +57,10 @@ const inputRules = [
   },
 ];
 
-const sellersName = ref([
-  "FELIPE",
-  "LUIS FELIPE",
-  "ELVIS",
-  "NADINE",
-  "JANICE",
-  "JESSICA",
-  "ANGELICA",
-  "GIACOMO",
-  "DOUGLAS",
-  "DIEGO",
-  "EQUIPE CONECT",
-]);
-
-watch(seller, (name) => {
-  sellerClass.value = findClass(name);
+const sellersName = computed(() => sellers.value.map((seller) => seller.name));
+watch(seller, () => {
+  sellerClass.value = findSellerClass(seller.value);
+  console.log("seller class", sellerClass.value);
 });
 
 watch(date, (newDate) => {
@@ -130,13 +128,21 @@ const handleSubmit = async () => {
       label="Cliente"
     ></v-text-field>
     <v-row>
-      <v-col>
+      <v-col cols="12">
         <v-autocomplete
           label="Selecionar Plano"
           :items="planos.map((p) => p['Nome do Plano'])"
           :rules="inputRules"
           v-model="ticket"
         ></v-autocomplete>
+      </v-col>
+      <v-col cols="12">
+        <v-text-field
+          type="number"
+          label="Valor do Plano"
+          v-model="ticketValue"
+          :rules="inputRules"
+        ></v-text-field>
       </v-col>
     </v-row>
     <v-row>
@@ -154,6 +160,8 @@ const handleSubmit = async () => {
             'GRAVATAI',
             'PAROBÉ',
             'GLORINHA',
+            'SAPIRANGA',
+            'NOVO HAMBURGO',
           ]"
           :rules="inputRules"
           v-model="city"

@@ -66,28 +66,13 @@ const citys = ref([
   "TRÊS COROAS",
 ]);
 
-const sellers = ref([
-  "FELIPE",
-  "LUIS FELIPE",
-  "DIEGO",
-  "JANICE",
-  "JESSICA",
-  "GIACOMO",
-  "EQUIPE CONECT",
-  "ANGELICA",
-]);
+const sellers = ref([]);
 
-const colors = {
-  FELIPE: "#d90429",
-  "LUIS FELIPE": "#2c6e49",
-  JEFERSON: "#8338ec",
-  MARONES: "#3a86ff",
-  DOUGLAS: "#ff006e",
-  JANICE: "#FF9800",
-  JESSICA: "#ccff33",
-  GIACOMO: "#A020F0",
-  DIEGO: "#03ffa2",
-  "EQUIPE CONECT": "#00296b",
+const loadSellers = async () => {
+  const response = await fetchApi.get("/users");
+  return response.data
+    .filter((user) => user.category === "vendas" || user.name == "felipe")
+    .map((user) => ({ ...user, name: user.name.toUpperCase() }));
 };
 
 watch(metricMonth, () => {
@@ -105,17 +90,20 @@ const byCurrentMonth = (sale) => {
 
 const getSalesByCity = async () => {
   try {
+    ("");
     const sellersData = await Promise.all(
       sellers.value.map(async (seller) => {
         const salesByCity = await Promise.all(
           citys.value.map(async (city) => {
-            const response = await fetchApi(`/sales/${seller}/${city}`);
+            const response = await fetchApi(`/sales/${seller.name}/${city}`);
             if (response.status === 200) {
               return hasFilter.value
                 ? response.data.filter(byCurrentMonth)
                 : response.data;
             } else {
-              throw new Error(`Falha ao obter vendas de ${seller} em ${city}`);
+              throw new Error(
+                `Falha ao obter vendas de ${seller.name} em ${city}`
+              );
             }
           })
         );
@@ -137,10 +125,10 @@ const renderChart = async () => {
       data: item.salesByCity.map((i) => i.length),
       barThickness: 15,
       maxBarThickness: 20,
-      label: `${item.seller} ${item.salesByCity
+      label: `${item.seller.name} ${item.salesByCity
         .map((i) => i.length)
         .reduce((acc, val) => acc + val)}`,
-      backgroundColor: colors[item.seller],
+      backgroundColor: item.seller.color,
       color: "#fff",
     };
   });
@@ -157,7 +145,8 @@ const renderChart = async () => {
 
 watch(hasFilter, () => renderChart());
 
-onMounted(() => {
+onMounted(async () => {
+  sellers.value = await loadSellers();
   renderChart();
 });
 

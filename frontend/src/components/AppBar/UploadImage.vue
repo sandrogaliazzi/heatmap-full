@@ -10,6 +10,8 @@ const userStore = useUserStore();
 const file = ref(null);
 const avatarImage = ref(user.avatar || avatar);
 
+const fileInput = ref(null);
+
 const uploadImage = () => {
   console.log(file.value);
   avatarImage.value = URL.createObjectURL(file.value);
@@ -54,7 +56,10 @@ const saveImage = async () => {
 };
 </script>
 <template>
-  <v-dialog activator="parent">
+  <v-dialog
+    activator="parent"
+    @update:model-value="() => (avatarImage = user.avatar || avatar)"
+  >
     <v-sheet
       class="pa-4 text-center mx-auto"
       elevation="12"
@@ -62,11 +67,21 @@ const saveImage = async () => {
       rounded="lg"
       width="100%"
     >
-      <v-avatar
-        color="surface-variant"
-        :image="avatarImage"
-        size="120"
-      ></v-avatar>
+      <div class="d-flex ga-4 justify-center align-center flex-column">
+        <v-avatar
+          color="surface-variant"
+          :image="avatarImage"
+          size="120"
+        ></v-avatar>
+
+        <v-btn
+          color="orange"
+          variant="outlined"
+          rounded="pill"
+          @click="fileInput.click()"
+          >editar foto</v-btn
+        >
+      </div>
 
       <h2 class="text-h5 mt-4">{{ user.name }}</h2>
       <p class="text-emphasis mt-2 mb-3">perfil: {{ user.category }}</p>
@@ -80,17 +95,13 @@ const saveImage = async () => {
           variant="outlined"
           v-model="file"
           name="image"
+          ref="fileInput"
+          v-show="false"
           @change="uploadImage"
         ></v-file-input>
       </div>
       <div class="text-end">
-        <v-btn
-          color="primary"
-          variant="flat"
-          v-if="file"
-          rounded
-          @click="saveImage"
-        >
+        <v-btn color="primary" variant="flat" v-if="file" @click="saveImage">
           Salvar Imagem
         </v-btn>
       </div>

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, inject, watch } from "vue";
+import { ref, inject, watch, onMounted, computed } from "vue";
 import moment from "moment-timezone";
 import fetchApi from "@/api";
 import { useNotificationStore } from "@/stores/notification";
@@ -16,13 +16,10 @@ const formatDate = (date) => {
 };
 
 function getCurrentWeekNumber(date) {
-  // Configurando o fuso horário para Brasília
   moment.tz.setDefault("America/Sao_Paulo");
 
-  // Obtendo a data atual no fuso horário de Brasília
   const momentDate = date ? moment(date) : moment();
 
-  // Obtendo o número da semana atual
   const weekNumber = momentDate.isoWeek();
 
   return weekNumber;
@@ -36,6 +33,7 @@ const date = ref(formatDate(new Date()));
 const city = ref("");
 const weekNumber = ref(getCurrentWeekNumber());
 const ticket = ref("");
+const ticketValue = ref(null);
 const formRef = ref(null);
 const cardLoader = ref(false);
 const notification = useNotificationStore();
@@ -49,24 +47,24 @@ const inputRules = [
   },
 ];
 
-const sellersName = ref([
-  "FELIPE",
-  "LUIS FELIPE",
-  "ELVIS",
-  "JANICE",
-  "JESSICA",
-  "EQUIPE CONECT",
-  "DIEGO",
-  "GIACOMO",
-  "ANGELICA",
-]);
+const sellers = ref([]);
+
+const loadSellers = async () => {
+  const response = await fetchApi.get("/users");
+  return response.data
+    .filter((user) => user.category === "vendas" || user.name == "felipe")
+    .map((user) => ({ ...user, name: user.name.toUpperCase() }));
+};
+
+onMounted(async () => {
+  sellers.value = await loadSellers();
+});
+
+const sellersName = computed(() => sellers.value.map((seller) => seller.name));
 
 const findClass = (name) => {
-  return ["JESSICA", "NADINE", "JANICE", "EQUIPE CONECT", "GIACOMO"].indexOf(
-    name
-  ) > -1
-    ? 0
-    : 1;
+  const seller = sellers.value.find((seller) => seller.name === name);
+  return seller ? seller.sellerClass : null;
 };
 
 watch(seller, (name) => {
@@ -96,6 +94,7 @@ const handleSubmit = async () => {
       sellerClass: sellerClass.value,
       client: clientName.value.toUpperCase(),
       ticket: ticket.value,
+      ticketValue: ticketValue.value,
       city: city.value,
       metricId,
     };
@@ -164,13 +163,21 @@ const handleSubmit = async () => {
           label="Cliente"
         ></v-text-field>
         <v-row>
-          <v-col>
+          <v-col cols="12">
             <v-autocomplete
               label="Selecionar Plano"
               :items="planos.map((p) => p['Nome do Plano'])"
               :rules="inputRules"
               v-model="ticket"
             ></v-autocomplete>
+          </v-col>
+          <v-col cols="12">
+            <v-text-field
+              type="number"
+              label="Valor do Plano"
+              v-model="ticketValue"
+              :rules="inputRules"
+            ></v-text-field>
           </v-col>
         </v-row>
         <v-row>

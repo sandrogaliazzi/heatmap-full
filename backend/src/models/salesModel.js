@@ -9,6 +9,7 @@ const SalesSchema = new mongoose.Schema({
   client: { type: String, required: false },
   city: { type: String, required: false },
   ticket: { type: String, required: false },
+  ticket_value: { type: Number, required: false },
   metricId: { type: String, required: true },
 });
 
