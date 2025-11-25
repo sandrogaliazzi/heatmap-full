@@ -79,6 +79,7 @@ const handleSubmit = async () => {
       sellerClass: sellerClass.value,
       client: clientName.value.toUpperCase(),
       ticket: ticket.value,
+      ticketValue: ticketValue.value,
       city: city.value,
       metricId: sale.metricId,
     };
