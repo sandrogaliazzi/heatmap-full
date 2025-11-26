@@ -32,7 +32,7 @@ const filterOltsByCity = (city) => {
     case "SÃO JOÃO DO DESERTO":
       return heatmapOlts.value.filter(
         (olt) =>
-          olt.oltPop === "SAO JOÃO DO DESERTO" || olt.oltPop === "MORUNGAVA"
+          olt.oltPop === "SÃO JOÃO DO DESERTO" || olt.oltPop === "MORUNGAVA"
       );
     default:
       return heatmapOlts.value.filter((olt) => olt.oltPop === city);
