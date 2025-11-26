@@ -33,6 +33,32 @@ class oltController {
     }
   };
 
+  static editRamal = (req, res) => {
+    try {
+      const { _id } = req.body;
+      ramaisModel.findByIdAndUpdate({ _id }, { ...req.body }, (err, doc) => {
+        if (!err)
+          res.status(200).send({ message: "Ramal atualizada com sucesso." });
+        else res.status(500).send({ message: `erro: ${err.message}` });
+      });
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  static deleteRamal = (req, res) => {
+    try {
+      const { _id } = req.body;
+      ramaisModel.findByIdAndDelete({ _id }, (err, doc) => {
+        if (!err)
+          res.status(200).send({ message: "Ramal deletada com sucesso." });
+        else res.status(500).send({ message: `erro: ${err.message}` });
+      });
+    } catch (error) {
+      throw error;
+    }
+  };
+
   static verificarRamais = (req, res) => {
     let searchString = req.body.Ramal;
 

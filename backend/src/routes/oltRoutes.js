@@ -8,6 +8,8 @@ const router = express.Router();
 
 router
   .get("/ramais", auth, oltController.ListarRamais) // lista os ramais no banco.
+  .put("/ramais", auth, oltController.editRamal)
+  .delete("/ramais", auth, oltController.deleteRamal)
   .post("/ramais", auth, oltController.saveRamal)
   .post("/verificar-ramal", auth, oltController.verificarRamais) // lista os ramais no banco.
   .post(

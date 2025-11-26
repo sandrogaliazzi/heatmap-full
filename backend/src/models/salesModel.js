@@ -10,6 +10,7 @@ const SalesSchema = new mongoose.Schema({
   city: { type: String, required: false },
   ticket: { type: String, required: false },
   ticketValue: { type: Number, required: false },
+  saleCategory: { type: String, required: false },
   metricId: { type: String, required: true },
 });
 

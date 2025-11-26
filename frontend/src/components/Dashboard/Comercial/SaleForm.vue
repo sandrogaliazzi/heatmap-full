@@ -32,6 +32,7 @@ const clientName = ref("");
 const date = ref(formatDate(new Date()));
 const city = ref("");
 const weekNumber = ref(getCurrentWeekNumber());
+const saleCategory = ref("venda");
 const ticket = ref("");
 const ticketValue = ref(null);
 const formRef = ref(null);
@@ -96,6 +97,7 @@ const handleSubmit = async () => {
       ticket: ticket.value,
       ticketValue: ticketValue.value,
       city: city.value,
+      //saleCategory: saleCategory.value,
       metricId,
     };
 
@@ -147,46 +149,68 @@ const handleSubmit = async () => {
         class="mb-3"
         id="saleForm"
       >
+        <!-- <v-radio-group inline class="mt-4" v-model="saleCategory">
+          <v-radio label="venda nova" value="venda" color="orange"></v-radio>
+          <v-radio label="upgrade" value="upgrade" color="orange"></v-radio>
+          <v-radio
+            label="novo ponto"
+            value="novo ponto"
+            color="orange"
+          ></v-radio>
+        </v-radio-group> -->
         <v-select
           label="Vendedor"
           :items="sellersName"
+          prepend-icon="mdi-badge-account"
           v-model="seller"
           :rules="inputRules"
+          variant="underlined"
         ></v-select>
 
         <v-text-field
           v-model="clientName"
           name="clientName"
+          variant="underlined"
+          prepend-icon="mdi-account-circle"
           :rules="inputRules"
           clearable
           type="text"
           label="Cliente"
         ></v-text-field>
-        <v-row>
-          <v-col cols="12">
-            <v-autocomplete
-              label="Selecionar Plano"
-              :items="planos.map((p) => p['Nome do Plano'])"
-              :rules="inputRules"
-              v-model="ticket"
-            ></v-autocomplete>
-          </v-col>
-          <v-col cols="12">
-            <v-text-field
-              type="number"
-              label="Valor do Plano"
-              v-model="ticketValue"
-              :rules="inputRules"
-            ></v-text-field>
-          </v-col>
-        </v-row>
+
+        <v-autocomplete
+          label="Selecionar Plano"
+          prepend-icon="mdi-percent-circle"
+          :items="planos.map((p) => p['Nome do Plano'])"
+          :rules="inputRules"
+          v-model="ticket"
+          variant="underlined"
+        ></v-autocomplete>
+
+        <v-text-field
+          type="number"
+          label="Valor do Plano"
+          variant="underlined"
+          prepend-icon="mdi-currency-usd"
+          v-model="ticketValue"
+          :rules="inputRules"
+        ></v-text-field>
+
         <v-row>
           <v-col>
-            <v-text-field type="date" label="data" v-model="date">
+            <v-text-field
+              type="date"
+              prepend-icon="mdi-calendar"
+              label="data"
+              variant="underlined"
+              v-model="date"
+            >
             </v-text-field>
           </v-col>
           <v-col>
             <v-select
+              variant="underlined"
+              prepend-icon="mdi-city"
               label="Cidade"
               :items="[
                 'NOVA HARTZ',

@@ -5,6 +5,7 @@ import fetchApi from "@/api";
 import PonSignal from "./PonSingal";
 import TableSignalsData from "./TableSignalsData.vue";
 import ClientTableData from "./ClientTableData.vue";
+import RamalForm from "./RamalForm.vue";
 
 const isLoadingRamals = ref(true);
 const ramals = ref([]);
@@ -146,6 +147,10 @@ onMounted(async () => {
             <v-icon>mdi-circle-box</v-icon>
           </div>
           <div>
+            <v-btn prepend-icon="mdi-plus-circle" variant="text"
+              >Add ramal
+              <RamalForm @ramal-saved="getRamals" />
+            </v-btn>
             <v-btn variant="text" prepend-icon="mdi-chart-box">
               RELATORIO DE SINAIS
               <v-menu activator="parent">
@@ -226,8 +231,13 @@ onMounted(async () => {
                   <v-btn
                     color="primary"
                     variant="tonal"
+                    prepend-icon="mdi-wifi"
                     @click="selectRamal(ramal)"
                     >Ver Sinais
+                  </v-btn>
+                  <v-btn color="grey" variant="text" prepend-icon="mdi-pen"
+                    >Editar
+                    <RamalForm :ramal="ramal" @ramal-saved="getRamals" />
                   </v-btn>
                   <v-btn
                     v-if="ponSignals && cardId == ramal._id"
