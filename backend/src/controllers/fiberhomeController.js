@@ -63,20 +63,15 @@ function processDiscoveryData(bufferData) {
   let currentPon = null;
   const lines = bufferData.split(/\r?\n/).map((line) => line.trim());
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-
-    // Detecta linha com SLOT e PON
+  for (let line of lines) {
     if (line.includes("SLOT=") && line.includes("PON=")) {
       const slotMatch = line.match(/SLOT=(\d+)/);
       const ponMatch = line.match(/PON=(\d+)/);
-
-      if (slotMatch) currentSlot = slotMatch[1];
-      if (ponMatch) currentPon = ponMatch[1];
+      currentSlot = slotMatch ? slotMatch[1] : null;
+      currentPon = ponMatch ? ponMatch[1] : null;
     }
 
-    // Detecta linha com dados da ONU (linha que começa com número)
-    if (/^\d{2}\s+/.test(line) && currentSlot && currentPon) {
+    if (/^\d+\s+\S+/.test(line) && currentSlot && currentPon) {
       const onuData = parseOnuLine(line);
       if (onuData) {
         dataObjects.push({
@@ -233,7 +228,6 @@ class FiberHomeController {
 
       let step = 0;
       let buffer = "";
-      let dataObjects = [];
 
       client.connect(PORT, HOST, () => {
         console.log("Connected to OLT via Telnet");
@@ -241,7 +235,6 @@ class FiberHomeController {
 
       client.on("close", () => {
         console.log("Connection closed");
-        console.log("Total de ONUs descobertas:", dataObjects.length);
       });
 
       client.on("error", (err) => {
@@ -304,11 +297,10 @@ class FiberHomeController {
           case 6: // Coletando dados do show command
             if (/#\s*$/.test(buffer)) {
               console.log("Comando finalizado. Processando dados...");
-              res.status(200).json({ onus: processDiscoveryData(buffer) });
-              console.log(
-                "ONUs descobertas:",
-                JSON.stringify(dataObjects, null, 2)
-              );
+              res
+                .status(200)
+                .json({ onus: processDiscoveryData(buffer.toString()) });
+              console.log(processDiscoveryData(buffer.toString()));
               client.end();
             }
             break;
@@ -322,36 +314,49 @@ class FiberHomeController {
   }
 
   static getAllONUsFromUNM(_, res) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const USER = process.env.UNM_USERNAME;
       const PASS = process.env.UNM_PASSWORD;
       const PORT = 3337;
       const HOST = "192.168.21.9";
+
       let buffer = "";
-      let ctag = Math.floor(Math.random() * 9000) + 1000; // Gera um CTAG aleatório entre 1000-9999
+      let ctag = Math.floor(Math.random() * 9000) + 1000;
+      let responded = false;
+      let loggedIn = false;
 
       const client = new net.Socket();
 
-      client.connect(PORT, HOST, () => {
-        console.log("Conectado ao UNM2000");
+      console.log("➡️ Iniciando consulta ao UNM2000...");
 
+      client.setTimeout(6000, () => {
+        if (!responded) {
+          responded = true;
+          console.log("⏱️ Timeout na conexão com UNM2000");
+          client.destroy();
+          return resolve(
+            res.status(504).json({ error: "Timeout ao consultar o UNM2000" })
+          );
+        }
+      });
+
+      client.connect(PORT, HOST, () => {
+        console.log(`🔌 Conectado em ${HOST}:${PORT}`);
         const loginCmd = `LOGIN:::${ctag}::UN=${USER},PWD=${PASS};\r\n`;
+        console.log("➡️ Enviando LOGIN...");
         client.write(loginCmd);
       });
 
-      let loggedIn = false;
-
-      // Recebe resposta do servidor
       client.on("data", (data) => {
-        buffer += data.toString();
+        const chunk = data.toString();
+        buffer += chunk;
 
         if (!loggedIn && buffer.includes("COMPLD")) {
           loggedIn = true;
           buffer = "";
-          // Agora envia comando de consulta ONUs
           const lstCmd = `LST-ONU::OLTID=192.168.200.2:CTAG::;\r\n`;
-          console.log("➡️ Enviando:", lstCmd.trim());
           client.write(lstCmd);
+          return;
         }
 
         if (
@@ -359,19 +364,40 @@ class FiberHomeController {
           buffer.includes("COMPLD") &&
           buffer.trim().endsWith(";")
         ) {
-          client.end();
-          resolve(res.status(200).json({ onus: parseOnuListFromUnm(buffer) }));
+          if (!responded) {
+            responded = true;
+            console.log("✅ Resposta completa recebida do UNM2000");
+            const parsed = parseOnuListFromUnm(buffer);
+            client.end();
+            client.removeAllListeners();
+            return resolve(res.status(200).json({ onus: parsed }));
+          }
         }
       });
 
       client.on("error", (err) => {
-        console.error("Erro de conexão:", err.message);
-        reject(
-          res
-            .status(500)
-            .json({ error: `erro ao conectar no unm: ${err.message}` })
-        );
-        client.end();
+        if (!responded) {
+          responded = true;
+          console.log("❌ Erro na conexão:", err.message);
+          client.destroy();
+          return resolve(
+            res
+              .status(500)
+              .json({ error: `Erro de conexão SSH/TCP: ${err.message}` })
+          );
+        }
+      });
+
+      client.on("close", () => {
+        if (!responded) {
+          responded = true;
+          console.log("⚠️ Conexão encerrada pelo servidor antes da resposta.");
+          return resolve(
+            res
+              .status(500)
+              .json({ error: "Conexão encerrada inesperadamente pelo UNM2000" })
+          );
+        }
       });
     });
   }
@@ -652,13 +678,6 @@ class FiberHomeController {
       client.on("error", (err) => {
         console.error("Telnet client error:", err);
         reject(err);
-      });
-
-      // Timeout de 60 segundos (pode precisar de mais tempo para muitas ONUs)
-      setTimeout(60000).then(() => {
-        console.error("Timeout na obtenção dos níveis de sinal");
-        client.end();
-        resolve(results); // Retorna o que conseguiu até agora
       });
     });
   }
