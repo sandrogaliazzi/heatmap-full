@@ -5,7 +5,6 @@ const emit = defineEmits(["update:refreshList"]);
 
 <template>
   <v-sheet
-    elevation="12"
     max-width="600"
     rounded="lg"
     width="100%"

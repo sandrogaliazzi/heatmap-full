@@ -44,7 +44,7 @@ const getUnauthorizedOnuInfo = async () => {
     const promiseList = heatmapOlts.value.map(async (olt) => {
       if (olt.oltName.includes("FIBERHOME")) {
         const onus = await getUnauthorizedOnuInfoFromFiberhome();
-        return onus;
+        return [...onus, olt.oltIp];
       }
       const response = await fetchApi.post("listar-onu", { oltIp: olt.oltIp });
 
