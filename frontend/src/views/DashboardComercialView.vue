@@ -191,10 +191,10 @@ onMounted(async () => {
           </template>
 
           <v-card-text
-            class="text-h3 my-6 font-italic font-weight-light text-capitalize"
+            class="text-h3 my-6 font-italic font-weight-light text-lowercase"
             style="line-height: 45px"
           >
-            {{ `"${currentMetric.phrase.toLowerCase()}"` }}
+            {{ `"${currentMetric.phrase}"` }}
           </v-card-text>
           <v-card-actions>
             <v-list-item class="w-100">
