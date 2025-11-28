@@ -1,11 +1,10 @@
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import moment from "moment-timezone";
 import SalesCard from "@/components/Dashboard/Comercial/SalesCard";
 import HeaderCard from "@/components/Dashboard/Comercial/HeaderCard.vue";
 import MetricsCard from "@/components/Dashboard/Comercial/MetricsCard";
 import BarCharts from "@/components/Dashboard/Comercial/BarCharts.vue";
-//import PieChart from "@/components/Dashboard/Comercial/PieChart.vue";
 import MessageBoard from "@/components/Dashboard/Comercial/MessageBoard.vue";
 import fetchApi from "@/api";
 
@@ -13,19 +12,16 @@ const metrics = ref([]);
 const currentMetric = ref({});
 const loading = ref(true);
 const viewNumber = ref(1);
-
+const saleCategory = ref("Venda");
 const sales = ref([]);
 const nextKey = ref(0);
 const nextKeyMessage = ref(0);
 
 function getWeekNumber(date) {
-  // Configurando o fuso horário para Brasília
   moment.tz.setDefault("America/Sao_Paulo");
 
-  // Obtendo a data atual no fuso horário de Brasília
   const momentDate = date ? moment(date) : moment();
 
-  // Obtendo o número da semana atual
   const weekNumber = momentDate.isoWeek();
 
   return weekNumber;
@@ -56,6 +52,11 @@ const fetchSales = async () => {
   const response = await fetchApi.post("/sales", {
     metricRef: currentMetric.value._id,
     weekRef: getWeekNumber(),
+    saleCategory: saleCategory.value,
+  });
+
+  watch(saleCategory, () => {
+    fetchSales();
   });
 
   const formatDate = (date = new Date()) => {
@@ -137,6 +138,7 @@ onMounted(async () => {
                   :sales="sales.sales"
                   filter="month"
                   :key="nextKey"
+                  @update-sales="saleCategory = $event"
                 />
               </v-col>
               <v-col cols="12" md="4">
@@ -144,6 +146,7 @@ onMounted(async () => {
                   title="Vendas Semana"
                   :sales="sales.weekSales"
                   filter="week"
+                  @update-sales="saleCategory = $event"
                 />
               </v-col>
               <v-col cols="12" md="4">
@@ -151,6 +154,7 @@ onMounted(async () => {
                   :title="'Vendas ' + new Date().toLocaleDateString()"
                   :sales="sales.dailySales"
                   filter="day"
+                  @update-sales="saleCategory = $event"
                 />
               </v-col>
             </v-row>
@@ -168,7 +172,6 @@ onMounted(async () => {
                 @re-render="nextKeyMessage++"
                 :key="nextKeyMessage"
               />
-              <!-- <v-col><PieChart /></v-col> -->
             </v-row>
           </v-window-item>
         </v-window>
@@ -178,8 +181,8 @@ onMounted(async () => {
       <v-col>
         <v-card
           v-if="viewNumber === 1"
-          class="mx-auto"
-          color="orange-darken-4"
+          class="mx-auto rounded-xl mx-3"
+          color="light-blue-darken-4"
           variant="tonal"
           prepend-icon="mdi-feather"
         >
@@ -188,10 +191,10 @@ onMounted(async () => {
           </template>
 
           <v-card-text
-            class="text-h3 my-6 font-italic font-weight-light"
+            class="text-h3 my-6 font-italic font-weight-light text-capitalize"
             style="line-height: 45px"
           >
-            {{ `"${currentMetric.phrase}"` }}
+            {{ `"${currentMetric.phrase.toLowerCase()}"` }}
           </v-card-text>
           <v-card-actions>
             <v-list-item class="w-100">

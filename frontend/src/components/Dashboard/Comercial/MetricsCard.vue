@@ -10,15 +10,16 @@ const { title, metric, numberOfSales } = defineProps([
   <v-col>
     <v-card
       :color="parseInt(metric) - parseInt(numberOfSales) <= 0 ? 'success' : ''"
-      class="rounded-xl"
+      class="rounded-xl mx-3"
+      elevation="8"
     >
       <v-card-title>
         <div class="d-flex justify-space-between">
-          <p>{{ title }}</p>
+          <p>{{ title.toLowerCase() }}</p>
           <p>{{ numberOfSales }}/{{ metric }}</p>
         </div>
       </v-card-title>
-      <v-card-text class="d-flex justify-end" style="font-size: 1rem">
+      <v-card-text class="d-flex justify-end">
         {{
           parseInt(metric) - parseInt(numberOfSales) <= 0
             ? "META CONCLUÍDA"

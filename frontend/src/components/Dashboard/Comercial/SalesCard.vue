@@ -1,9 +1,9 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import fetchApi from "@/api";
-//import sellers from "./sellers";
 import SalesData from "./SalesData.vue";
 import moment from "moment-timezone";
+import SaleCardMenu from "./SaleCardMenu.vue";
 
 const { title, sales, filter, metric } = defineProps([
   "title",
@@ -11,6 +11,8 @@ const { title, sales, filter, metric } = defineProps([
   "filter",
   "metric",
 ]);
+
+const emit = defineEmits(["update-sales"]);
 
 const salesBySeller = ref([]);
 const sellers = ref([]);
@@ -84,7 +86,10 @@ onMounted(async () => {
 </script>
 
 <template>
-  <v-card :title="title" class="rounded-xl">
+  <v-card :title="title" class="rounded-xl my-4 mx-3" elevation="8">
+    <template #append>
+      <SaleCardMenu @select-sale-type="emit('update-sales', $event)" />
+    </template>
     <v-card-text>
       <v-list density="compact" lines="one">
         <v-list-item type="subheader" title="Externo"></v-list-item>
@@ -93,6 +98,7 @@ onMounted(async () => {
           :value="seller.name"
           :key="seller.name"
           :prepend-avatar="seller.avatar"
+          rounded="xl"
           @click="fetchSales(seller.name)"
         >
           <v-dialog activator="parent" width="auto">
@@ -141,6 +147,7 @@ onMounted(async () => {
           :value="seller.name"
           :key="seller.name"
           :prepend-avatar="seller.avatar"
+          rounded="xl"
           @click="fetchSales(seller.name)"
         >
           <v-dialog activator="parent" width="auto">

@@ -12,7 +12,7 @@ class SalesController {
       if (!metric) {
         metric = new Metric({ ...req.body });
 
-        metric.save(err => {
+        metric.save((err) => {
           if (err) {
             res
               .status(500)
@@ -41,7 +41,7 @@ class SalesController {
 
       if (!_id) {
         const sale = new Sale({ ...req.body });
-        sale.save(err => {
+        sale.save((err) => {
           if (err)
             res.status(500).send({
               message: `erro: ${err.message}, falha ao cadastrar venda`,
@@ -94,17 +94,18 @@ class SalesController {
   }
 
   static ListSales(req, res) {
-    const { metricRef, weekRef } = req.body;
+    const { metricRef, weekRef, saleCategory } = req.body;
     const today = new Date().toLocaleDateString();
     const [day, month, year] = today.split("/");
     const date = `${year}-${month}-${day}`;
+
     try {
       Sale.find({ metricId: metricRef }, (err, docs) => {
         if (!err) {
           const response = {
             sales: docs,
-            weekSales: docs.filter(sale => sale.weekNumber == weekRef),
-            dailySales: docs.filter(sale => sale.date == date),
+            weekSales: docs.filter((sale) => sale.weekNumber == weekRef),
+            dailySales: docs.filter((sale) => sale.date == date),
           };
 
           res.status(200).send(response);

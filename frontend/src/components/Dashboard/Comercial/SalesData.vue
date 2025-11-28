@@ -10,11 +10,19 @@ const dialog = ref(false);
 const sales = ref(null);
 const sale = ref(null);
 
+const emojis = ref({
+  Venda: "💰",
+  Upgrade: "⬆️",
+  ["Novo Ponto"]: "🆕",
+});
+
 const headers = ref([
   { key: "seller", title: "Vendedor" },
   { key: "client", title: "Cliente" },
   { key: "ticket", title: "Plano" },
   { key: "city", title: "Cidade" },
+
+  { key: "saleCategory", title: "tipo" },
   {
     key: "date",
     title: "Data",
@@ -100,9 +108,15 @@ const search = ref("");
           :items="sales ? sales : data"
           :search="search"
         >
+          <template #item.saleCategory="{ item }"
+            >{{ emojis[item?.saleCategory] }}
+            {{ item?.saleCategory?.toUpperCase() }}</template
+          >
           <template v-slot:item.actions="{ item }">
             <v-icon size="small" @click="deleteItem(item)"> mdi-delete </v-icon>
-            <v-icon size="small" @click="editItem(item)"> mdi-pencil </v-icon>
+            <v-icon size="small" @click="editItem(item)" class="ml-3">
+              mdi-pencil
+            </v-icon>
           </template>
         </v-data-table>
       </v-card>

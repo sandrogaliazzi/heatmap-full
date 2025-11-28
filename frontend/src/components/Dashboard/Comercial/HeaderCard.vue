@@ -104,16 +104,18 @@ const submitMetric = async () => {
       @update-sales="() => emit('update-sale')"
     />
   </Dialog>
-  <v-card class="py-3 rounded-t-xl">
+  <v-card class="py-3 mx-3 rounded-t-xl" variant="flat">
+    <v-divider></v-divider>
     <v-card-title
-      class="d-flex flex-column justify-center text-wrap align-center ga-3 text-orange-darken-4"
+      class="d-flex flex-column justify-center text-wrap align-center ga-3"
     >
       <span
-        class="text-h4 text-center px-4 mb-4 font-weight-light text-capitalize"
+        class="px-4 mb-4 text-capitalize text-button"
+        style="font-size: 1.5rem !important"
         >METAS {{ metric.description }}</span
       >
-      <!-- <v-spacer></v-spacer> -->
-      <div class="d-flex ga-6 mb-3">
+
+      <div class="d-flex ga-6 mb-3 rounded-pill pa-3 elevation-2">
         <v-btn
           icon="mdi-chart-line"
           color="orange"
@@ -191,37 +193,41 @@ const submitMetric = async () => {
       </div>
     </v-card-title>
     <template v-if="openForm">
-      <v-card-text>
+      <v-card-text class="mt-4">
         <v-row>
           <v-col cols="12" md="6">
             <v-text-field
               type="text"
-              variant="solo"
+              variant="underlined"
               label="Descrição"
+              prepend-icon="mdi-text"
               v-model="newMetric.description"
             ></v-text-field>
           </v-col>
           <v-col cols="12" md="2">
             <v-text-field
               type="number"
-              variant="solo"
+              variant="underlined"
               label="Mês"
+              prepend-icon="mdi-calendar-month"
               v-model="newMetric.monthSales"
             ></v-text-field>
           </v-col>
           <v-col cols="12" md="2">
             <v-text-field
               type="number"
-              variant="solo"
+              variant="underlined"
               label="Semana"
+              prepend-icon="mdi-calendar-week"
               v-model="newMetric.weekSales"
             ></v-text-field>
           </v-col>
           <v-col cols="12" md="2">
             <v-text-field
               type="number"
-              variant="solo"
+              variant="underlined"
               label="Dia"
+              prepend-icon="mdi-calendar-today"
               v-model="newMetric.dailySales"
             ></v-text-field>
           </v-col>
@@ -229,7 +235,8 @@ const submitMetric = async () => {
             <v-textarea
               clearable
               label="Frase"
-              variant="solo"
+              variant="underlined"
+              prepend-icon="mdi-format-quote-close"
               v-model="newMetric.phrase"
             ></v-textarea>
           </v-col>
@@ -237,10 +244,19 @@ const submitMetric = async () => {
         <v-checkbox label="Nova métrica" v-model="createNewMetric"></v-checkbox>
       </v-card-text>
       <v-card-actions>
-        <v-btn color="success" variant="tonal" @click="submitMetric"
+        <v-btn
+          color="success"
+          variant="tonal"
+          prepend-icon="mdi-check"
+          rounded="xl"
+          @click="submitMetric"
           >Registrar</v-btn
         >
-        <v-btn color="error" variant="tonal" @click="resetState"
+        <v-btn
+          variant="tonal"
+          prepend-icon="mdi-close"
+          rounded="xl"
+          @click="resetState"
           >cancelar</v-btn
         >
       </v-card-actions>

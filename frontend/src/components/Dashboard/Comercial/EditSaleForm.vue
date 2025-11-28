@@ -47,6 +47,7 @@ const cardLoader = ref(false);
 const ticket = ref(sale.ticket);
 const ticketValue = ref(sale.ticketValue || null);
 const clientName = ref(sale.client);
+const saleCategory = ref(sale.saleCategory || "Venda");
 const notification = useNotificationStore();
 
 const inputRules = [
@@ -82,6 +83,7 @@ const handleSubmit = async () => {
       ticketValue: ticketValue.value,
       city: city.value,
       metricId: sale.metricId,
+      saleCategory: saleCategory.value,
     };
 
     try {
@@ -113,11 +115,18 @@ const handleSubmit = async () => {
     class="mb-3"
     id="saleForm"
   >
+    <v-radio-group inline class="mt-4" v-model="saleCategory">
+      <v-radio label="venda nova" value="Venda" color="orange"></v-radio>
+      <v-radio label="upgrade" value="Upgrade" color="orange"></v-radio>
+      <v-radio label="novo ponto" value="Novo Ponto" color="orange"></v-radio>
+    </v-radio-group>
     <v-select
       label="Vendedor"
       :items="sellersName"
       v-model="seller"
       :rules="inputRules"
+      variant="underlined"
+      prepend-icon="mdi-badge-account"
     ></v-select>
 
     <v-text-field
@@ -127,6 +136,8 @@ const handleSubmit = async () => {
       clearable
       type="text"
       label="Cliente"
+      prepend-icon="mdi-account-circle"
+      variant="underlined"
     ></v-text-field>
     <v-row>
       <v-col cols="12">
@@ -135,6 +146,8 @@ const handleSubmit = async () => {
           :items="planos.map((p) => p['Nome do Plano'])"
           :rules="inputRules"
           v-model="ticket"
+          variant="underlined"
+          prepend-icon="mdi-percent-circle"
         ></v-autocomplete>
       </v-col>
       <v-col cols="12">
@@ -143,12 +156,21 @@ const handleSubmit = async () => {
           label="Valor do Plano"
           v-model="ticketValue"
           :rules="inputRules"
+          variant="underlined"
+          prepend-icon="mdi-currency-usd"
         ></v-text-field>
       </v-col>
     </v-row>
     <v-row>
       <v-col>
-        <v-text-field type="date" label="data" v-model="date"> </v-text-field>
+        <v-text-field
+          type="date"
+          label="data"
+          variant="underlined"
+          prepend-icon="mdi-calendar"
+          v-model="date"
+        >
+        </v-text-field>
       </v-col>
       <v-col>
         <v-select
@@ -166,6 +188,8 @@ const handleSubmit = async () => {
           ]"
           :rules="inputRules"
           v-model="city"
+          variant="underlined"
+          prepend-icon="mdi-city"
         ></v-select>
       </v-col>
     </v-row>

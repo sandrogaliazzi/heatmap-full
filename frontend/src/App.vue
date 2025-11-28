@@ -29,7 +29,7 @@ const login = () => {
 </script>
 
 <template>
-  <v-app :theme="isDarkTheme ? 'dark' : 'light'">
+  <v-app :theme="isDarkTheme ? 'dark' : 'light'" class="bg-grey-darken-4">
     <v-main>
       <router-view></router-view>
       <!-- <teste /> -->

@@ -32,7 +32,7 @@ const clientName = ref("");
 const date = ref(formatDate(new Date()));
 const city = ref("");
 const weekNumber = ref(getCurrentWeekNumber());
-const saleCategory = ref("venda");
+const saleCategory = ref("Venda");
 const ticket = ref("");
 const ticketValue = ref(null);
 const formRef = ref(null);
@@ -97,7 +97,7 @@ const handleSubmit = async () => {
       ticket: ticket.value,
       ticketValue: ticketValue.value,
       city: city.value,
-      //saleCategory: saleCategory.value,
+      saleCategory: saleCategory.value,
       metricId,
     };
 
@@ -149,15 +149,15 @@ const handleSubmit = async () => {
         class="mb-3"
         id="saleForm"
       >
-        <!-- <v-radio-group inline class="mt-4" v-model="saleCategory">
-          <v-radio label="venda nova" value="venda" color="orange"></v-radio>
-          <v-radio label="upgrade" value="upgrade" color="orange"></v-radio>
+        <v-radio-group inline class="mt-4" v-model="saleCategory">
+          <v-radio label="venda nova" value="Venda" color="orange"></v-radio>
+          <v-radio label="upgrade" value="Upgrade" color="orange"></v-radio>
           <v-radio
             label="novo ponto"
-            value="novo ponto"
+            value="Novo Ponto"
             color="orange"
           ></v-radio>
-        </v-radio-group> -->
+        </v-radio-group>
         <v-select
           label="Vendedor"
           :items="sellersName"
