@@ -21,8 +21,6 @@ ChartJS.register(
   LinearScale
 );
 
-const { sales } = defineProps(["sales"]);
-
 const metricMonth = defineModel();
 
 const salesByCity = ref([]);

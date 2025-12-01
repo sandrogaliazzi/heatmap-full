@@ -100,19 +100,22 @@ class SalesController {
     const date = `${year}-${month}-${day}`;
 
     try {
-      Sale.find({ metricId: metricRef, saleCategory }, (err, docs) => {
-        if (!err) {
-          const response = {
-            sales: docs,
-            weekSales: docs.filter((sale) => sale.weekNumber == weekRef),
-            dailySales: docs.filter((sale) => sale.date == date),
-          };
+      Sale.find(
+        { metricId: metricRef, saleCategory: { $in: saleCategory } },
+        (err, docs) => {
+          if (!err) {
+            const response = {
+              sales: docs,
+              weekSales: docs.filter((sale) => sale.weekNumber == weekRef),
+              dailySales: docs.filter((sale) => sale.date == date),
+            };
 
-          res.status(200).send(response);
-        } else {
-          res.status(500).send({ message: `erro: ${err.message}` });
+            res.status(200).send(response);
+          } else {
+            res.status(500).send({ message: `erro: ${err.message}` });
+          }
         }
-      });
+      );
     } catch (error) {
       throw error;
     }
@@ -133,7 +136,7 @@ class SalesController {
   static ListSalesBySellerAndCity(req, res) {
     let { seller, city } = req.params;
     try {
-      Sale.find({ seller, city }, (err, docs) => {
+      Sale.find({ seller, city, saleCategory: "Venda" }, (err, docs) => {
         if (!err) res.status(200).send(docs);
         else res.status(500).send({ message: `erro: ${err.message}` });
       });

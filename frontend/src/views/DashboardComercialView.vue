@@ -1,10 +1,11 @@
 <script setup>
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, watch, onUnmounted } from "vue";
 import moment from "moment-timezone";
 import SalesCard from "@/components/Dashboard/Comercial/SalesCard";
 import HeaderCard from "@/components/Dashboard/Comercial/HeaderCard.vue";
 import MetricsCard from "@/components/Dashboard/Comercial/MetricsCard";
 import BarCharts from "@/components/Dashboard/Comercial/BarCharts.vue";
+import TicketChart from "@/components/Dashboard/Comercial/TicketChart.vue";
 import MessageBoard from "@/components/Dashboard/Comercial/MessageBoard.vue";
 import fetchApi from "@/api";
 
@@ -12,7 +13,7 @@ const metrics = ref([]);
 const currentMetric = ref({});
 const loading = ref(true);
 const viewNumber = ref(1);
-const saleCategory = ref("Venda");
+const saleCategory = ref(["Venda"]);
 const sales = ref([]);
 const nextKey = ref(0);
 const nextKeyMessage = ref(0);
@@ -55,10 +56,6 @@ const fetchSales = async () => {
     saleCategory: saleCategory.value,
   });
 
-  watch(saleCategory, () => {
-    fetchSales();
-  });
-
   const formatDate = (date = new Date()) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -73,22 +70,30 @@ const fetchSales = async () => {
   sales.value = response.data;
 };
 
+watch(saleCategory, () => {
+  fetchSales();
+});
+
 const fetchData = async () => {
   await fetchGoals();
   await fetchSales();
 };
 
-const refreshSales = () => {
-  setInterval(() => {
-    fetchSales();
-  }, 15000);
-};
-
-refreshSales();
+const intervalId = ref(null);
 
 onMounted(async () => {
   await fetchData();
   loading.value = false;
+
+  intervalId.value = setInterval(() => {
+    fetchSales();
+  }, 15000);
+});
+
+onUnmounted(() => {
+  if (intervalId.value) {
+    clearInterval(intervalId.value);
+  }
 });
 </script>
 
@@ -167,6 +172,13 @@ onMounted(async () => {
             </v-row>
           </v-window-item>
           <v-window-item :value="3">
+            <v-row>
+              <v-col>
+                <TicketChart v-model="sales.sales" />
+              </v-col>
+            </v-row>
+          </v-window-item>
+          <v-window-item :value="4">
             <v-row>
               <MessageBoard
                 @re-render="nextKeyMessage++"
