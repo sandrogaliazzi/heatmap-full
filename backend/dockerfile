@@ -9,4 +9,5 @@ COPY . .
 
 EXPOSE 5005
 
-CMD ["npm", "run", "dev"]
+# Garanta que falhas de nodemon reiniciem o contêiner
+CMD ["sh", "-c", "npm run dev || exit 1"]

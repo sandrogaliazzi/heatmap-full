@@ -100,7 +100,7 @@ class SalesController {
     const date = `${year}-${month}-${day}`;
 
     try {
-      Sale.find({ metricId: metricRef }, (err, docs) => {
+      Sale.find({ metricId: metricRef, saleCategory }, (err, docs) => {
         if (!err) {
           const response = {
             sales: docs,

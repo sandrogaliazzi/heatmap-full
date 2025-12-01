@@ -20,13 +20,17 @@ db.once("open", () => {
   console.log(`conexão com o banco em: ${now}`);
 });
 
-app.get("/docapi", (req, res) => {
+app.get("/simularerror", (req, res) => {
+  throw new Error("Erro simulado para teste de monitoramento");
+});
+
+app.get("/docapi", (_, res) => {
   res.sendFile(path.join(__dirname, "/index.html"));
 });
-app.get("/email", (req, res) => {
+app.get("/email", (_, res) => {
   res.sendFile(path.join(__dirname, "/email.html"));
 });
-app.get("/lista-email", (req, res) => {
+app.get("/lista-email", (_, res) => {
   res.sendFile(path.join(__dirname, "/lista.html"));
 });
 app.use(express.json({ limit: "50mb" }));
