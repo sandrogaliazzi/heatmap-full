@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { Client } from "ssh2";
 import dotenv from "dotenv";
+import cron from "node-cron";
 dotenv.config();
 
 mongoose.connect(process.env.MONGO_DB_ACCESS);
@@ -205,8 +206,13 @@ export async function getPonSignals() {
 }
 
 export default function startUpdateLoop() {
-  savePongSignals();
-  setInterval(async () => {
+  console.log("Agendando coleta diária de sinais (00:30)...");
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // CRON JOB → 00:30 todos os dias
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  cron.schedule("30 0 * * *", async () => {
+    console.log("Cron executando coleta às 00:30...");
     await savePongSignals();
-  }, 86400000);
+  });
 }

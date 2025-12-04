@@ -178,7 +178,7 @@ onMounted(async () => {
             <v-text-field
               variant="outlined"
               label="Pesquisar ramal"
-              append-inner-icon="mdi-magnify"
+              prepend-inner-icon="mdi-magnify"
               single-line
               v-model="query"
               hide-details
@@ -188,11 +188,10 @@ onMounted(async () => {
           <v-col cols="12">
             <v-select
               variant="outlined"
-              label="Pesquisar por olt"
+              label="Filtrar por OLT"
+              prepend-inner-icon="mdi-router-wireless"
               v-model="query"
-              single-line
-              hide-details
-              class="mb-3"
+              class="my-3"
               :items="oltNames"
             ></v-select>
           </v-col>
@@ -204,12 +203,21 @@ onMounted(async () => {
                 :title="ramal.oltName.split('-').join(' ')"
                 :subtitle="ramal.oltRamal"
                 variant="elevated"
+                elevation="2"
                 class="mb-3"
-                max-width="400px"
+                max-width="500px"
                 min-width="300px"
                 :loading="loading && cardId === ramal._id"
                 link
               >
+                <template #append>
+                  <v-btn
+                    icon="mdi-chevron-up"
+                    variant="plain"
+                    @click="cardId = null"
+                    v-if="cardId === ramal._id"
+                  ></v-btn>
+                </template>
                 <v-card-text v-if="ponSignals && cardId == ramal._id">
                   <p>
                     <v-icon icon="mdi-chevron-double-up"></v-icon>

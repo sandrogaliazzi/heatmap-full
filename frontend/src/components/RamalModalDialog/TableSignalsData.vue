@@ -13,6 +13,8 @@ const date = ref(
 );
 const isLoadingData = ref(true);
 const notFound = ref(false);
+const showChart = ref(false);
+
 const clientsRxCounter = ref({
   badSignal: 0,
   goodSignal: 0,
@@ -34,6 +36,7 @@ const classifySignal = (signal, ref) => {
 };
 
 const loadData = async () => {
+  isLoadingData.value = true;
   try {
     const response = await fetchApi.get("/get-ramal-logs/" + date.value);
 
@@ -114,7 +117,10 @@ onMounted(() => {
       </div>
     </v-card-title>
     <v-card-text>
-      <div class="text-center" style="width: 100%">
+      <div
+        class="text-center d-flex justify-center flex-column align-center"
+        style="width: 100%"
+      >
         <v-text-field
           type="date"
           class="d-inline-block"
@@ -123,8 +129,28 @@ onMounted(() => {
           v-model="date"
           @update:modelValue="loadData"
         ></v-text-field>
+        <v-btn
+          variant="outlined"
+          @click="showChart = !showChart"
+          :append-icon="showChart ? 'mdi-chevron-up' : 'mdi-chevron-down'"
+          class="mb-5"
+          >ver graficos</v-btn
+        >
       </div>
-      <template v-if="notFound">
+      <template v-if="isLoadingData">
+        <div
+          style="height: 600px"
+          class="d-flex flex-column justify-center align-center ga-2"
+        >
+          <v-progress-circular
+            color="orange"
+            indeterminate
+            size="128"
+          ></v-progress-circular>
+          <p class="mt-3">Carregando dados...</p>
+        </div>
+      </template>
+      <template v-if="notFound && !isLoadingData">
         <div
           style="height: 600px"
           class="d-flex flex-column justify-center align-center ga-2"
@@ -133,8 +159,8 @@ onMounted(() => {
           <h2>Não foram encontrados dados para essa data</h2>
         </div>
       </template>
-      <template v-else>
-        <v-card title="Gráfico RX" v-if="!isLoadingData">
+      <template v-if="!notFound && !isLoadingData">
+        <v-card title="Gráfico RX" v-if="!isLoadingData && showChart">
           <v-card-text>
             <pie-signal-chart
               v-model="clientsRxCounter"
@@ -143,7 +169,7 @@ onMounted(() => {
           </v-card-text>
         </v-card>
 
-        <v-card title="Gráfico TX" v-if="!isLoadingData">
+        <v-card title="Gráfico TX" v-if="!isLoadingData && showChart">
           <v-card-text>
             <pie-signal-chart
               v-model="clientsTxCounter"
@@ -154,7 +180,7 @@ onMounted(() => {
         <v-text-field
           v-model="search"
           label="Pesquisar ramal"
-          class="mb-3"
+          class="mb-3 mt-5"
           prepend-inner-icon="mdi-magnify"
           variant="outlined"
           hide-details

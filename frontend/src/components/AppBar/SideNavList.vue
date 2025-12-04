@@ -216,7 +216,7 @@ const onCloseDialog = (value) => {
   <DialogBox
     :isOpen="openRamalDialog"
     @update:modalValue="onCloseDialog"
-    size="1000"
+    :is-full="true"
   >
     <RamalCard />
   </DialogBox>
