@@ -27,6 +27,13 @@ const inputRules = [
 
 const form = ref(null);
 
+const resetForm = () => {
+  if (form.value) {
+    form.value.reset();
+    form.value.resetValidation();
+  }
+};
+
 const saveRamal = async () => {
   const { valid } = await form.value.validate();
   if (!valid) {
@@ -38,7 +45,7 @@ const saveRamal = async () => {
   }
   handlingSubmit.value = true;
   try {
-    if (ramal._id) {
+    if (ramal && ramal._id) {
       await fetchApi.put(`/ramais`, {
         ...ramalData,
         _id: ramal._id,
@@ -57,9 +64,12 @@ const saveRamal = async () => {
       msg: "Erro ao salvar ramal",
       status: "error",
     });
+
+    console.error("Error saving ramal:", error);
   } finally {
     handlingSubmit.value = false;
     closeBtn.value.$el.click();
+    resetForm();
   }
 };
 </script>
