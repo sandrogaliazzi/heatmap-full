@@ -969,7 +969,11 @@ class oltController {
     let onuAlias = req.body.onuAlias;
     let user = req.body.user;
     let gpon = oltPon;
-    let flowProfile = `bridge_vlan_${onuVlan}`;
+    let flowProfile =
+      oltIp === "192.168.214.2"
+        ? `bridge_vlan${onuVlan}`
+        : `bridge_vlan_${onuVlan}`;
+
     let sinalTX = req.body.sinalTX;
     let sinalRX = req.body.sinalRX;
     let date_time = new Date().toLocaleString("PT-br");
