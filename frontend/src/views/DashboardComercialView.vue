@@ -171,14 +171,14 @@ onUnmounted(() => {
               </v-col>
             </v-row>
           </v-window-item>
-          <v-window-item :value="3">
+          <v-window-item :value="4">
             <v-row>
               <v-col>
                 <TicketChart v-model="sales.sales" />
               </v-col>
             </v-row>
           </v-window-item>
-          <v-window-item :value="4">
+          <v-window-item :value="3">
             <v-row>
               <MessageBoard
                 @re-render="nextKeyMessage++"
