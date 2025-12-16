@@ -57,8 +57,8 @@ watch(play, (isPlaying) => {
 });
 
 watch(viewNumber, (currentNumber) => {
-  if (currentNumber > 4) viewNumber.value = 1;
-  if (currentNumber < 1) viewNumber.value = 4;
+  if (currentNumber > 3) viewNumber.value = 1;
+  if (currentNumber < 1) viewNumber.value = 3;
   emit("update-view-number", viewNumber.value);
 });
 
