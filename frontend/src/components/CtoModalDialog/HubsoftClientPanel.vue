@@ -8,7 +8,7 @@ import OnuModalDialog from "../OnuModalDialog/OnuModalDialog.vue";
 import ClientesOnuCard from "../ClientesOnuModalDialog/ClientesOnuCard.vue";
 import { useNotificationStore } from "@/stores/notification";
 
-defineProps(["cto"]);
+const { cto } = defineProps(["cto"]);
 
 const loadingHubsoftData = ref(false);
 const client = defineModel();
@@ -107,6 +107,7 @@ const openNewTab = (ipv4) => {
 };
 
 const setOnuProvision = (service) => {
+  if (!cto || !service) return;
   selectedService.value = service;
   openDialog.value = true;
 };
@@ -144,7 +145,7 @@ const resetMac = async (service) => {
     @update:modelValue="findClientOnHubsoft"
   >
     <template #default="{ isActive }">
-      <v-card>
+      <v-card max-width="800">
         <v-card-title class="bg-blue"><p>Hubsoft Info</p> </v-card-title>
         <v-card-text class="d-flex flex-column align-center gap-2">
           <v-progress-circular
@@ -282,9 +283,12 @@ const resetMac = async (service) => {
                     </div>
                   </div>
                 </v-card-item>
-                <v-card-actions class="d-flex flex-column align-start">
+                <v-card-actions class="d-flex flex-wrap align-start">
                   <div>
-                    <v-btn @click="setOnuProvision(service)" variant="text"
+                    <v-btn
+                      v-if="cto"
+                      @click="setOnuProvision(service)"
+                      variant="text"
                       >Provisionar Cpe</v-btn
                     >
                     <v-btn @click="resetMac(service)" variant="text"

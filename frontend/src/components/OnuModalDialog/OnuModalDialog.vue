@@ -51,9 +51,13 @@ const getUnauthorizedOnuInfo = async () => {
       return [...response.data, olt.oltIp];
     });
 
-    const results = await Promise.all(promiseList);
+    const results = await Promise.allSettled(promiseList);
 
-    return results.reduce((onuList, data) => {
+    const filterResults = results
+      .filter((result) => result.status === "fulfilled")
+      .map((result) => result.value);
+
+    return filterResults.reduce((onuList, data) => {
       if (data.length > 1) {
         const oltIp = data.pop();
         data.forEach((onu) => onuList.push({ ...onu, oltIp }));
