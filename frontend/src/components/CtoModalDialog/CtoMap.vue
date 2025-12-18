@@ -7,9 +7,7 @@ import personIcon from "@/assets/personIcon.png";
 const props = defineProps([
   "isMapVisible",
   "center",
-  "openGmapTab",
   "ctoPosition",
-  "slideNumber",
   "userLocation",
   "clients",
   "serviceLocation",
@@ -20,21 +18,13 @@ const emit = defineEmits([
   "clientRemoved",
 ]);
 
-const {
-  isMapVisible,
-  center,
-  openGmapTab,
-  ctoPosition,
-  slideNumber,
-  userLocation,
-  clients,
-} = toRefs(props);
+const { isMapVisible, center, ctoPosition, userLocation, clients } =
+  toRefs(props);
 
 const mapRef = ref(null);
 const infoWindowId = ref(null);
 const showAllInfoWindow = ref(true);
 const positionClicked = ref(null);
-const isDraggable = ref(false);
 
 const locatedClients = computed(() => {
   return clients.value.map((client) => ({
@@ -48,22 +38,9 @@ const hasLocatedClients = computed(() => {
   return !locatedClients.value.length ? false : true;
 });
 
-const isClientMarkersVisible = computed(() =>
-  slideNumber.value === 1 ? true : false
-);
-
 const onMapClick = (position, drag) => {
   if (!drag) positionClicked.value = position;
   emit("positionSelected", position);
-};
-
-const handleMarkerDrop = (event, client) => {
-  if (confirm("Confirmar Localização do cliente?")) {
-    emit("clientPositionSelected", {
-      client,
-      position: event.latLng.toJSON(),
-    });
-  }
 };
 
 watch(mapRef, (googleMaps) => {
@@ -119,8 +96,6 @@ watch(isMapVisible, () => (positionClicked.value = null));
             :position="client.position.value"
             :title="client.name"
             :icon="personIcon"
-            :draggable="isDraggable"
-            @dragend="handleMarkerDrop($event, client)"
             @click="infoWindowId = client.id"
           >
             <GMapInfoWindow
@@ -128,42 +103,12 @@ watch(isMapVisible, () => (positionClicked.value = null));
               :closeclick="true"
               @closeclick="infoWindowId = null"
             >
-              <div class="d-flex flex-column">
+              <div>
                 <span
                   class="text-grey-darken-3 font-weight-bold text-center"
                   style="font-size: 10px"
                   >{{ client.name }}</span
                 >
-
-                <div class="d-flex justify-center my-1">
-                  <v-btn
-                    size="x-small"
-                    icon
-                    :color="isDraggable ? 'blue' : 'grey'"
-                    class="mt-2 mr-2"
-                    @click="isDraggable = !isDraggable"
-                  >
-                    <v-icon>mdi-pencil</v-icon>
-                  </v-btn>
-                  <v-btn
-                    size="x-small"
-                    icon
-                    color="success"
-                    class="mt-2"
-                    @click="openGmapTab(client.position.value)"
-                  >
-                    <v-icon>mdi-google-maps</v-icon>
-                  </v-btn>
-                  <v-btn
-                    size="x-small"
-                    icon
-                    color="red"
-                    class="mt-2 ml-2"
-                    @click="emit('clientRemoved', client.id)"
-                  >
-                    <v-icon>mdi-close</v-icon>
-                  </v-btn>
-                </div>
               </div>
             </GMapInfoWindow>
           </GMapMarker>

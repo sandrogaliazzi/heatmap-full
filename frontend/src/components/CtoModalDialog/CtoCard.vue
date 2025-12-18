@@ -6,9 +6,12 @@ import CtoClientsList from "./CtoClientsList.vue";
 import AddClientForm from "./AddClientForm.vue";
 import ClientesOnuCard from "../ClientesOnuModalDialog/ClientesOnuCard.vue";
 import fetchApi from "@/api";
-import CeCard from "@/components/CeModalDialog/CeCard.vue";
 import CtoNotes from "./CtoNotes.vue";
 import CtoConectors from "./CtoConectors.vue";
+import ClientMap from "./ClientMap.vue";
+import { useNotificationStore } from "@/stores/notification";
+
+const notification = useNotificationStore();
 
 const { cto, tomodatView } = defineProps(["cto", "tomodatView"]);
 const emit = defineEmits(["setCtoFromChild"]);
@@ -144,15 +147,10 @@ const center = computed(() => {
   };
 });
 
+const clientLocation = ref(null);
 const openNewGMapTab = (position) => {
-  let url = "";
-  if (confirm("deseja abrir este link no waze?")) {
-    url = `https://www.waze.com/ul?ll=${position.lat}%2C${position.lng}&navigate=yes&zoom=17`;
-  } else {
-    url = `https://www.google.com/maps/search/?api=1&query=${position.lat},${position.lng}`;
-  }
-  const win = window.open(url, "_blank");
-  win.focus();
+  clientLocation.value = position;
+  slideNumber.value = 4;
 };
 
 const resetPosition = () => (positionClicked.value = { lat: "", lng: "" });
@@ -206,10 +204,13 @@ const addUserLocation = async (client) => {
     const locationSaved = await saveClientLocation(client, cto.coord);
 
     if (locationSaved.status === 201) {
-      alert("Localizacao adicionada com sucesso");
+      notification.setNotification({
+        status: "success",
+        msg: "Localizacao salva com sucesso",
+      });
       await loadCtoData();
-      isMapVisible.value = true;
-      //mapKey.value++;
+      clientLocation.value = locationSaved.data;
+      slideNumber.value = 4;
     }
   } catch (e) {
     console.error(`Erro ao adicionar localizacao ${e.message}`);
@@ -227,44 +228,9 @@ const getClientsWithLocation = async () => {
   }
 };
 
-const onClientLocationRemoved = async (id) => {
-  if (confirm("deseja remover a localizacao deste cliente?")) {
-    try {
-      const response = await fetchApi.delete(`/deletectoclient/${id}`);
-      if (response.status === 201) {
-        alert("Localização removida com sucesso");
-        await loadCtoData();
-        mapKey.value++;
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  }
-};
-
 const setViewMode = () => {
   if (slideNumber.value === 1) slideNumber.value = 3;
   else slideNumber.value = 1;
-};
-
-const onClientLocationUpdated = async ({ client, position }) => {
-  try {
-    const response = await fetchApi.post("/updatectoclient", {
-      _id: client.id,
-      data: {
-        lat: position.lat,
-        lng: position.lng,
-      },
-    });
-
-    if (response.status === 200) {
-      alert("Localizacao atualizada com sucesso");
-      await loadCtoData();
-    }
-  } catch (error) {
-    console.error(error);
-    alert("Ocorreu um erro ao atualizar a localizacao");
-  }
 };
 
 const serviceLocation = ref("teste");
@@ -298,7 +264,7 @@ const serviceLocation = ref("teste");
           v-else
           icon="mdi-chevron-left"
           variant="plain"
-          @click="slideNumber--"
+          @click="slideNumber = 1"
         />
         <v-btn
           v-if="slideNumber < 2"
@@ -339,12 +305,8 @@ const serviceLocation = ref("teste");
       :serviceLocation="serviceLocation"
       :clients="clientsWithLocation"
       :userLocation="userLocation"
-      :openGmapTab="openNewGMapTab"
-      :slideNumber="slideNumber"
       :isMapVisible="isMapVisible || slideNumber == 2"
       @positionSelected="onPositionSelected"
-      @clientPositionSelected="onClientLocationUpdated"
-      @clientRemoved="onClientLocationRemoved"
     />
 
     <v-window v-model="slideNumber" class="overflow-auto">
@@ -409,11 +371,15 @@ const serviceLocation = ref("teste");
       <v-window-item :value="3">
         <CtoConectors :cto="cto" />
       </v-window-item>
-      <v-window-item :value="4" v-if="apConnList.length > 0">
-        <CeCard
-          :ce="apConnList"
-          @new-cto-selected="(ctoData) => emit('setCtoFromChild', ctoData)"
-        ></CeCard>
+      <v-window-item :value="4" v-if="clientLocation">
+        <ClientMap
+          :client-location="clientLocation"
+          @update:clientLocation="loadCtoData"
+          @delete:clientLocation="
+            loadCtoData();
+            slideNumber = 1;
+          "
+        />
       </v-window-item>
     </v-window>
     <v-card-actions

@@ -3,7 +3,7 @@ import ctoClient from "../models/ctoClient.js";
 class CtoClientController {
   static CadastrarCtoClientN = (req, res, next) => {
     let ctoClients = new ctoClient(req.body);
-    ctoClients.save(err => {
+    ctoClients.save((err) => {
       if (err) {
         res.status(500).send({
           message: `${err.message} - falha ao cadastrar cliente a CTO.`,
@@ -15,17 +15,16 @@ class CtoClientController {
   };
 
   static CadastrarCtoClient = (req, res, next) => {
-    let ctoClients = new ctoClient(req.body);
-    ctoClients.save(err => {
+    const ctoClients = new ctoClient(req.body);
+
+    ctoClients.save((err, novoCtoClient) => {
       if (err) {
-        res.status(500).send({
+        return res.status(500).send({
           message: `${err.message} - falha ao cadastrar cliente a CTO.`,
         });
-      } else {
-        res.status(201).send({
-          DbCtoClient: `${ctoClients.date_time}: Cliente ${ctoClients.name} cadastrado com sucesso na cto ${ctoClients.cto_name} pelo usuario: ${ctoClients.user}.`,
-        });
       }
+
+      res.status(201).send(novoCtoClient);
     });
   };
 
@@ -83,7 +82,7 @@ class CtoClientController {
 
   static deleteCtoClient = (req, res) => {
     let id = req.params.id;
-    ctoClient.findByIdAndDelete(id, err => {
+    ctoClient.findByIdAndDelete(id, (err) => {
       if (err) {
         res
           .status(500)

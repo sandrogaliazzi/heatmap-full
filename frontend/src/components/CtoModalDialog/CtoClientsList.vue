@@ -43,7 +43,7 @@ const findLocation = (client) =>
 const handleClientLocation = (client) => {
   const location = findLocation(client);
   if (location) {
-    emit("open:location", { lat: location.lat, lng: location.lng });
+    emit("open:location", location);
   } else emit("adduser:location", client);
 };
 const deleteClient = async (id) => {
