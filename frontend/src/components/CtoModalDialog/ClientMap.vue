@@ -18,7 +18,7 @@ const mapHeight = computed(() => {
   if (width.value < 600) {
     return "16rem";
   }
-  return "36rem";
+  return "32rem";
 });
 
 const mapStyle = {
@@ -102,13 +102,43 @@ onMounted(() => {
 <template>
   <v-card variant="flat">
     <v-card-subtitle>
-      <v-banner class="my-4" color="warning" icon="mdi-information">
-        <v-banner-text class="text-wrap">
-          Para editar a localização do cliente, arraste o marcador.
-        </v-banner-text>
-      </v-banner>
+      <div>
+        <v-banner class="my-4" color="warning" icon="mdi-information">
+          <v-banner-text class="text-wrap">
+            Para editar a localização do cliente, arraste o marcador.
+          </v-banner-text>
+          <v-tooltip text="Excluir Localização" location="start">
+            <template v-slot:activator="{ props }">
+              <v-btn
+                color="red"
+                v-bind="props"
+                icon="mdi-delete"
+                @click="onClientLocationRemoved(clientLocation._id)"
+              ></v-btn>
+            </template>
+          </v-tooltip>
+        </v-banner>
+      </div>
     </v-card-subtitle>
     <v-card-text>
+      <div class="d-flex flex-column flex-md-row ga-2 w-100 mb-4">
+        <v-btn
+          color="primary"
+          variant="tonal"
+          class="flex-grow-1"
+          prepend-icon="mdi-google-maps"
+          @click="openNewGMapTab('maps')"
+          >Abrir no maps</v-btn
+        >
+        <v-btn
+          color="primary"
+          variant="tonal"
+          class="flex-grow-1"
+          prepend-icon="mdi-waze"
+          @click="openNewGMapTab('waze')"
+          >Abrir no waze</v-btn
+        >
+      </div>
       <GMapMap
         :center="{
           lat: parseFloat(clientLocation.lat),
@@ -133,35 +163,5 @@ onMounted(() => {
         />
       </GMapMap>
     </v-card-text>
-
-    <div class="px-3 mb-4">
-      <div class="d-flex flex-column flex-md-row ga-2 w-100">
-        <v-btn
-          color="primary"
-          variant="tonal"
-          class="flex-grow-1"
-          prepend-icon="mdi-google-maps"
-          @click="openNewGMapTab('maps')"
-          >Abrir no maps</v-btn
-        >
-        <v-btn
-          color="primary"
-          variant="tonal"
-          class="flex-grow-1"
-          prepend-icon="mdi-waze"
-          @click="openNewGMapTab('waze')"
-          >Abrir no waze</v-btn
-        >
-      </div>
-      <v-btn
-        color="red"
-        variant="tonal"
-        prepend-icon="mdi-delete"
-        @click="onClientLocationRemoved(clientLocation._id)"
-        block
-        class="mt-3"
-        >Excluir Localização</v-btn
-      >
-    </div>
   </v-card>
 </template>

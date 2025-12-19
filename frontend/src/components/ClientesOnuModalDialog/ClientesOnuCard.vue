@@ -34,6 +34,14 @@ const filterOltsByCity = (city) => {
         (olt) =>
           olt.oltPop === "SÃO JOÃO DO DESERTO" || olt.oltPop === "MORUNGAVA"
       );
+    case "M. PEDRA":
+      return heatmapOlts.value.filter(
+        (olt) => olt.oltPop === "M. PEDRA" || olt.oltPop === "FAZ. FIALHO"
+      );
+    case "PAROBE":
+      return heatmapOlts.value.filter(
+        (olt) => olt.oltPop === "NOVA HARTZ" || olt.oltPop === "PAROBE"
+      );
     default:
       return heatmapOlts.value.filter((olt) => olt.oltPop === city);
   }
