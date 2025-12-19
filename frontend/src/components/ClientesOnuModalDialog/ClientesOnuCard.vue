@@ -4,7 +4,6 @@ import OnuList from "./OnuList.vue";
 import fetchApi from "@/api";
 
 const { clients, city } = defineProps(["clients", "city"]);
-const emit = defineEmits(["exit"]);
 
 const onuList = ref([]);
 const onuListCopy = ref([]);
@@ -160,7 +159,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <v-card style="min-height: 450px" class="overflow-auto">
+  <v-card style="min-height: 450px" class="overflow-auto" variant="flat">
     <slot name="header">
       <v-card-title class="bg-orange">
         <div class="d-flex justify-space-between align-center">
@@ -201,20 +200,12 @@ onMounted(async () => {
       </slot>
       <v-row no-gutters>
         <v-col cols="12">
-          <div v-if="onuList.length" class="d-flex flex-column">
+          <div v-if="onuList.length">
             <OnuList
               :onu-list="filterOnuList || onuList"
               @delete-onu="deleteOnu"
               @update-alias="updateAlias"
             />
-            <v-btn
-              v-if="onuList.length <= 16"
-              @click="emit('exit')"
-              variant="tonal"
-              color="error"
-              class="mt-auto"
-              >Fechar</v-btn
-            >
           </div>
           <div v-else>
             <div class="d-flex justify-center align-center">

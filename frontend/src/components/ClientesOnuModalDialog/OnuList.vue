@@ -276,12 +276,7 @@ const showClientSignalHistory = async (client) => {
         >Clientes: {{ onuList.length }}</v-chip
       >
     </v-list-subheader>
-    <v-virtual-scroll
-      class="pt-0"
-      height="600"
-      item-height="50"
-      :items="onuList"
-    >
+    <v-virtual-scroll class="pt-0" item-height="50" :items="onuList">
       <template #="{ item }">
         <v-list-group>
           <template #activator="{ props }">

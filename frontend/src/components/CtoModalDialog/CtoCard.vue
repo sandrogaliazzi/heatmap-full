@@ -237,7 +237,7 @@ const serviceLocation = ref("teste");
 </script>
 
 <template>
-  <v-card class="rounded-md-lg">
+  <v-card>
     <v-card-title
       class="d-flex justify-space-between align-center border-b"
       :class="cto.color === '#00ff00' ? 'bg-green' : 'bg-orange'"
@@ -382,32 +382,26 @@ const serviceLocation = ref("teste");
         />
       </v-window-item>
     </v-window>
-    <v-card-actions
-      style="margin-top: auto"
-      v-if="slideNumber == 1 && !showOnuCard"
-    >
+    <v-card-text>
+      <ClientesOnuCard v-if="showOnuCard" :clients="clients" :city="cto.city">
+        <template #header>
+          <span class="d-none"></span>
+        </template>
+        <template #search>
+          <span class="d-none"></span>
+        </template>
+      </ClientesOnuCard>
+    </v-card-text>
+    <v-card-actions style="margin-top: auto" v-if="slideNumber == 1">
       <v-btn
         block
         variant="tonal"
-        color="primary"
+        :color="showOnuCard ? 'error' : 'primary'"
         @click="showOnuCard = !showOnuCard"
       >
-        verificar sinal
+        {{ showOnuCard ? "Fechar" : "verificar sinal" }}
       </v-btn>
     </v-card-actions>
-    <ClientesOnuCard
-      v-if="showOnuCard"
-      :clients="clients"
-      :city="cto.city"
-      @exit="showOnuCard = false"
-    >
-      <template #header>
-        <span class="d-none"></span>
-      </template>
-      <template #search>
-        <span class="d-none"></span>
-      </template>
-    </ClientesOnuCard>
   </v-card>
 </template>
 
