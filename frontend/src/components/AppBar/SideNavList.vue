@@ -10,7 +10,7 @@ import OnuModalDialog from "@/components/OnuModalDialog/OnuModalDialog";
 import EmailModalDialog from "@/components/EmailModalDialog/EmailModalDialog";
 import ClientesOnuCard from "@/components/ClientesOnuModalDialog/ClientesOnuCard";
 import RamalCard from "@/components/RamalModalDialog/RamalCard";
-import OsMap from "./OsMap.vue";
+import OsMap from "../OsList/OsMap.vue";
 import OsList from "../Ativacoes/OsList.vue";
 import ReservadosList from "../Reservados/ReservadosList.vue";
 import router from "@/router";
