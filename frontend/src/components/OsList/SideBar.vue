@@ -26,7 +26,7 @@ onMounted(() => {
 });
 </script>
 <template>
-  <v-navigation-drawer location="right" permanent :width="400">
+  <v-navigation-drawer location="right" v-model="osStore.drawer" :width="400">
     <v-list v-model:opened="open">
       <v-list-group value="Ordens">
         <template #activator="{ props }">

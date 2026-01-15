@@ -41,6 +41,11 @@ export const useOsStore = defineStore("os", () => {
   const osList = ref([]);
   const statusList = ref(["finalizado", "pendente", "aguardando_agendamento"]);
   const status = ref("pendente");
+  const drawer = ref(false);
+  const dateRange = ref([
+    new Date().toISOString().split("T")[0],
+    new Date().toISOString().split("T")[0],
+  ]);
 
   const getTecnicos = async () => {
     try {
@@ -85,11 +90,7 @@ export const useOsStore = defineStore("os", () => {
       const response = await Promise.all(
         tecnicos.map(async (tec) => {
           const os = await hubApi.get(
-            `/api/v1/integracao/ordem_servico/todos?pagina=0&itens_por_pagina=100&data_inicio=${
-              new Date().toISOString().split("T")[0]
-            }&data_fim=${new Date().toISOString().split("T")[0]}&tecnico=${
-              tec.id
-            }&status=${status.value}`
+            `/api/v1/integracao/ordem_servico/todos?pagina=0&itens_por_pagina=100&data_inicio=${dateRange.value[0]}&data_fim=${dateRange.value[1]}&tecnico=${tec.id}&status=${status.value}`
           );
 
           return {
@@ -113,7 +114,7 @@ export const useOsStore = defineStore("os", () => {
     }
   };
 
-  watch(status, () => {
+  watch([dateRange, status], () => {
     getTodayOsList();
   });
 
@@ -128,5 +129,7 @@ export const useOsStore = defineStore("os", () => {
     saveVisibility,
     statusList,
     status,
+    drawer,
+    dateRange,
   };
 });

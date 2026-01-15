@@ -3,7 +3,7 @@ import { inject, ref, onUnmounted } from "vue";
 import fetchApi from "@/api";
 import OsList from "../OsList/OsList.vue";
 import Vehicle from "./Vehicle.vue";
-import TechList from "./SideBar.vue";
+import Sidebar from "./SideBar.vue";
 import OsModal from "./OsModal.vue";
 import OsFilter from "./OsFilter.vue";
 import { useOsStore } from "@/stores/osStore";
@@ -80,8 +80,13 @@ const updateVehiclePosition = setInterval(async () => {
   await getLastVehiclePosition(vehicleList);
 }, 5000);
 
+const updateOsState = setInterval(async () => {
+  await osStore.getTodayOsList();
+}, 30000);
+
 onUnmounted(() => {
   clearInterval(updateVehiclePosition);
+  clearInterval(updateOsState);
   console.log("contador zerado");
 });
 
@@ -97,7 +102,11 @@ const closeDialog = inject("closeDialog");
       <v-spacer></v-spacer>
 
       <v-toolbar-items>
-        <v-btn text="Atualizar" variant="text"></v-btn>
+        <v-btn
+          icon="mdi-menu"
+          variant="text"
+          @click="osStore.drawer = !osStore.drawer"
+        ></v-btn>
       </v-toolbar-items>
     </v-toolbar>
 
@@ -106,6 +115,7 @@ const closeDialog = inject("closeDialog");
     <v-divider></v-divider>
 
     <OsModal v-model="isOsModalOpen" :os="selectedOs" />
+
     <GMapMap
       :center="mapCenter"
       :zoom="mapZoom"
@@ -113,6 +123,7 @@ const closeDialog = inject("closeDialog");
       ref="mapRef"
     >
       <Vehicle :vehicleList="vehicleList" :visibleVehicles="visibleVehicles" />
+
       <OsList
         @open-os-modal="
           isOsModalOpen = true;
@@ -121,7 +132,7 @@ const closeDialog = inject("closeDialog");
       />
     </GMapMap>
 
-    <TechList
+    <Sidebar
       :getVehicleList="getLastVehiclePosition"
       :visibleVehicles="visibleVehicles"
       @toggle-vehicle="toggleVehicleVisibility($event)"
