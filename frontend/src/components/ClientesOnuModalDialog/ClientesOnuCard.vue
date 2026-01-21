@@ -12,6 +12,7 @@ const selectedVlan = ref(null);
 const closeDialog = inject("closeDialog");
 const query = ref("");
 const heatmapOlts = ref([]);
+const renderLimit = ref(100);
 
 const getOltList = async () => {
   try {
@@ -31,15 +32,15 @@ const filterOltsByCity = (city) => {
     case "SÃO JOÃO DO DESERTO":
       return heatmapOlts.value.filter(
         (olt) =>
-          olt.oltPop === "SÃO JOÃO DO DESERTO" || olt.oltPop === "MORUNGAVA"
+          olt.oltPop === "SÃO JOÃO DO DESERTO" || olt.oltPop === "MORUNGAVA",
       );
     case "M. PEDRA":
       return heatmapOlts.value.filter(
-        (olt) => olt.oltPop === "M. PEDRA" || olt.oltPop === "FAZ. FIALHO"
+        (olt) => olt.oltPop === "M. PEDRA" || olt.oltPop === "FAZ. FIALHO",
       );
     case "PAROBE":
       return heatmapOlts.value.filter(
-        (olt) => olt.oltPop === "NOVA HARTZ" || olt.oltPop === "PAROBE"
+        (olt) => olt.oltPop === "NOVA HARTZ" || olt.oltPop === "PAROBE",
       );
     default:
       return heatmapOlts.value.filter((olt) => olt.oltPop === city);
@@ -59,29 +60,40 @@ const fetchFiberhomeOnu = async () => {
 const fetchAllOnu = async () => {
   const oltList =
     city && city !== "INDEFINIDO" ? filterOltsByCity(city) : heatmapOlts.value;
+
   const promiseList = oltList.map(async (olt) => {
     if (olt.oltName.includes("FIBERHOME")) {
-      const onus = await fetchFiberhomeOnu();
-      return onus;
+      return await fetchFiberhomeOnu();
     }
+
     const onuData = await fetchApi.post("verificar-onu-name-olt", {
       oltIp: olt.ipv4,
     });
+
     return onuData.data;
   });
 
-  const onuData = await Promise.all(promiseList);
-  onuList.value = [...onuData.flat()];
+  const results = await Promise.allSettled(promiseList);
+
+  const fulfilledData = results
+    .filter((result) => result.status === "fulfilled")
+    .map((result) => result.value);
+
+  const rejectedErrors = results.filter(
+    (result) => result.status === "rejected",
+  );
+  if (rejectedErrors.length) {
+    console.error("Erros ao buscar ONUs:", rejectedErrors);
+  }
+
+  onuList.value = fulfilledData.flat();
   onuListCopy.value = onuList.value;
+
   vLanList.value = onuList.value
-    .map((onu) => {
-      if (onu.flowProfile) return onu.flowProfile;
-    })
-    .filter((value) => value)
+    .map((onu) => onu.flowProfile)
+    .filter(Boolean)
     .reduce((acc, val) => {
-      if (!acc.includes(val)) {
-        acc.push(val);
-      }
+      if (!acc.includes(val)) acc.push(val);
       return acc;
     }, []);
 };
@@ -93,6 +105,7 @@ watch(query, () => {
 });
 
 const filterOnuList = computed(() => {
+  if (!query.value) return null;
   return onuList.value.filter((onu) => {
     if (onu.name) {
       return onu.name.includes(query.value);
@@ -151,6 +164,10 @@ const updateAlias = (onu) => {
   });
 };
 
+const onuListLimited = computed(() => {
+  return onuList.value.slice(0, renderLimit.value);
+});
+
 onMounted(async () => {
   await getOltList();
   await fetchAllOnu();
@@ -202,7 +219,7 @@ onMounted(async () => {
         <v-col cols="12">
           <div v-if="onuList.length">
             <OnuList
-              :onu-list="filterOnuList || onuList"
+              :onu-list="filterOnuList || onuListLimited"
               @delete-onu="deleteOnu"
               @update-alias="updateAlias"
             />
@@ -223,5 +240,10 @@ onMounted(async () => {
         </v-col>
       </v-row>
     </v-card-text>
+    <v-card-actions v-if="onuList.length > 20">
+      <v-btn block color="primary" @click="renderLimit += 100"
+        >Carregar mais</v-btn
+      >
+    </v-card-actions>
   </v-card>
 </template>
