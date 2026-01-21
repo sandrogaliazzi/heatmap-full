@@ -40,7 +40,7 @@ const loadInterfaces = async () => {
           equip.interfaces.map((interface_) => ({
             ...interface_,
             nome_equipamento: equip.nome,
-          }))
+          })),
         )
         .flat();
     }
@@ -69,7 +69,7 @@ const searchClientByName = debounce(async (alias) => {
   loadingClients.value = true;
   try {
     const response = await hubApi.get(
-      `api/v1/integracao/cliente?busca=nome_razaosocial&termo_busca=${alias}`
+      `api/v1/integracao/cliente?busca=nome_razaosocial&termo_busca=${alias}`,
     );
     if (response.status === 200) {
       clientsFound.value = response.data.clientes;
@@ -95,11 +95,11 @@ const configClientAuth = async () => {
         observacoes: `Liberado via Heatmap por: ${
           userStore.user.name
         }, técnico no local: ${toParksTextFormat(
-          tecnico.value
+          tecnico.value,
         )}, CTO: ${toParksTextFormat(
-          cto.value
+          cto.value,
         )} - data ${new Date().toLocaleString()}`,
-      }
+      },
     );
   } catch (error) {
     console.log("erro ao configurar cliente", error.message);
@@ -125,8 +125,12 @@ const provisionOnuParks = async (requestBody) => {
   }
 };
 
-const normalizeName = (name) =>
+const normalizeName = (name) => {
   name.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const firstName = name.split(" ")[0];
+  const lastName = name.split(" ").pop();
+  return `${firstName} ${lastName} ${selectedService.value.id_cliente_servico}`;
+};
 
 const provisionOnuFiberhome = async (requestBody) => {
   try {
@@ -172,7 +176,7 @@ const handleSubmit = async () => {
       onuModel: formData.onuModel,
       oltRamal: formData.oltRamal,
       onuAlias: toParksTextFormat(
-        normalizeName(selectedClient.value.nome_razaosocial.slice(0, 40))
+        normalizeName(selectedClient.value.nome_razaosocial.slice(0, 40)),
       ),
       sinalTX: formData["Power Level"],
       sinalRX: formData["RSSI"],
