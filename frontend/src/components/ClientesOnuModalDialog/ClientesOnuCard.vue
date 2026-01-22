@@ -136,7 +136,14 @@ const findOnuListFromCto = () => {
 
   const onuMatchList = names
     .map((n) => {
-      const onu = onuList.value.find((onu) => onu?.name?.includes(n));
+      const suffix = n.split("-").at(-1);
+      const preffix = n.split("-").at(0);
+
+      const onu = onuList.value.find(
+        (onu) =>
+          (onu?.name?.endsWith(suffix) && onu?.name?.startsWith(preffix)) ||
+          onu?.name?.includes(n),
+      );
 
       return onu ? onu : false;
     })

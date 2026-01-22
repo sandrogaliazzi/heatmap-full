@@ -43,8 +43,10 @@ const showNotification = () => {
   });
 };
 
-const normalizeName = (name) =>
+const normalizeName = (name) => {
   name.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return `${name} ${selectedService.value.id_cliente_servico}`;
+};
 
 const toggleLoading = () => (loading.value = !loading.value);
 
