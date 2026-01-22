@@ -22,8 +22,12 @@ const selectedService = ref(null);
 const notification = useNotificationStore();
 
 const normalizeName = (name) => {
+  const suffix = name.split(" ").at(-1);
+
+  if (!isNaN(suffix)) name = name.replace(suffix, "").trim();
+
   if (name.includes("(")) {
-    return name.split("(")[0].trim();
+    name = name.split("(")[0].trim();
   }
   name.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   return name.trim();
@@ -35,8 +39,8 @@ const findClientOnHubsoft = async (isDialogOpen) => {
     loadingHubsoftData.value = true;
     const response = await hubApi.get(
       `/api/v1/integracao/cliente?inativo=todos&ultima_conexao=sim&busca=nome_razaosocial&termo_busca=${normalizeName(
-        client.value.name || client.value.client
-      )}&inclui_alarmes=sim`
+        client.value.name || client.value.client,
+      )}&inclui_alarmes=sim`,
     );
 
     if (
@@ -48,7 +52,7 @@ const findClientOnHubsoft = async (isDialogOpen) => {
       await Promise.all(
         hubSoftClientData.value.servicos.map(async (service) => {
           await getVendor(service.mac_addr);
-        })
+        }),
       );
     }
   } catch (error) {
@@ -78,7 +82,7 @@ const enableService = async (service) => {
   if (!service || !service.id_cliente_servico) return;
   if (
     !confirm(
-      `Deseja realmente habilitar o serviço ${service.nome} - ${service.login}?`
+      `Deseja realmente habilitar o serviço ${service.nome} - ${service.login}?`,
     )
   )
     return;
@@ -89,7 +93,7 @@ const enableService = async (service) => {
       `/api/v1/integracao/cliente/cliente_servico/ativar/${service.id_cliente_servico}`,
       {
         id_cliente_servico: service.id_cliente_servico,
-      }
+      },
     );
   } catch (error) {
     console.error("erro ao habilitar serviço " + error.message);
@@ -118,7 +122,7 @@ const resetMac = async (service) => {
       "/api/v1/integracao/cliente/reset_mac_addr",
       {
         id_cliente_servico: service.id_cliente_servico,
-      }
+      },
     );
 
     if (response.data.status === "success") {
@@ -153,7 +157,7 @@ const resetMac = async (service) => {
             v-if="loadingHubsoftData"
           ></v-progress-circular>
           <template v-if="hubSoftClientData">
-            <a href="#" @click.prevent="return" style="color: #208be3"
+            <a href="#" @click.prevent="" style="color: #208be3"
               >{{ hubSoftClientData.nome_razaosocial }}
               {{ hubSoftClientData.ativo ? "(ATIVO)" : "(INATIVO)" }}</a
             >
@@ -255,7 +259,7 @@ const resetMac = async (service) => {
                                     icon="mdi-open-in-new"
                                     @click="
                                       openNewTab(
-                                        service.ultima_conexao.ultimo_ipv4
+                                        service.ultima_conexao.ultimo_ipv4,
                                       )
                                     "
                                     variant="text"
