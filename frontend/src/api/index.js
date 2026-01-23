@@ -28,7 +28,7 @@ fetchApi.interceptors.response.use(
         auth.tokenExpired = true;
       }
     }
-  }
+  },
 );
 
 fetchApi.interceptors.request.use(
@@ -45,7 +45,7 @@ fetchApi.interceptors.request.use(
     if (error) {
       return Promise.reject(error);
     }
-  }
+  },
 );
 
 export default fetchApi;

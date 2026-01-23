@@ -258,7 +258,7 @@ class oltController {
           stream.write("sh gpon profile flow\n");
           // Aguarda um tempo para o comando executar antes de sair
           new Promise((resolve) => setTimeout(resolve, 300)).then(() =>
-            stream.write("exit\n")
+            stream.write("exit\n"),
           );
         });
       })
@@ -392,7 +392,7 @@ class oltController {
           stream.write("sh gpon profile vlan-translation\n");
           // Aguarda um tempo para o comando executar antes de sair
           new Promise((resolve) => setTimeout(resolve, 300)).then(() =>
-            stream.write("exit\n")
+            stream.write("exit\n"),
           );
         });
       })
@@ -601,12 +601,12 @@ class oltController {
                       : null;
                     const rx = rxMatch ? parseFloat(rxMatch[1]) : null;
 
-                    if (status && tx && rx) {
+                    if (status) {
                       items.push({
                         alias: alias,
                         status: status,
-                        tx: tx,
-                        rx: rx,
+                        tx: tx || "N/A",
+                        rx: rx || "N/A",
                       });
                     }
 
@@ -673,7 +673,7 @@ class oltController {
                   // console.log("Output: " + line);
 
                   const onuAliasMatch = line.match(
-                    /^\s*(\d+)-([\w-]+)\s+\(([\w-]+)\):/
+                    /^\s*(\d+)-([\w-]+)\s+\(([\w-]+)\):/,
                   );
                   if (onuAliasMatch) {
                     if (Object.keys(onuData).length > 0) {
@@ -772,7 +772,7 @@ class oltController {
 
                   // 👇 Detecta início de uma nova ONU
                   const onuAliasMatch = trimmedLine.match(
-                    /^(\d+)-([\w-]+)\s+\(([\w-]+)\):/
+                    /^(\d+)-([\w-]+)\s+\(([\w-]+)\):/,
                   );
                   if (onuAliasMatch) {
                     if (Object.keys(onuData).length > 0) {
@@ -820,7 +820,7 @@ class oltController {
           stream.write("terminal length 0\n");
           stream.write(`show gpon onu\n`);
           new Promise((resolve) => setTimeout(resolve, 300)).then(() =>
-            stream.write("exit\n")
+            stream.write("exit\n"),
           );
         });
       })
@@ -1043,10 +1043,10 @@ class oltController {
           stream.write(`onu ${onuSerial} alias ${onuAlias}\n`);
           stream.write(`onu ${onuSerial} flow ${flowProfile}\n`);
           stream.write(
-            `onu ${onuSerial} vlan-translation-profile _${onuVlan} uni-port 1\n`
+            `onu ${onuSerial} vlan-translation-profile _${onuVlan} uni-port 1\n`,
           );
           stream.write(
-            `onu ${onuSerial} ethernet-profile auto-on uni-port 1\n`
+            `onu ${onuSerial} ethernet-profile auto-on uni-port 1\n`,
           );
           stream.write("end\n");
           stream.write("copy r s\n");

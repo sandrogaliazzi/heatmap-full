@@ -26,7 +26,7 @@ const filterRamal = computed(() => {
   return ramals.value.filter(
     (ramal) =>
       ramal.oltRamal.toLowerCase().includes(q) ||
-      ramal.oltName.toLowerCase().includes(q)
+      ramal.oltName.toLowerCase().includes(q),
   );
 });
 
@@ -66,7 +66,7 @@ function calculateAverages(data) {
   let totalRx = 0;
 
   for (const item of data) {
-    if (Number.isNaN(item.tx) || Number.isNaN(item.rx)) continue;
+    if (isNaN(item.tx) || isNaN(item.rx)) continue;
     totalTx += item.tx;
     totalRx += item.rx;
   }
@@ -85,7 +85,7 @@ const getOnuSignalsFromFiberHome = async (slot, pon) => {
     const onus = await fetchApi.get("listar-onu-fiberhome");
 
     const filterBySlotAndPon = onus.data.onus.filter(
-      (onu) => onu.slot === slot && onu.pon === pon
+      (onu) => onu.slot === slot && onu.pon === pon,
     );
 
     if (filterBySlotAndPon.length === 0) {
@@ -93,7 +93,7 @@ const getOnuSignalsFromFiberHome = async (slot, pon) => {
     }
     const signals = await fetchApi.post(
       "verificar-onu-fiberhome",
-      filterBySlotAndPon
+      filterBySlotAndPon,
     );
 
     return signals.data.map((onu) => ({
@@ -127,7 +127,9 @@ const selectRamal = async (ramal) => {
   }
 
   ponSignals.value = ponSignalsData.data;
-  average.value = calculateAverages(ponSignalsData.data);
+  average.value = calculateAverages(
+    ponSignalsData.data.filter((onu) => onu.status === "ACTIVE (PROVISIONED)"),
+  );
 
   loading.value = false;
 };
@@ -255,7 +257,12 @@ onMounted(async () => {
                   >
                     Exibir lista
                     <v-dialog activator="parent" width="auto">
-                      <PonSignal :onuList="ponSignals" :ramal="ramal" />
+                      <PonSignal
+                        v-model="ponSignals"
+                        :ramal="ramal"
+                        :loading="loading"
+                        @refresh-data="selectRamal(ramal)"
+                      />
                     </v-dialog>
                   </v-btn>
                 </v-card-text>

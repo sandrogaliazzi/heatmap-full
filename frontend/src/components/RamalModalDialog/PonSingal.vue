@@ -3,7 +3,10 @@ import { ref, computed, onMounted } from "vue";
 import { useNotificationStore } from "@/stores/notification";
 import signalChart from "./signalChart.vue";
 
-const { onuList, ramal } = defineProps(["onuList", "ramal"]);
+const { ramal, loading } = defineProps(["ramal", "loading"]);
+
+const onuList = defineModel();
+const emit = defineEmits(["refreshData"]);
 import fetchApi from "@/api";
 
 const notification = useNotificationStore();
@@ -56,8 +59,8 @@ const saveGponData = async () => {
   const save = await fetchApi.post("ramal-log-register", {
     id: ramal._id,
     date_time: new Date().toISOString(),
-    gpon_data: onuList,
-    avgSignal: calculateAverages(onuList),
+    gpon_data: onuList.value,
+    avgSignal: calculateAverages(onuList.value),
   });
 
   console.log(save);
@@ -80,6 +83,16 @@ const setDataByDate = (data) => {
   selectedDate.value = data.date_time;
 };
 
+const activeOnuLength = computed(() => {
+  return onuList.value.filter((onu) => onu.status === "ACTIVE (PROVISIONED)")
+    .length;
+});
+
+const offlineOnuLength = computed(() => {
+  return onuList.value.filter((onu) => onu.status !== "ACTIVE (PROVISIONED)")
+    .length;
+});
+
 onMounted(async () => {
   const response = await fetchApi(`find-ramal-logs/${ramal._id}`);
   if (response.status === 200) {
@@ -101,39 +114,30 @@ onMounted(async () => {
     :loaded="true"
     v-if="labels"
   />
-  <v-card>
+  <v-card :loading="loading">
     <v-card-text>
       <v-card flat>
-        <v-card-title>
+        <v-card-title class="d-flex align-center justify-space-between">
           Lista clientes {{ ramal.oltRamal }}
-          <v-chip
-            v-if="prevData"
-            class="ma-2"
-            closable
-            @click:close="prevData = false"
-          >
-            {{ selectedDate }}
-          </v-chip>
+
+          <div class="d-flex align-center ga-2 mt-2">
+            <v-btn
+              color="orange"
+              variant="tonal"
+              v-if="ramalHistory.length > 0"
+              @click="showChart = !showChart"
+            >
+              Ver histórico
+            </v-btn>
+            <v-btn color="primary" variant="tonal" @click="emit('refreshData')"
+              >Recarregar</v-btn
+            >
+          </div>
         </v-card-title>
-        <v-btn
-          color="orange"
-          variant="tonal"
-          v-if="ramalHistory.length > 0"
-          @click="showChart = !showChart"
-        >
-          Ver histórico
-          <!-- <v-menu activator="parent">
-            <v-list>
-              <v-list-item
-                v-for="date in ramalHistory"
-                :key="date._id"
-                :title="date.date_time"
-                :value="date.date_time"
-                @click="setDataByDate(date)"
-              ></v-list-item>
-            </v-list>
-          </v-menu> -->
-        </v-btn>
+        <v-card-subtitle>
+          <v-divider class="my-2"></v-divider>
+          ✅ {{ activeOnuLength }} online / ❌ {{ offlineOnuLength }} offline
+        </v-card-subtitle>
         <template v-slot:text>
           <v-text-field
             v-model="search"
