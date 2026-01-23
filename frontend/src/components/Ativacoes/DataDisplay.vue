@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from "vue";
-import HubsoftClientPanel from "../CtoModalDialog/HubsoftClientPanel.vue";
+import HubsoftClientPanel from "../Hubsoft/HubsoftClientPanel.vue";
 
 const props = defineProps(["loading"]);
 
@@ -108,10 +108,7 @@ const headers = [
           style="color: #208be3"
         >
           {{ value }}
-          <hubsoft-client-panel
-            v-model="selectedClient"
-            @delete-client="return"
-          />
+          <hubsoft-client-panel v-model="selectedClient" @delete-client="" />
         </a>
       </template>
 

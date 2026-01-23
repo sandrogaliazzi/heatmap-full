@@ -48,7 +48,7 @@ const addOnu = () => {
   }
 
   const exists = unauthorizedOnuList.value.find(
-    (onu) => onu.onuMac === newOnu.value
+    (onu) => onu.onuMac === newOnu.value,
   );
   if (exists) {
     alert("ONU já existe na lista");
@@ -78,7 +78,7 @@ const configClientAuth = async () => {
         observacoes: `Liberado via Heatmap por: ${
           userStore.user.name
         } - data: ${new Date().toLocaleString()}`,
-      }
+      },
     );
     return response;
   } catch (error) {
@@ -121,13 +121,13 @@ const isVEIPprofile = ref(false);
 watch(selectedGponProfile, (newProfile) => {
   if (newProfile) {
     isVEIPprofile.value = newProfile.entries.some(
-      (entry) => entry.type === "VEIP"
+      (entry) => entry.type === "VEIP",
     );
     console.log("perfil selecionado", newProfile);
     cpeBridgeTranslation.value = {};
     translationSelection.value = null;
     const pbmpPorts = selectedGponProfile.value.entries.map((entry) =>
-      Number.parseInt(entry.pbmpPorts) ? Number.parseInt(entry.pbmpPorts) : 0
+      Number.parseInt(entry.pbmpPorts) ? Number.parseInt(entry.pbmpPorts) : 0,
     );
     cpePortsNumber.value =
       Math.max(...pbmpPorts) > 0 ? Math.max(...pbmpPorts) : 1;
@@ -165,7 +165,7 @@ const mountCpeBridgeScript = () => {
     selectedGponProfile.value.name,
     alias.value || "ONU-ALIAS",
     selectedOnu.value.onuMac,
-    hasUnaddedOnu.value
+    hasUnaddedOnu.value,
   );
 };
 
@@ -176,14 +176,14 @@ const mountCpeVEIPprofile = () => {
     script.push(`onu add serial-number ${selectedOnu.value.onuMac}`);
   }
   script.push(
-    `onu ${selectedOnu.value.onuMac} ethernet-profile auto-on uni-port 1-2`
+    `onu ${selectedOnu.value.onuMac} ethernet-profile auto-on uni-port 1-2`,
   );
   script.push(`onu ${selectedOnu.value.onuMac} upstream-fec disabled`);
   script.push(
-    `onu ${selectedOnu.value.onuMac} flow-profile ${selectedGponProfile.value.name}`
+    `onu ${selectedOnu.value.onuMac} flow-profile ${selectedGponProfile.value.name}`,
   );
   script.push(
-    `onu ${selectedOnu.value.onuMac} alias ${alias.value || "ONU-ALIAS"}`
+    `onu ${selectedOnu.value.onuMac} alias ${alias.value || "ONU-ALIAS"}`,
   );
   return script.join("\n");
 };
@@ -228,12 +228,12 @@ const provisionOnu = async () => {
     if (response.data.status !== "success") {
       triggerNotification(
         `Erro ao vincular cliente ao serviço! ${response.data.msg}`,
-        "error"
+        "error",
       );
     } else {
       triggerNotification(
         "Cliente vinculado ao serviço com sucesso!",
-        "success"
+        "success",
       );
     }
   }

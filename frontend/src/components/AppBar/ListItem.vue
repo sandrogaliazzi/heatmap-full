@@ -3,7 +3,7 @@ import { inject, ref } from "vue";
 import { useTomodatStore } from "@/stores/tomodat";
 import { useNotificationStore } from "@/stores/notification";
 import fetchApi from "@/api";
-import HubsoftClientPanel from "../CtoModalDialog/HubsoftClientPanel.vue";
+import HubsoftClientPanel from "../Hubsoft/HubsoftClientPanel.vue";
 
 const { source } = defineProps(["source"]);
 

@@ -2,7 +2,7 @@
 import { ref, toRefs } from "vue";
 import { useNotificationStore } from "@/stores/notification";
 import fetchApi from "@/api";
-import HubsoftClientPanel from "./HubsoftClientPanel.vue";
+import HubsoftClientPanel from "../Hubsoft/HubsoftClientPanel.vue";
 
 const props = defineProps(["clients", "cto", "clientsWithLocation"]);
 
