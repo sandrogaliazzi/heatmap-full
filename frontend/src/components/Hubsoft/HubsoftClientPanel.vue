@@ -10,7 +10,7 @@ import { useNotificationStore } from "@/stores/notification";
 const { cto } = defineProps(["cto"]);
 
 const loadingHubsoftData = ref(false);
-const client = defineModel();
+const tomodatClient = defineModel();
 const hubSoftClientData = ref(null);
 const emit = defineEmits(["deleteClient"]);
 const { width } = useWindowSize();
@@ -39,7 +39,7 @@ const findClientOnHubsoft = async (isDialogOpen) => {
     loadingHubsoftData.value = true;
     const response = await hubApi.get(
       `/api/v1/integracao/cliente?inativo=todos&ultima_conexao=sim&busca=nome_razaosocial&termo_busca=${normalizeName(
-        client.value.name || client.value.client,
+        tomodatClient.value.name || tomodatClient.value.client,
       )}&inclui_alarmes=sim`,
     );
 
@@ -158,7 +158,7 @@ const resetMac = async (service) => {
                 size="small"
                 variant="tonal"
                 class="mt-2"
-                @click="emit('deleteClient', client.id)"
+                @click="emit('deleteClient', tomodatClient.id)"
                 >Remover cliente</v-btn
               >
             </template>
