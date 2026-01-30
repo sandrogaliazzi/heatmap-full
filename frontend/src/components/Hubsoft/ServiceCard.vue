@@ -13,6 +13,7 @@ const emit = defineEmits([
   "setOnuProvision",
   "resetMac",
   "enableService",
+  "rebootOnu",
 ]);
 
 defineProps(["cto", "vendor", "loading"]);
@@ -143,6 +144,7 @@ onMounted(async () => {
                   Mac: {{ service.mac_addr }}
                   <span>({{ vendor[index] }})</span>
                 </div>
+                <div class="text-h6 mb-1">Onu: {{ service.phy_addr }}</div>
               </div>
             </v-card-item>
             <v-card-actions class="d-flex flex-wrap align-start">
@@ -152,6 +154,11 @@ onMounted(async () => {
                   @click="emit('setOnuProvision', service)"
                   variant="text"
                   >Provisionar Cpe</v-btn
+                >
+                <v-btn
+                  @click="emit('rebootOnu', service.phy_addr)"
+                  variant="text"
+                  >Reiniciar Onu</v-btn
                 >
                 <v-btn @click="emit('resetMac', service)" variant="text"
                   >Recapturar Mac</v-btn

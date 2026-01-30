@@ -5,6 +5,8 @@ import { useWindowSize } from "vue-window-size";
 import Dialog from "../Dialog/Dialog.vue";
 import OnuModalDialog from "../OnuModalDialog/OnuModalDialog.vue";
 import ServiceCard from "./ServiceCard.vue";
+import AtendimentoCard from "./AtendimentoCard.vue";
+import OsCard from "./OsCard.vue";
 import { useNotificationStore } from "@/stores/notification";
 
 const { cto } = defineProps(["cto"]);
@@ -89,6 +91,29 @@ const setOnuProvision = (service, client) => {
   openDialog.value = true;
 };
 
+const rebootOnu = async (phy_addr) => {
+  if (!phy_addr) return;
+  if (!confirm(`Deseja realmente reiniciar a ONU ${phy_addr}?`)) return;
+  try {
+    const response = await hubApi.post(
+      `/api/v1/integracao/rede/reiniciar_cpe/${phy_addr}`,
+    );
+
+    if (response.data.status === "success") {
+      notification.setNotification({
+        status: "success",
+        msg: response.data.msg,
+      });
+    }
+  } catch (error) {
+    console.error("erro ao reiniciar onu " + error.message);
+    notification.setNotification({
+      status: "error",
+      msg: "Erro ao reiniciar onu",
+    });
+  }
+};
+
 const resetMac = async (service) => {
   try {
     const response = await hubApi.post(
@@ -138,7 +163,7 @@ const resetMac = async (service) => {
               :key="client.id_cliente"
             >
               <a href="#" @click.prevent="" style="color: #208be3"
-                >({{ client.id_cliente }}) {{ client.nome_razaosocial }}
+                >({{ client.codigo_cliente }}) {{ client.nome_razaosocial }}
                 {{ client.ativo ? "(ATIVO)" : "(INATIVO)" }}</a
               >
               <ServiceCard
@@ -150,6 +175,7 @@ const resetMac = async (service) => {
                 @resetMac="resetMac"
                 @enableService="enableService"
                 @findClientOnHubsoft="findClientOnHubsoft(true)"
+                @rebootOnu="rebootOnu"
               />
               <v-btn
                 v-else
@@ -162,6 +188,8 @@ const resetMac = async (service) => {
                 >Remover cliente</v-btn
               >
             </template>
+            <AtendimentoCard v-model="hubSoftClientData" />
+            <OsCard v-model="hubSoftClientData" />
           </div>
           <p
             v-else-if="!loadingHubsoftData && !hubSoftClientData"
