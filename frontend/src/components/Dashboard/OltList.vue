@@ -15,7 +15,7 @@ const fetchOltList = async () => {
     const response = await hubApi.get("/api/v1/integracao/rede/equipamento");
     if (response.data.status === "success") {
       return response.data.equipamentos.filter((equip) =>
-        equip.nome.startsWith("OLT")
+        equip.nome.startsWith("OLT"),
       );
     }
   } catch (error) {
@@ -29,15 +29,13 @@ const getHeatmapOltList = async () => {
   try {
     const response = await fetchApi.get("listar-olt");
     heatmapOlts.value = response.data;
-    console.log("heatmapOlts", heatmapOlts.value);
   } catch (error) {
     console.log("erro ao buscar equipamentos", error.message);
   }
 };
 
 const oltPop = (oltName) => {
-  const pop = oltName.split(" ").slice(3).join(" ");
-  return pop;
+  return oltName.split(" ").slice(3).join(" ");
 };
 
 const addOlt = async (olt) => {
@@ -48,7 +46,7 @@ const addOlt = async (olt) => {
       hubsoft_id: olt.id_equipamento,
       oltName: olt.nome,
       oltPop: oltPop(olt.nome),
-      active: true,
+      active: false,
     });
   } catch (error) {
     console.log("erro ao adicionar olt", error.message);
@@ -57,22 +55,38 @@ const addOlt = async (olt) => {
 
 const matchOlt = (olt) => {
   return heatmapOlts.value.find(
-    (holt) => holt.hubsoft_id == olt.id_equipamento
+    (holt) => holt.hubsoft_id == olt.id_equipamento,
   );
 };
 
 const syncWithHub = async () => {
   syncWithHubLoading.value = true;
   try {
+    oltList.value = await fetchOltList();
     const oltsNotSync = oltList.value.filter(
       (olt) =>
-        !heatmapOlts.value.find((holt) => holt.hubsoft_id == olt.id_equipamento)
+        !heatmapOlts.value.find(
+          (holt) => holt.hubsoft_id == olt.id_equipamento,
+        ),
     );
+
+    if (oltsNotSync.length === 0) {
+      notification.setNotification({
+        status: "success",
+        msg: "Todos os olts ja foram sincronizadas",
+      });
+      syncWithHubLoading.value = false;
+      return;
+    }
+
     await Promise.all(oltsNotSync.map((olt) => addOlt(olt)));
     notification.setNotification({
       status: "success",
       msg: oltsNotSync.length + " Olts sincronizados com sucesso",
     });
+
+    await getHeatmapOltList();
+
     syncWithHubLoading.value = false;
   } catch (error) {
     console.log("erro ao sincronizar olts", error.message);
@@ -88,7 +102,7 @@ const syncWithHub = async () => {
 
 const filteredOltList = computed(() => {
   return oltList.value.filter((olt) =>
-    olt.nome.toLowerCase().includes(query.value.toLowerCase())
+    olt.nome.toLowerCase().includes(query.value.toLowerCase()),
   );
 });
 
@@ -104,7 +118,7 @@ const changeOltActiveStatus = async (status, olt) => {
         msg: "Status alterado com sucesso",
       });
       heatmapOlts.value.find(
-        (holt) => holt.hubsoft_id == olt.id_equipamento
+        (holt) => holt.hubsoft_id == olt.id_equipamento,
       ).active = status;
       getHeatmapOltList();
     }
@@ -120,7 +134,6 @@ const changeOltActiveStatus = async (status, olt) => {
 onMounted(async () => {
   await getHeatmapOltList();
   oltList.value = await fetchOltList();
-  console.log("oltList", oltList.value);
 });
 </script>
 
