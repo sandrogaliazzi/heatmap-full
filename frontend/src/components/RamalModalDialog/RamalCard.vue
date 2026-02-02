@@ -143,12 +143,14 @@ onMounted(async () => {
   <v-card>
     <slot name="header">
       <v-card-title class="bg-orange">
-        <div class="d-flex justify-space-between align-center">
+        <div
+          class="d-flex flex-column flex-md-row justify-space-between align-center"
+        >
           <div class="d-flex">
             <p class="me-2">SINAIS OLT</p>
             <v-icon>mdi-circle-box</v-icon>
           </div>
-          <div>
+          <div class="d-flex flex-column flex-md-row align-center">
             <v-btn prepend-icon="mdi-plus-circle" variant="text"
               >Add ramal
               <RamalForm @ramal-saved="getRamals" />

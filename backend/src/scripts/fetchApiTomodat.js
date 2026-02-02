@@ -34,8 +34,8 @@ export async function getAllClients() {
 
 function getClientsByCto(users, id) {
   return users
-    .filter(user => user.ap_id_connected == id)
-    .map(user => ({ name: user.name, id: user.id }));
+    .filter((user) => user.ap_id_connected == id)
+    .map((user) => ({ name: user.name, id: user.id }));
 }
 
 export async function getAccessPointConnections(id) {
@@ -61,7 +61,7 @@ async function getAllAcessPoints() {
   try {
     let response = await fetch(
       `${baseURL}/access_points/${coord.lat}/${coord.lng}/${coord.range}`,
-      reqConfig
+      reqConfig,
     );
     let data = await response.json();
     fetchAllAcessPoints.push(...data);
@@ -75,7 +75,7 @@ export async function getAllAcessPointsByRange(range, coordinates) {
   try {
     let response = await fetch(
       `${baseURL}/access_points/${coordinates.lat}/${coordinates.lng}/${range}`,
-      reqConfig
+      reqConfig,
     );
     let data = await response.json();
     return data;
@@ -94,6 +94,18 @@ export async function getAllAcessPointsByCity() {
   }
 }
 
+export async function getClientById(id) {
+  {
+    try {
+      let response = await fetch(`${baseURL}/clients/${id}`, reqConfig);
+      let data = await response.json();
+      return data;
+    } catch (err) {
+      console.error("erro em getClientById" + err.message);
+    }
+  }
+}
+
 export function addClient(req, res) {
   let client = req.body;
   needle.post(
@@ -108,14 +120,14 @@ export function addClient(req, res) {
       } else {
         res.status(201).json(body);
       }
-    }
+    },
   );
 }
 
 function getCtoCityById(aplist, id) {
   return aplist
-    .filter(ap => ap.id === id)
-    .map(ap => ap.tree[ap.tree.length - 1]);
+    .filter((ap) => ap.id === id)
+    .map((ap) => ap.tree[ap.tree.length - 1]);
 }
 
 export async function fetchTomodat() {
@@ -126,9 +138,9 @@ export async function fetchTomodat() {
       getAllClients(),
     ]);
     let ctoList = aplist ? aplist : fetchAllAcessPoints;
-    let ctoListFilter = ctoList.filter(ap => ap.category === 5);
+    let ctoListFilter = ctoList.filter((ap) => ap.category === 5);
 
-    let usersByCto = ctoListFilter.map(cto => {
+    let usersByCto = ctoListFilter.map((cto) => {
       return {
         id: cto.id,
         name: cto.name,
@@ -148,7 +160,7 @@ export async function checkViability(lat, lng, range = 10) {
   try {
     const response = await fetch(
       `${baseURL}/clients/viability/${lat}/${lng}/${range}`,
-      reqConfig
+      reqConfig,
     );
     let data = await response.json();
     return data;
@@ -167,7 +179,7 @@ export async function deleteClientFromTomodat(id) {
         if (!err) {
           return body;
         }
-      }
+      },
     );
   } catch (error) {
     console.error("erro ao deletar cliente " + error.message);
@@ -184,10 +196,10 @@ export async function newFetchTomodat() {
     ]);
     let tomodat = aplist ? aplist : fetchAllAcessPoints;
     let ctoCeList = tomodat.filter(
-      ap => ap.category === 5 || ap.category === 4
+      (ap) => ap.category === 5 || ap.category === 4,
     );
 
-    let apListWithClients = ctoCeList.map(cto => {
+    let apListWithClients = ctoCeList.map((cto) => {
       return {
         id: cto.id,
         name: cto.name,

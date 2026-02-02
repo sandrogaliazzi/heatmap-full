@@ -46,10 +46,19 @@ const handleClientLocation = (client) => {
     emit("open:location", location);
   } else emit("adduser:location", client);
 };
-const deleteClient = async (id) => {
+const deleteClient = async (client) => {
   if (confirm("deseja excluir este cliente?")) {
     try {
-      const response = await fetchApi.delete(`deleteclientfromtomodat/${id}`);
+      const response = await fetchApi.delete(
+        `deleteclientfromtomodat/${client.id}`,
+        {
+          data: {
+            cto_name: cto.value.name,
+            name: client.name,
+            ctoId: cto.value.id,
+          },
+        },
+      );
 
       if (response.status === 200) {
         triggerNotification("cliente excluido com sucesso!");
@@ -129,7 +138,7 @@ const selectedClient = ref(null);
           variant="text"
           size="small"
           class="d-none d-md-flex"
-          @click.stop="deleteClient(client.id)"
+          @click.stop="deleteClient(client)"
         ></v-btn>
       </template>
     </v-list-item>

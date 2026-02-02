@@ -1,7 +1,7 @@
 import user from "../models/users.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import login from "../models/loginModel.js";
+import auditoria from "../models/auditoriaModel.js";
 import * as dotenv from "dotenv";
 dotenv.config();
 
@@ -89,7 +89,7 @@ class UserController {
           process.env.TOKEN_KEY,
           {
             expiresIn: "180h",
-          }
+          },
         );
 
         usuario.save((usuario.token = token));
@@ -104,10 +104,6 @@ class UserController {
   static userLogin = async (req, res) => {
     try {
       let { name, password } = req.body;
-      let date = new Date().toLocaleString("PT-br");
-      let dadosHorario = { name, date };
-      let loginHorario = new login(dadosHorario);
-      loginHorario.save();
 
       if (!(name && password)) {
         res.status(400).send("All input is required");
@@ -121,13 +117,32 @@ class UserController {
           process.env.TOKEN_KEY,
           {
             expiresIn: "24h",
-          }
+          },
         );
 
         usuario.save((usuario.token = token));
 
+        const auditoriaEntry = new auditoria({
+          user: name,
+          type: "login",
+          message: `Tentativa de login do usuario ${name}.`,
+          status: "successo",
+          ipAddress: req.clientIP,
+        });
+
+        await auditoriaEntry.save();
+
         res.status(201).send(usuario);
       } else {
+        const auditoriaEntry = new auditoria({
+          user: name,
+          type: "login",
+          message: `Tentativa de login falhou para o usuario ${name}.`,
+          status: "falha",
+          ipAddress: req.clientIP,
+        });
+
+        await auditoriaEntry.save();
         res.status(404).send({ message: `Usuario ou senha invalidos.` });
       }
     } catch (err) {

@@ -20,10 +20,19 @@ const triggerNotification = (msg) => {
 
 const loadInitialResults = inject("loadInitialResults");
 
-const deleteClient = async (id) => {
+const deleteClient = async (client) => {
   if (confirm("deseja excluir este cliente?")) {
     try {
-      const response = await fetchApi.delete(`deleteclientfromtomodat/${id}`);
+      const response = await fetchApi.delete(
+        `deleteclientfromtomodat/${client.id}`,
+        {
+          data: {
+            cto_name: client.ctoName,
+            name: client.name,
+            ctoId: client.ctoId,
+          },
+        },
+      );
 
       if (response.status === 200) {
         triggerNotification("cliente excluido com sucesso!");

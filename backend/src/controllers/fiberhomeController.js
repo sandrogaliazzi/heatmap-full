@@ -1,6 +1,7 @@
 import net from "net";
 import dotenv from "dotenv";
 import { setTimeout } from "timers/promises";
+import Auditoria from "../models/auditoriaModel.js";
 dotenv.config();
 
 function parseOnuLine(line) {
@@ -335,7 +336,7 @@ class FiberHomeController {
           console.log("⏱️ Timeout na conexão com UNM2000");
           client.destroy();
           return resolve(
-            res.status(504).json({ error: "Timeout ao consultar o UNM2000" })
+            res.status(504).json({ error: "Timeout ao consultar o UNM2000" }),
           );
         }
       });
@@ -383,7 +384,7 @@ class FiberHomeController {
           return resolve(
             res
               .status(500)
-              .json({ error: `Erro de conexão SSH/TCP: ${err.message}` })
+              .json({ error: `Erro de conexão SSH/TCP: ${err.message}` }),
           );
         }
       });
@@ -393,9 +394,9 @@ class FiberHomeController {
           responded = true;
           console.log("⚠️ Conexão encerrada pelo servidor antes da resposta.");
           return resolve(
-            res
-              .status(500)
-              .json({ error: "Conexão encerrada inesperadamente pelo UNM2000" })
+            res.status(500).json({
+              error: "Conexão encerrada inesperadamente pelo UNM2000",
+            }),
           );
         }
       });
@@ -403,7 +404,7 @@ class FiberHomeController {
   }
 
   static async deleteOnu(req, res) {
-    const { slot, pon, mac, onuIdType = "MAC" } = req.body;
+    const { slot, pon, mac, onuIdType = "MAC", alias } = req.body;
 
     return new Promise((resolve, reject) => {
       const USER = process.env.UNM_USERNAME;
@@ -446,12 +447,22 @@ class FiberHomeController {
         ) {
           console.log("✅ ONU deletada com sucesso!");
           client.end();
+          const auditoriaEntry = new Auditoria({
+            user: req.user.name,
+            status: "deletado",
+            message: `cpe ${mac} deletada na olt FIBERHOME | interface ${slot}/${pon}.`,
+            type: "cpe",
+            client: alias,
+            ipAddress: req.clientIP,
+          });
+
+          auditoriaEntry.save();
           return resolve(
             res.status(200).json({
               success: true,
               message: "ONU deletada com sucesso",
               response: buffer,
-            })
+            }),
           );
         }
 
@@ -464,7 +475,7 @@ class FiberHomeController {
               success: false,
               error: "Falha ao deletar ONU",
               response: buffer,
-            })
+            }),
           );
         }
       });
@@ -476,7 +487,7 @@ class FiberHomeController {
           res.status(500).json({
             success: false,
             error: `Erro de conexão com UNM2000: ${err.message}`,
-          })
+          }),
         );
       });
 
@@ -549,16 +560,27 @@ class FiberHomeController {
           buffer.trim().endsWith(";")
         ) {
           client.end();
+          const auditoriaEntry = new Auditoria({
+            user: req.user.name,
+            status: "cadastrado",
+            message: `cpe ${mac} provisionada na olt FIBERHOME | interface ${slot}/${pon}.`,
+            type: "cpe",
+            client: onuAlias,
+            ipAddress: req.clientIP,
+          });
+
+          auditoriaEntry.save();
           resolve(res.status(200).json({ success: true, message: buffer }));
         }
       });
 
       client.on("error", (err) => {
         console.error("Erro de conexão:", err.message);
+
         reject(
           res
             .status(500)
-            .json({ error: `erro ao conectar no unm: ${err.message}` })
+            .json({ error: `erro ao conectar no unm: ${err.message}` }),
         );
         client.end();
       });
@@ -699,7 +721,7 @@ class FiberHomeController {
         !trimmedLine.includes("OLT RECV POWER")
       ) {
         const match = trimmedLine.match(
-          /RECV POWER\s+:\s+([-\d.]+)\s+\(Dbm\)/i
+          /RECV POWER\s+:\s+([-\d.]+)\s+\(Dbm\)/i,
         );
         if (match) {
           txPower = parseFloat(match[1]);
@@ -710,7 +732,7 @@ class FiberHomeController {
       // OLT RECV POWER (RX da perspectiva da OLT) - usado como fallback
       if (trimmedLine.includes("OLT RECV POWER")) {
         const match = trimmedLine.match(
-          /OLT RECV POWER\s+:\s+([-\d.]+)\s+\(Dbm\)/i
+          /OLT RECV POWER\s+:\s+([-\d.]+)\s+\(Dbm\)/i,
         );
         if (match) {
           rxPower = parseFloat(match[1]);
@@ -776,9 +798,8 @@ class FiberHomeController {
           .json({ error: "Lista de ONUs inválida ou vazia" });
       }
 
-      const signalLevels = await FiberHomeController.getOnuSignalLevels(
-        onuList
-      );
+      const signalLevels =
+        await FiberHomeController.getOnuSignalLevels(onuList);
 
       return res.status(200).json(signalLevels);
     } catch (error) {

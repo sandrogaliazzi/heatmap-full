@@ -41,7 +41,7 @@ const checkOnuSignal = async (onu) => {
         params: {
           t: new Date().getTime(),
         },
-      }
+      },
     );
   } else {
     signal = await fetchApi.post("verificar-onu-fiberhome", [
@@ -121,6 +121,7 @@ const deleteOnuParks = async (onu) => {
       oltGpon: onu.oltGpon,
       mac: onu.mac,
       oltIp: onu.oltIp,
+      alias: onu.name,
     });
 
     if (response.status === 200) {
@@ -145,6 +146,7 @@ const deleteOnuFiberHome = async (onu) => {
       slot: onu.slot,
       pon: onu.pon,
       mac: onu.mac,
+      alias: onu.name,
     });
     if (response.status === 200) {
       notification.setNotification({
@@ -165,7 +167,7 @@ const deleteOnuFiberHome = async (onu) => {
 const deleteOnu = async (onu) => {
   if (
     confirm(
-      `Deseja desautorizar a onu do cliente ${onu.name} com mac ${onu.mac}?`
+      `Deseja desautorizar a onu do cliente ${onu.name} com mac ${onu.mac}?`,
     )
   ) {
     awatingApi.value = true;
@@ -182,7 +184,7 @@ const setAlias = async (onu) => {
   if (confirm(`Deseja editar o alias da onu ${onu.name} com mac ${onu.mac}?`)) {
     const newAlias = prompt(
       `Digite o novo alias da onu ${onu.name} com mac ${onu.mac}`,
-      onu.alias
+      onu.alias,
     );
 
     if (newAlias) {
@@ -218,7 +220,7 @@ const showClientSignalHistory = async (client) => {
   isLoadingClientHistory.value = true;
   try {
     const response = await fetchApi(
-      `find-client-signal-logs?alias=${client.name}&mac=${client.mac}`
+      `find-client-signal-logs?alias=${client.name}&mac=${client.mac}`,
     );
     if (response.status === 200) {
       avgRxList.value = response.data.map((data) => data.gpon_data.rx);

@@ -20,7 +20,7 @@ const emailValidation = [
 
 const emailListFilter = computed(() => {
   return emailList.value.filter((e) =>
-    e.email.includes(email.value.toLowerCase())
+    e.email.includes(email.value.toLowerCase()),
   );
 });
 

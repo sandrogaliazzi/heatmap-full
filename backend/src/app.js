@@ -4,6 +4,7 @@ import db from "./config/dbConnect.js";
 import path from "path";
 import { fileURLToPath } from "url";
 import cors from "cors";
+import injectClientIP from "./middleware/injecClientIp.js";
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -13,6 +14,9 @@ const app = express();
 
 //app.use(cors());
 app.use("/images", express.static(path.join(__dirname, "../assets/images")));
+
+app.set("trust proxy", true);
+app.use(injectClientIP);
 
 db.on("error", console.log.bind(console, "erro de conexão"));
 db.once("open", () => {

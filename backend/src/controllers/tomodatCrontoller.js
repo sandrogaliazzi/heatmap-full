@@ -6,9 +6,11 @@ import {
   getAllAcessPointsByRange,
   getAllClients,
   addClient,
+  getClientById,
 } from "../scripts/fetchApiTomodat.js";
 import tomodatcompleto16052023 from "../models/tomodatcompleto.js";
 import needle from "needle";
+import auditoriaModel from "../models/auditoriaModel.js";
 
 const baseApiUrl = "https://sp.tomodat.com.br/tomodat/api";
 
@@ -26,7 +28,7 @@ const reqConfig = {
 
 class TomodatController {
   static ListarClients = (req, res) => {
-    fetchTomodat().then(data => {
+    fetchTomodat().then((data) => {
       res.json(data);
     });
   };
@@ -35,10 +37,10 @@ class TomodatController {
     const id = req.params.id;
 
     getAccessPointConnections(id)
-      .then(data => {
+      .then((data) => {
         res.status(200).json(data);
       })
-      .catch(error => {
+      .catch((error) => {
         console.error(error); // Log the error for debugging
         res.status(500).json({ error: "Internal Server Error" }); // Send a generic error response
       });
@@ -46,10 +48,10 @@ class TomodatController {
 
   static getAllClients = (_, res) => {
     getAllClients()
-      .then(data => {
+      .then((data) => {
         res.status(200).json(data);
       })
-      .catch(error => {
+      .catch((error) => {
         console.error(error);
         res.status(500).json({ error: `Erro ao buscar clientes: ${error}` });
       });
@@ -57,26 +59,38 @@ class TomodatController {
 
   static ListarCtos = (req, res) => {
     getAllAcessPointsByCity()
-      .then(data => {
+      .then((data) => {
         res.status(200).json(data);
       })
-      .catch(error => {
+      .catch((error) => {
         console.error(error);
         res.status(500).json({ error: `Erro ao buscar CTOS: ${error}` });
       });
   };
 
-  static CadastrarClient = (req, res) => {
+  static CadastrarClient = async (req, res) => {
+    const auditoriaEntry = new auditoriaModel({
+      user: req.user.name,
+      status: "cadastrado",
+      message: `novo cliente cadastrado na cto ${req.body.cto_name}`,
+      client: req.body.name,
+      type: "tomodat",
+      ipAddress: req.clientIP,
+      cto_id: req.body.cto_id,
+    });
+
+    await auditoriaEntry.save();
+
     addClient(req, res);
   };
 
   static CheckTomodatViability = (req, res) => {
     const { lat, lng, range } = req.params;
     checkViability(lat, lng, range)
-      .then(data => {
+      .then((data) => {
         res.status(200).json(data);
       })
-      .catch(error => {
+      .catch((error) => {
         res.status(500).json(error);
       });
   };
@@ -94,16 +108,29 @@ class TomodatController {
 
   static ListarApenasCaixas = (_, res) => {
     getAllAcessPointsByCity()
-      .then(data => {
+      .then((data) => {
         res.status(200).json(data);
       })
-      .catch(error => {
+      .catch((error) => {
         res.status(500).json(error);
       });
   };
 
-  static DeleteClient = (req, res) => {
+  static DeleteClient = async (req, res) => {
     const id = req.params.id;
+
+    const auditoriaEntry = new auditoriaModel({
+      user: req.user.name,
+      status: "deletado",
+      message: `Cliente ${req.body.name} deletado da cto ${req.body.cto_name}.`,
+      type: "tomodat",
+      client: req.body.name,
+      ipAddress: req.clientIP,
+      cto_id: req.body.ctoId,
+    });
+
+    await auditoriaEntry.save();
+
     try {
       needle.delete(
         `${baseApiUrl}/clients/${id}`,
@@ -111,9 +138,13 @@ class TomodatController {
         reqConfig,
         (err, response) => {
           if (!err) {
-            res.status(200).json({ status: 200 });
+            res.status(200).json({
+              status: "success",
+              message: "Cliente deletado com sucesso",
+              data: response.body,
+            });
           }
-        }
+        },
       );
     } catch (error) {
       console.error("erro ao deletar cliente " + error.message);
@@ -131,7 +162,7 @@ class TomodatController {
 
   static SalvarRota = (req, res) => {
     let novaRota = new tomodatcompleto16052023(req.body);
-    novaRota.save(err => {
+    novaRota.save((err) => {
       if (err) {
         res
           .status(500)

@@ -152,6 +152,14 @@ const onCloseDialog = (value) => {
           to="/olt"
           v-role="['adm']"
         ></v-list-item>
+        <v-list-item
+          prepend-icon="mdi-eye"
+          title="auditoria"
+          color="orange"
+          value="auditoria"
+          to="/auditoria"
+          v-role="['adm']"
+        ></v-list-item>
       </v-list-group>
       <v-list-item
         prepend-icon="mdi-cog-box"

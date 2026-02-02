@@ -24,6 +24,7 @@ import fullTrack from "./fullTrackRoutes.js";
 import reservados from "./reservadosRoutes.js";
 import macVendor from "./macVendorRoutes.js";
 import uploadRoutes from "./uploadRoutes.js";
+import auditoria from "./auditoriaRoutes.js";
 
 const routes = (app) => {
   app.route("/").get((req, res) => {
@@ -59,7 +60,8 @@ const routes = (app) => {
     fullTrack,
     reservados,
     macVendor,
-    uploadRoutes
+    uploadRoutes,
+    auditoria,
   );
 };
 

@@ -8,6 +8,7 @@ import ServiceCard from "./ServiceCard.vue";
 import AtendimentoCard from "./AtendimentoCard.vue";
 import OsCard from "./OsCard.vue";
 import { useNotificationStore } from "@/stores/notification";
+import { createAuditoriaLog } from "../Auditoria/auditoria";
 
 const { cto } = defineProps(["cto"]);
 
@@ -77,8 +78,32 @@ const enableService = async (service) => {
         id_cliente_servico: service.id_cliente_servico,
       },
     );
+
+    notification.setNotification({
+      status: "success",
+      msg: `Serviço ${service.nome} habilitado com sucesso!`,
+    });
+
+    createAuditoriaLog({
+      status: "serviço habilitado",
+      message: `Serviço ${service.id_cliente_servico} habilitado com sucesso!`,
+      client: tomodatClient.value.name,
+      type: "hubsoft",
+    });
   } catch (error) {
     console.error("erro ao habilitar serviço " + error.message);
+
+    notification.setNotification({
+      status: "error",
+      msg: `Erro ao habilitar serviço ${service.nome}`,
+    });
+
+    createAuditoriaLog({
+      status: "erro ao habilitar serviço",
+      message: `Erro ao habilitar serviço ${service.id_cliente_servico}`,
+      client: tomodatClient.value.name,
+      type: "hubsoft",
+    });
   } finally {
     loadServices.value = false;
   }
@@ -104,12 +129,26 @@ const rebootOnu = async (phy_addr) => {
         status: "success",
         msg: response.data.msg,
       });
+
+      createAuditoriaLog({
+        status: "onu reiniciada",
+        message: `ONU ${phy_addr} reiniciada com sucesso!`,
+        client: tomodatClient.value.name,
+        type: "hubsoft",
+      });
     }
   } catch (error) {
     console.error("erro ao reiniciar onu " + error.message);
     notification.setNotification({
       status: "error",
       msg: "Erro ao reiniciar onu",
+    });
+
+    createAuditoriaLog({
+      status: "erro ao reiniciar onu",
+      message: `Erro ao reiniciar onu ${phy_addr}`,
+      client: tomodatClient.value.name,
+      type: "hubsoft",
     });
   }
 };
@@ -128,12 +167,26 @@ const resetMac = async (service) => {
         status: "success",
         msg: response.data.msg,
       });
+
+      createAuditoriaLog({
+        status: "mac resetado",
+        message: `MAC do serviço ${service.id_cliente_servico} resetado com sucesso!`,
+        client: tomodatClient.value.name,
+        type: "hubsoft",
+      });
     }
   } catch (error) {
     console.error("erro ao resetar mac " + error.message);
     notification.setNotification({
       status: "error",
       msg: "Erro ao resetar mac",
+    });
+
+    createAuditoriaLog({
+      status: "erro ao resetar mac",
+      message: `Erro ao resetar mac do serviço ${service.id_cliente_servico}`,
+      client: tomodatClient.value.name || tomodatClient.value.client,
+      type: "hubsoft",
     });
   }
 };
@@ -184,7 +237,7 @@ const resetMac = async (service) => {
                 size="small"
                 variant="tonal"
                 class="mt-2"
-                @click="emit('deleteClient', tomodatClient.id)"
+                @click="emit('deleteClient', tomodatClient)"
                 >Remover cliente</v-btn
               >
             </template>

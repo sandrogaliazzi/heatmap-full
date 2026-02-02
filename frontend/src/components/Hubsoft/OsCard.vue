@@ -1,12 +1,14 @@
 <script setup>
 import { ref, onMounted, watch } from "vue";
 import hubApi from "@/api/hubsoftApi";
+import { useWindowSize } from "vue-window-size";
 
 const hubsoftData = defineModel();
 
 const ordensServico = ref([]);
 const page = ref(1);
 const itemsPerPage = 3;
+const { width } = useWindowSize();
 
 const chunkedOs = ref([]);
 
@@ -107,6 +109,7 @@ onMounted(async () => {
             v-model="page"
             :length="chunkedOs.length"
             rounded="circle"
+            :total-visible="width < 600 ? 2 : 7"
           ></v-pagination>
         </div>
       </v-expansion-panel-text>

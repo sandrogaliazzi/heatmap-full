@@ -9,7 +9,7 @@ defineProps({
 const model = defineModel();
 </script>
 <template>
-  <v-dialog v-model="model" min-width="600" max-width="900">
+  <v-dialog v-model="model" max-width="900">
     <v-card
       :title="os?.cliente"
       :subtitle="`${os?.tipo} - ${os?.numero}`"

@@ -1,5 +1,5 @@
 <script setup>
-import { isRuntimeOnly, ref, watch } from "vue";
+import { ref, watch } from "vue";
 
 const { vlanTranslations, portNumber } = defineProps([
   "vlanTranslations",

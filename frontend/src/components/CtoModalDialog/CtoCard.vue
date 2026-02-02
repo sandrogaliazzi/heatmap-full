@@ -9,6 +9,7 @@ import fetchApi from "@/api";
 import CtoNotes from "./CtoNotes.vue";
 import CtoConectors from "./CtoConectors.vue";
 import ClientMap from "./ClientMap.vue";
+import CtoHistory from "./CtoHistory.vue";
 import { useNotificationStore } from "@/stores/notification";
 
 const notification = useNotificationStore();
@@ -53,7 +54,7 @@ const processAndSaveTomodatNotes = async (tomodatData) => {
     await Promise.all(
       documents.map((note) => {
         return saveNote(note);
-      })
+      }),
     );
   }
 };
@@ -175,7 +176,7 @@ const handleUserLocation = () => {
       enableHighAccuracy: true,
       timeout: 5000,
       maximumAge: 0,
-    }
+    },
   );
 };
 
@@ -253,7 +254,7 @@ const serviceLocation = ref("teste");
           @click="handleUserLocation"
           size="small"
         />
-        <v-btn variant="plain" icon="mdi-connection" @click="setViewMode" />
+        <v-btn variant="plain" icon="mdi-history" @click="setViewMode" />
         <v-btn
           v-if="slideNumber < 2"
           icon="mdi-account-plus"
@@ -369,7 +370,7 @@ const serviceLocation = ref("teste");
         </v-card-actions>
       </v-window-item>
       <v-window-item :value="3">
-        <CtoConectors :cto="cto" />
+        <CtoHistory :ctoId="cto.id" />
       </v-window-item>
       <v-window-item :value="4" v-if="clientLocation">
         <ClientMap

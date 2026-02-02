@@ -1,12 +1,14 @@
 <script setup>
 import { ref, onMounted, watch } from "vue";
 import hubApi from "@/api/hubsoftApi";
+import { useWindowSize } from "vue-window-size";
 
 const hubsoftData = defineModel();
 
 const atendimentos = ref([]);
 const page = ref(1);
 const itemsPerPage = 3;
+const { width } = useWindowSize();
 
 const chunkedAtendimentos = ref([]);
 
@@ -82,7 +84,7 @@ onMounted(async () => {
             <v-card-text>
               <div class="d-flex flex-column ga-2">
                 <div>
-                  <p class="mb-2">
+                  <p class="mb-2 text-wrap">
                     <strong
                       >DESCRIÇÃO DE ABERTURA ({{
                         atendimento?.usuario_abertura
@@ -109,6 +111,7 @@ onMounted(async () => {
             v-model="page"
             :length="chunkedAtendimentos.length"
             rounded="circle"
+            :total-visible="width < 600 ? 2 : 7"
           ></v-pagination>
         </div>
       </v-expansion-panel-text>

@@ -3,6 +3,7 @@ import oltModel from "../models/oltModel.js";
 import { Client } from "ssh2";
 import dotenv from "dotenv";
 import OnuClient from "../models/onuClient.js";
+import Auditoria from "../models/auditoriaModel.js";
 dotenv.config();
 
 class oltController {
@@ -901,6 +902,17 @@ class oltController {
     const username = process.env.PARKS_USERNAME;
     const password = `#${process.env.PARKS_PASSWORD}`;
 
+    const auditoriaEntry = new Auditoria({
+      user: req.user.name,
+      status: "editado",
+      message: `novo alias: ${newAlias} atribuido a cpe ${mac}`,
+      type: "cpe",
+      client: newAlias,
+      ipAddress: req.clientIP,
+    });
+
+    auditoriaEntry.save();
+
     conn
       .on("ready", () => {
         console.log("Conectado à OLT:", oltIp);
@@ -994,6 +1006,17 @@ class oltController {
     let onuRegister = new OnuClient(clienteDb);
     onuRegister.save(console.log(`Onu salva no banco: ${clienteDb}`));
 
+    const auditoriaEntry = new Auditoria({
+      user: req.user.name,
+      status: "cadastrado",
+      message: `cpe ${onuSerial} provisionada na olt ${oltIp} | interface ${gpon}. sinal TX: ${sinalTX} | sinal RX: ${sinalRX} | cto: ${cto} | tecnico: ${tecnico}`,
+      type: "cpe",
+      client: onuAlias,
+      ipAddress: req.clientIP,
+    });
+
+    auditoriaEntry.save();
+
     const host = oltIp;
     const username = process.env.PARKS_USERNAME;
     const password = `#${process.env.PARKS_PASSWORD}`;
@@ -1063,12 +1086,23 @@ class oltController {
   };
 
   static deleteOnu = (req, res) => {
-    const { oltIp, mac, oltGpon } = req.body;
+    const { oltIp, mac, oltGpon, alias } = req.body;
 
     const conn = new Client();
     const host = oltIp;
     const username = process.env.PARKS_USERNAME;
     const password = `#${process.env.PARKS_PASSWORD}`;
+
+    const auditoriaEntry = new Auditoria({
+      user: req.user.name,
+      status: "deletado",
+      message: `cpe ${mac} desprovisionada na olt ${oltIp} | interface ${oltGpon}.`,
+      type: "cpe",
+      client: alias,
+      ipAddress: req.clientIP,
+    });
+
+    auditoriaEntry.save();
 
     conn
       .on("ready", () => {
