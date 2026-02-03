@@ -25,6 +25,7 @@ import reservados from "./reservadosRoutes.js";
 import macVendor from "./macVendorRoutes.js";
 import uploadRoutes from "./uploadRoutes.js";
 import auditoria from "./auditoriaRoutes.js";
+import pdfRoutes from "./pdfRoutes.js";
 
 const routes = (app) => {
   app.route("/").get((req, res) => {
@@ -62,6 +63,7 @@ const routes = (app) => {
     macVendor,
     uploadRoutes,
     auditoria,
+    pdfRoutes,
   );
 };
 
