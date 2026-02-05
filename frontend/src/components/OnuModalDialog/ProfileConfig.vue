@@ -1,9 +1,8 @@
 <script setup>
-import { ref, watch, inject } from "vue";
+import { ref, watch, inject, onMounted } from "vue";
 import TranslationConfig from "./TranslationConfig.vue";
 import fetchApi from "@/api";
 import gerarScriptOnu from "./gerarScript";
-import olts from "./oltList";
 import { useNotificationStore } from "@/stores/notification";
 import { useUserStore } from "@/stores/user";
 import hubApi from "@/api/hubsoftApi";
@@ -27,7 +26,7 @@ const triggerNotification = (msg, status) => {
 
 const gponProfiles = ref([]);
 const selectedGponProfile = ref(null);
-const oltList = ref(olts);
+const oltList = ref();
 const userStore = useUserStore();
 const selectedOlt = ref(null);
 const newOnu = ref("");
@@ -66,6 +65,15 @@ const addOnu = () => {
   hasUnaddedOnu.value = true;
 };
 
+const getOltList = async () => {
+  try {
+    const response = await fetchApi.get("listar-olt");
+    return response.data.filter((olt) => olt.active);
+  } catch (error) {
+    console.log("erro ao buscar equipamentos", error.message);
+  }
+};
+
 const id_cliente_servico = ref(null);
 
 const configClientAuth = async () => {
@@ -89,7 +97,7 @@ const configClientAuth = async () => {
 const getGponProfiles = async () => {
   try {
     const response = await fetchApi.post("listar-perfis-gpon-parks", {
-      oltIp: selectedOlt.value.ip,
+      oltIp: selectedOlt.value.ipv4,
     });
     if (response.status === 200) {
       gponProfiles.value = response.data;
@@ -105,7 +113,7 @@ const selectedOnu = ref(null);
 const getUnauthorizedOnu = async () => {
   try {
     const response = await fetchApi.post("listar-onu", {
-      oltIp: selectedOlt.value.ip,
+      oltIp: selectedOlt.value.ipv4,
     });
 
     unauthorizedOnuList.value = response.data;
@@ -139,10 +147,11 @@ const vlanTranslations = ref([]);
 const getVlanTranslations = async () => {
   try {
     const response = await fetchApi.post("listar-vlan-translation", {
-      oltIp: selectedOlt.value.ip,
+      oltIp: selectedOlt.value.ipv4,
     });
     if (response.status === 200) {
       vlanTranslations.value = response.data;
+      console.log("vlan translations", vlanTranslations.value);
     }
   } catch (error) {
     console.log("erro ao buscar vlan translations", error.message);
@@ -176,7 +185,7 @@ const mountCpeVEIPprofile = () => {
     script.push(`onu add serial-number ${selectedOnu.value.onuMac}`);
   }
   script.push(
-    `onu ${selectedOnu.value.onuMac} ethernet-profile auto-on uni-port 1-2`,
+    `onu ${selectedOnu.value.onuMac} ethernet-profile auto-on uni-port 1-${selectedGponProfile.value.entries.length + 1}`,
   );
   script.push(`onu ${selectedOnu.value.onuMac} upstream-fec disabled`);
   script.push(
@@ -210,10 +219,11 @@ const onProvision = ref(false);
 
 const provisionOnu = async () => {
   const requestBody = {
-    oltIp: selectedOlt.value.ip,
+    oltIp: selectedOlt.value.ipv4,
     oltPon: selectedOnu.value.gpon,
     script: script.value,
     hasUnaddedOnu: hasUnaddedOnu.value,
+    onuAlias: alias.value || "ONU-ALIAS",
   };
 
   onProvision.value = true;
@@ -268,6 +278,10 @@ watch(selectedOlt, (newOlt) => {
     getUnauthorizedOnu();
   }
 });
+
+onMounted(async () => {
+  oltList.value = await getOltList();
+});
 </script>
 
 <template>
@@ -290,7 +304,7 @@ watch(selectedOlt, (newOlt) => {
             <v-select
               label="SELECIONAR OLT"
               :items="oltList"
-              :item-title="(item) => item.name"
+              :item-title="(item) => item.oltName"
               :item-value="(item) => item"
               v-model="selectedOlt"
               :rules="inputRules"

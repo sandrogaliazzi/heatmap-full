@@ -173,8 +173,14 @@ class oltController {
             .on("data", (data) => {
               dataBuffer += data.toString();
 
-              processDataBuffer(dataBuffer);
-              dataBuffer = "";
+              const lines = dataBuffer.split("\n");
+
+              // Mantém a última linha incompleta no buffer
+              dataBuffer = lines.pop();
+
+              for (const line of lines) {
+                processDataBuffer(line + "\n");
+              }
             });
 
           const processDataBuffer = (buffer) => {
@@ -1163,12 +1169,23 @@ class oltController {
   };
 
   static liberarOnuAvulsa = (req, res) => {
-    const { oltIp, oltPon, script } = req.body;
+    const { oltIp, oltPon, script, onuAlias } = req.body;
 
     const conn = new Client();
     const host = oltIp;
     const username = process.env.PARKS_USERNAME;
     const password = `#${process.env.PARKS_PASSWORD}`;
+
+    const auditoriaEntry = new Auditoria({
+      user: req.user.name,
+      status: "cadastrado",
+      message: `cpe provisionada na olt ${oltIp} | interface ${oltPon}. script: ${script}`,
+      type: "cpe",
+      client: onuAlias,
+      ipAddress: req.clientIP,
+    });
+
+    auditoriaEntry.save();
 
     conn
       .on("ready", () => {

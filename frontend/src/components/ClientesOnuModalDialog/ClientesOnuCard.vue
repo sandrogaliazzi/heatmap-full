@@ -105,7 +105,7 @@ watch(query, () => {
 });
 
 const filterOnuList = computed(() => {
-  if (!query.value) return null;
+  if (!query.value || query.value.length < 4) return null;
   return onuList.value.filter((onu) => {
     if (onu.name) {
       return onu.name.includes(query.value);

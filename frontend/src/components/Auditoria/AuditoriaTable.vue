@@ -1,4 +1,5 @@
 <script setup>
+import { ref } from "vue";
 defineProps({
   items: {
     type: Array,
@@ -6,11 +7,7 @@ defineProps({
   },
 });
 
-const statusColors = {
-  success: "green",
-  error: "red",
-  warning: "orange",
-};
+const search = ref("");
 
 const headers = [
   {
@@ -22,16 +19,19 @@ const headers = [
   { title: "Usuário", key: "user" },
   { title: "Cliente", key: "client" },
   { title: "ip", key: "ipAddress" },
-  { title: "Status", key: "status" },
 ];
 </script>
 
 <template>
-  <v-data-table :headers="headers" :items="items">
-    <template #item.status="{ item }">
-      <v-chip color="grey" dark small>
-        {{ item.status }}
-      </v-chip>
-    </template>
+  <v-text-field
+    v-model="search"
+    label="Pesquisar"
+    prepend-inner-icon="mdi-magnify"
+    variant="outlined"
+    hide-details
+    single-line
+    class="my-3"
+  ></v-text-field>
+  <v-data-table :headers="headers" :items="items" :search="search">
   </v-data-table>
 </template>
