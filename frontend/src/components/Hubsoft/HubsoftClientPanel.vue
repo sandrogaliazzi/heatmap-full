@@ -35,15 +35,53 @@ const normalizeName = (name) => {
   return name.trim();
 };
 
+const findServiceIdOnName = (name) => {
+  const suffix = name.split(" ").at(-1);
+
+  return !isNaN(suffix) ? suffix : null;
+};
+
 const findClientOnHubsoft = async (isDialogOpen) => {
-  console.log("finding client on hubsoft");
   if (!isDialogOpen) return;
+
+  const serviceId = findServiceIdOnName(
+    tomodatClient.value.name || tomodatClient.value.client,
+  );
+
+  if (serviceId) {
+    await findClientOnHubsoftByServiceId(serviceId);
+  } else {
+    await findClientOnHubsoftByName(
+      normalizeName(tomodatClient.value.name || tomodatClient.value.client),
+    );
+  }
+};
+
+const findClientOnHubsoftByName = async (name) => {
   try {
     loadingHubsoftData.value = true;
     const response = await hubApi.get(
-      `/api/v1/integracao/cliente?inativo=todos&ultima_conexao=sim&busca=nome_razaosocial&termo_busca=${normalizeName(
-        tomodatClient.value.name || tomodatClient.value.client,
-      )}&inclui_alarmes=sim`,
+      `/api/v1/integracao/cliente?inativo=todos&ultima_conexao=sim&busca=nome_razaosocial&termo_busca=${name}&inclui_alarmes=sim`,
+    );
+
+    if (
+      response.data.status === "success" &&
+      response.data.clientes.length > 0
+    ) {
+      hubSoftClientData.value = response.data.clientes;
+    }
+  } catch (error) {
+    console.error("erro ao buscar cliente no hubsoft " + error.message);
+  } finally {
+    loadingHubsoftData.value = false;
+  }
+};
+
+const findClientOnHubsoftByServiceId = async (serviceId) => {
+  try {
+    loadingHubsoftData.value = true;
+    const response = await hubApi.get(
+      `/api/v1/integracao/cliente?inativo=todos&ultima_conexao=sim&busca=id_cliente_servico&termo_busca=${serviceId}&inclui_alarmes=sim`,
     );
 
     if (
@@ -212,7 +250,7 @@ const resetMac = async (service) => {
             class="d-flex flex-column justify-center align-center ga-2 w-100"
           >
             <template
-              v-for="client in hubSoftClientData"
+              v-for="(client, index) in hubSoftClientData"
               :key="client.id_cliente"
             >
               <a href="#" @click.prevent="" style="color: #208be3"
@@ -240,9 +278,9 @@ const resetMac = async (service) => {
                 @click="emit('deleteClient', tomodatClient)"
                 >Remover cliente</v-btn
               >
+              <AtendimentoCard v-model="hubSoftClientData[index]" />
+              <OsCard v-model="hubSoftClientData[index]" />
             </template>
-            <AtendimentoCard v-model="hubSoftClientData" />
-            <OsCard v-model="hubSoftClientData" />
           </div>
           <p
             v-else-if="!loadingHubsoftData && !hubSoftClientData"

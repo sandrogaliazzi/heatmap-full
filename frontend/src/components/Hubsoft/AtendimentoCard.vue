@@ -26,23 +26,15 @@ const sliceInChunks = (arr, chunkSize) => {
   }, []);
 };
 
-const getAtendimentos = async () => {
+const getAtendimentos = async ({ codigo_cliente }) => {
   try {
-    const idClientList = hubsoftData.value.map(
-      (client) => client.codigo_cliente,
+    const response = await hubApi.get(
+      `/api/v1/integracao/cliente/atendimento?busca=codigo_cliente&termo_busca=${codigo_cliente}&apenas_pendente=nao&order_type=desc`,
     );
 
-    const PromiseList = idClientList.map(async (id) => {
-      const response = await hubApi.get(
-        `/api/v1/integracao/cliente/atendimento?busca=codigo_cliente&termo_busca=${id}&apenas_pendente=nao&order_type=desc`,
-      );
-
-      if (response.data.status === "success") {
-        return response.data.atendimentos;
-      }
-    });
-    const results = await Promise.all(PromiseList);
-    return results.flat();
+    if (response.data.status === "success") {
+      return response.data.atendimentos;
+    }
   } catch (error) {
     console.error("Erro ao buscar atendimentos: " + error.message);
     alert("Erro ao buscar atendimentos");
@@ -50,12 +42,12 @@ const getAtendimentos = async () => {
 };
 
 watch(hubsoftData, async () => {
-  atendimentos.value = await getAtendimentos();
+  atendimentos.value = await getAtendimentos(hubsoftData.value);
   chunkedAtendimentos.value = sliceInChunks(atendimentos.value, itemsPerPage);
 });
 
 onMounted(async () => {
-  atendimentos.value = await getAtendimentos();
+  atendimentos.value = await getAtendimentos(hubsoftData.value);
   chunkedAtendimentos.value = sliceInChunks(atendimentos.value, itemsPerPage);
 });
 </script>
@@ -69,7 +61,7 @@ onMounted(async () => {
             v-for="atendimento in chunkedAtendimentos[page - 1]"
             :key="atendimento.id_atendimento"
             :title="atendimento.tipo_atendimento"
-            :subtitle="`${atendimento.data_cadastro} ${atendimento.status}`"
+            :subtitle="`${atendimento.data_cadastro} ${atendimento.status} | ${atendimento.cliente.codigo_cliente} - ${atendimento.cliente.nome_razaosocial}`"
             variant="outlined"
           >
             <template #append>

@@ -26,23 +26,15 @@ const sliceInChunks = (arr, chunkSize) => {
   }, []);
 };
 
-const getOrdensServico = async () => {
+const getOrdensServico = async ({ codigo_cliente }) => {
   try {
-    const idClientList = hubsoftData.value.map(
-      (client) => client.codigo_cliente,
+    const response = await hubApi.get(
+      `/api/v1/integracao/cliente/ordem_servico?busca=codigo_cliente&termo_busca=${codigo_cliente}&order_type=desc`,
     );
 
-    const PromiseList = idClientList.map(async (id) => {
-      const response = await hubApi.get(
-        `/api/v1/integracao/cliente/ordem_servico?busca=codigo_cliente&termo_busca=${id}&order_type=desc`,
-      );
-
-      if (response.data.status === "success") {
-        return response.data.ordens_servico;
-      }
-    });
-    const results = await Promise.all(PromiseList);
-    return results.flat();
+    if (response.data.status === "success") {
+      return response.data.ordens_servico;
+    }
   } catch (error) {
     console.error("Erro ao buscar ordens de serviço: " + error.message);
     alert("Erro ao buscar ordens de serviço");
@@ -50,12 +42,12 @@ const getOrdensServico = async () => {
 };
 
 watch(hubsoftData, async () => {
-  ordensServico.value = await getOrdensServico();
+  ordensServico.value = await getOrdensServico(hubsoftData.value);
   chunkedOs.value = sliceInChunks(ordensServico.value, itemsPerPage);
 });
 
 onMounted(async () => {
-  ordensServico.value = await getOrdensServico();
+  ordensServico.value = await getOrdensServico(hubsoftData.value);
   chunkedOs.value = sliceInChunks(ordensServico.value, itemsPerPage);
 });
 </script>

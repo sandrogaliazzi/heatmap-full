@@ -988,7 +988,7 @@ class oltController {
     let user = req.body.user;
     let gpon = oltPon;
     let flowProfile =
-      oltIp === "192.168.214.2"
+      oltIp === "192.168.214.2" || oltIp === "192.168.217.2"
         ? `bridge_vlan${onuVlan}`
         : `bridge_vlan_${onuVlan}`;
 
