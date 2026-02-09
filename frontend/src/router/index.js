@@ -101,9 +101,8 @@ router.beforeEach((to, from) => {
   }
 
   // Redireciona para Viabilidade se for vendedor ou visitante
-  if (userCategory === "vendas" || userCategory === "convidado") {
-    if (to.name !== "Viabilidade" && to.name !== "Comercial")
-      return { name: "Viabilidade" };
+  if (userCategory === "convidado") {
+    if (to.name !== "Viabilidade") return { name: "Viabilidade" };
   }
 
   // Exemplo de impedir ir para login se já estiver logado

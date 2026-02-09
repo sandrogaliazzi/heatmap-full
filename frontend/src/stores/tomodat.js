@@ -20,10 +20,12 @@ export const useTomodatStore = defineStore("tomodat", () => {
     let ctoResponse = [];
     try {
       if (user.category !== "convidado") {
-        ctoResponse = await fetchApi.get("/newfetch");
-        ctoList.value = ctoResponse.data;
+        const [ctoResponse, cableResponse] = await Promise.all([
+          fetchApi.get("/newfetch"),
+          fetchApi.get("/cables"),
+        ]);
 
-        const cableResponse = await fetchApi.get("/cables");
+        ctoList.value = ctoResponse.data;
         cableList.value = cableResponse.data;
       } else {
         ctoResponse = await fetchApi.get("/tomodat-basico");
@@ -37,9 +39,12 @@ export const useTomodatStore = defineStore("tomodat", () => {
   }
 
   async function getAllLocatedClients() {
-    const response = await fetchApi.get("ctoclient");
-
-    locatedClients.value = response.data;
+    try {
+      const response = await fetchApi.get("ctoclient");
+      locatedClients.value = response.data;
+    } catch (error) {
+      console.error("Error fetching located clients:", error);
+    }
   }
 
   const getClients = computed(() => {
@@ -53,7 +58,7 @@ export const useTomodatStore = defineStore("tomodat", () => {
           ...client,
           ctoId: cto.id,
           ctoName: cto.name,
-        }))
+        })),
       );
     });
 
