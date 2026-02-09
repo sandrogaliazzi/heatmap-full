@@ -1,5 +1,5 @@
 <script setup>
-import { ref, watch, onMounted } from "vue";
+import { ref, watch, onMounted, computed } from "vue";
 import { useTomodatStore } from "@/stores/tomodat.js";
 import { useHeatMapStore } from "@/stores/heatmap";
 import { useUserStore } from "@/stores/user.js";
@@ -17,6 +17,7 @@ import RightSideBar from "./RightSidebar.vue";
 import Cables from "./Cables.vue";
 import CtoViability from "../CtoModalDialog/CtoViability.vue";
 import EditAlert from "./EditAlert.vue";
+import PolyLine from "./PolyLine.vue";
 
 const store = useTomodatStore();
 const {
@@ -56,7 +57,8 @@ const selectedEvent = ref({});
 //side bar
 const sideBar = ref(false);
 const sideBarCtoList = ref([]);
-//area do poligono
+//polygons
+const polyLineRef = ref(null);
 const areaCoordinates = ref([]);
 const nextPoint = ref(0);
 
@@ -160,7 +162,7 @@ watch(polygonRef, (polygon) => {
           const clients = await getClientes(marker);
           marker.clients = clients;
           return marker;
-        })
+        }),
       );
 
       showSideBar(clientsWithinPolygon);
@@ -204,6 +206,8 @@ watch(mapRef, (googleMap) => {
     googleMap.$mapPromise.then((map) => {
       getTomodatData(user.value);
 
+      polyLineRef.value.setControls(map);
+
       setupContainsLatLng();
 
       map.addListener("zoom_changed", () => {
@@ -225,6 +229,9 @@ watch(mapRef, (googleMap) => {
         if (setPolygonDrawMode.value) {
           areaCoordinates.value.push(mapsMouseEvent.latLng.toJSON());
           nextPoint.value++;
+        }
+        if (heatmapStore.isPolyLineDrawingMode) {
+          polyLineRef.value.addPoint(mapsMouseEvent.latLng);
         }
       });
     });
@@ -377,6 +384,8 @@ onMounted(async () => {
       :paths="areaCoordinates"
       :key="nextPoint"
     ></GMapPolygon>
+
+    <PolyLine ref="polyLineRef" />
 
     <div v-if="isHeatMapVisible">
       <GMapHeatmap

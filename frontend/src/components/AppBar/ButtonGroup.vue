@@ -1,6 +1,7 @@
 <script setup>
 import { ref, watch } from "vue";
 import { useTomodatStore } from "@/stores/tomodat";
+import { useHeatMapStore } from "@/stores/heatmap";
 
 const { isCtoMarkerVisible, setPolygonDrawMode } = defineProps([
   "isCtoMarkerVisible",
@@ -9,6 +10,7 @@ const { isCtoMarkerVisible, setPolygonDrawMode } = defineProps([
 const emit = defineEmits(["toggleDrawMode"]);
 
 const tomodatStore = useTomodatStore();
+const heatMapStore = useHeatMapStore();
 
 const cto = ref(false);
 const ce = ref(false);
@@ -41,10 +43,15 @@ const toggleMarkers = (marker) => {
 };
 </script>
 <template>
-  <div class="d-flex justify-center my-5">
+  <div class="d-flex justify-center my-5 flex-wrap">
     <v-btn icon @click="emit('toggleDrawMode')">
       <v-icon :color="setPolygonDrawMode ? 'success' : ''"
         >mdi-map-marker-path</v-icon
+      >
+    </v-btn>
+    <v-btn icon @click="heatMapStore.togglePolyLineDrawingMode">
+      <v-icon :color="heatMapStore.isPolyLineDrawingMode ? 'success' : ''"
+        >mdi-ruler</v-icon
       >
     </v-btn>
     <v-btn icon @click="toggleMarkers('cto')">
