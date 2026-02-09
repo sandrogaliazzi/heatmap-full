@@ -74,7 +74,7 @@ const router = createRouter({
 });
 
 // Middleware para autenticação e controle de role
-router.beforeEach((to, from) => {
+router.beforeEach((to, _) => {
   const userStore = useUserStore();
   const { isAuthenticated, user } = storeToRefs(userStore);
 
