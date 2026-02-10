@@ -1,4 +1,5 @@
 import axios from "axios";
+import fetchApi from ".";
 
 const BASE_URL = "https://api.conectnet.hubsoft.com.br/";
 let token = null;
@@ -20,6 +21,29 @@ async function getAuthToken() {
   }
 }
 
+const saveTokenToLocalStorage = (newToken) => {
+  localStorage.setItem("hubsoftToken", newToken);
+};
+
+async function getTokenFromBackend() {
+  try {
+    const response = await fetchApi.post("/hubsoft-token", {
+      client_id: "65",
+      client_secret: import.meta.env.VITE_HUBSOFT_API_CLIENT_SECRET,
+      username: "heatmap@conectnet.net",
+      password: `#${import.meta.env.VITE_HUBSOFT_API_CLIENT_PASSWORD}`,
+      grant_type: "password",
+    });
+
+    saveTokenToLocalStorage(response.data.access_token);
+
+    return response.data.access_token;
+  } catch (error) {
+    console.error("Erro ao obter token:", error);
+    throw error;
+  }
+}
+
 const api = axios.create({
   baseURL: BASE_URL,
   headers: {
@@ -31,7 +55,7 @@ const api = axios.create({
 api.interceptors.request.use(
   async (config) => {
     if (!token) {
-      token = await getAuthToken();
+      token = localStorage.getItem("hubsoftToken");
     }
 
     config.headers.Authorization = `Bearer ${token}`;
@@ -39,7 +63,7 @@ api.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 api.interceptors.response.use(
@@ -47,14 +71,14 @@ api.interceptors.response.use(
   async (error) => {
     if (error.response?.status === 401) {
       // Token expirado. Tenta obter um novo
-      token = await getAuthToken();
+      token = await getTokenFromBackend();
 
       // Reenvia a request original com o novo token
       error.config.headers.Authorization = `Bearer ${token}`;
       return api.request(error.config);
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;

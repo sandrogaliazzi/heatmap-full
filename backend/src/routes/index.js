@@ -26,6 +26,7 @@ import macVendor from "./macVendorRoutes.js";
 import uploadRoutes from "./uploadRoutes.js";
 import auditoria from "./auditoriaRoutes.js";
 import pdfRoutes from "./pdfRoutes.js";
+import hubsoftTokenRoutes from "./hubsoftTokenRoutes.js";
 
 const routes = (app) => {
   app.route("/").get((req, res) => {
@@ -64,6 +65,7 @@ const routes = (app) => {
     uploadRoutes,
     auditoria,
     pdfRoutes,
+    hubsoftTokenRoutes,
   );
 };
 
