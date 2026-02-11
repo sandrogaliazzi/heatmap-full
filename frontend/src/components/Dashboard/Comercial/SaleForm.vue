@@ -3,7 +3,9 @@ import { ref, inject, watch, onMounted, computed } from "vue";
 import moment from "moment-timezone";
 import fetchApi from "@/api";
 import { useNotificationStore } from "@/stores/notification";
-import planosJSON from "./planos.json";
+import { useServiceStore } from "@/stores/services";
+
+const serviceStore = useServiceStore();
 
 const { metricId } = defineProps(["metricId"]);
 const emit = defineEmits(["update-sales"]);
@@ -26,7 +28,6 @@ function getCurrentWeekNumber(date) {
 }
 
 const seller = ref("");
-const planos = ref(planosJSON);
 const sellerClass = ref(null);
 const clientName = ref("");
 const date = ref(formatDate(new Date()));
@@ -181,7 +182,7 @@ const handleSubmit = async () => {
         <v-autocomplete
           label="Selecionar Plano"
           prepend-icon="mdi-percent-circle"
-          :items="planos.map((p) => p['Nome do Plano'])"
+          :items="serviceStore.services.map((service) => service.descricao)"
           :rules="inputRules"
           v-model="ticket"
           variant="underlined"

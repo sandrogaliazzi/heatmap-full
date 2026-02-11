@@ -3,7 +3,9 @@ import { ref, watch, onMounted, computed } from "vue";
 import moment from "moment-timezone";
 import fetchApi from "@/api";
 import { useNotificationStore } from "@/stores/notification";
-import planosJSON from "./planos.json";
+import { useServiceStore } from "@/stores/services";
+
+const serviceStore = useServiceStore();
 
 const { sale } = defineProps(["sale"]);
 const emit = defineEmits(["close-form"]);
@@ -37,7 +39,6 @@ const findSellerClass = (sellerName) => {
 };
 
 const seller = ref(sale.seller);
-const planos = ref(planosJSON);
 const sellerClass = ref(findSellerClass(sale.seller));
 const date = ref(sale.date);
 const city = ref(sale.city || "");
@@ -143,7 +144,7 @@ const handleSubmit = async () => {
       <v-col cols="12">
         <v-autocomplete
           label="Selecionar Plano"
-          :items="planos.map((p) => p['Nome do Plano'])"
+          :items="serviceStore.services.map((service) => service.descricao)"
           :rules="inputRules"
           v-model="ticket"
           variant="underlined"
