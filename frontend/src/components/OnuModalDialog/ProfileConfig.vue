@@ -117,7 +117,6 @@ const getUnauthorizedOnu = async () => {
     });
 
     unauthorizedOnuList.value = response.data;
-    console.log("onus nao autorizadas", unauthorizedOnuList.value);
   } catch (error) {
     console.log("erro ao consultar olts", error.message);
   }
@@ -131,7 +130,6 @@ watch(selectedGponProfile, (newProfile) => {
     isVEIPprofile.value = newProfile.entries.some(
       (entry) => entry.type === "VEIP",
     );
-    console.log("perfil selecionado", newProfile);
     cpeBridgeTranslation.value = {};
     translationSelection.value = null;
     const pbmpPorts = selectedGponProfile.value.entries.map((entry) =>
@@ -151,7 +149,6 @@ const getVlanTranslations = async () => {
     });
     if (response.status === 200) {
       vlanTranslations.value = response.data;
-      console.log("vlan translations", vlanTranslations.value);
     }
   } catch (error) {
     console.log("erro ao buscar vlan translations", error.message);
@@ -160,13 +157,6 @@ const getVlanTranslations = async () => {
 
 const cpeBridgeTranslation = ref({});
 const translationSelection = ref(null);
-
-watch(translationSelection, (newTranslation) => {
-  if (newTranslation) {
-    cpeBridgeTranslation.value[newTranslation.port] =
-      newTranslation.translation;
-  }
-});
 
 const mountCpeBridgeScript = () => {
   return gerarScriptOnu(
@@ -406,6 +396,8 @@ onMounted(async () => {
             <TranslationConfig
               :vlanTranslations="vlanTranslations"
               :port-number="n"
+              v-model:profile="selectedGponProfile"
+              v-model:cpeBridgeTranslation="cpeBridgeTranslation"
               @set-translation-config="translationSelection = $event"
             />
           </v-row>

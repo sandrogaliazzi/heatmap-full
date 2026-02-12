@@ -5,8 +5,9 @@ const { vlanTranslations, portNumber } = defineProps([
   "vlanTranslations",
   "portNumber",
 ]);
+const profile = defineModel("profile");
+const cpeBridgeTranslation = defineModel("cpeBridgeTranslation");
 const emit = defineEmits(["setTranslationConfig"]);
-const translationConfig = ref([]);
 const translationSelection = ref(null);
 
 const checkBoxAccess = ref(false);
@@ -22,27 +23,76 @@ const inputRules = [
   },
 ];
 
-watch(translationSelection, (selection) => {
-  selection.entries.forEach((item) => {
-    if (item.mode === "ACCESS") {
-      checkBoxAccess.value = true;
-    }
-    if (item.mode === "DOT1Q") {
-      checkBoxDot1q.value = true;
-    }
-    if (item.mode === "REPLACE") {
-      checkBoxReplace.value = true;
-    }
-    if (item.mode === "TRUNK") {
-      checkBoxTrunk.value = true;
-    }
-  });
+const resetCheckBoxes = () => {
+  checkBoxAccess.value = false;
+  checkBoxDot1q.value = false;
+  checkBoxReplace.value = false;
+  checkBoxTrunk.value = false;
+};
 
-  emit("setTranslationConfig", {
-    translation: selection,
-    port: portNumber,
-  });
-});
+function findByVlans(data, vlans) {
+  return data.find((item) =>
+    vlans.every((vlan) =>
+      item.entries.some(
+        (entry) => entry.vlanX === vlan || entry.vlanC === vlan,
+      ),
+    ),
+  );
+}
+
+watch(
+  profile,
+  (newProfile) => {
+    const vlansOnPort = newProfile.entries
+      .filter((entry) => entry.pbmpPorts == portNumber)
+      .map((entry) => entry.vlan);
+
+    translationSelection.value =
+      findByVlans(vlanTranslations, vlansOnPort) || null;
+
+    if (translationSelection.value) {
+      resetCheckBoxes();
+      translationSelection.value.entries.forEach((item) => {
+        if (item.mode === "ACCESS") {
+          checkBoxAccess.value = true;
+        }
+        if (item.mode === "DOT1Q") {
+          checkBoxDot1q.value = true;
+        }
+        if (item.mode === "REPLACE") {
+          checkBoxReplace.value = true;
+        }
+        if (item.mode === "TRUNK") {
+          checkBoxTrunk.value = true;
+        }
+      });
+      cpeBridgeTranslation.value[portNumber] = translationSelection.value;
+    }
+  },
+  { immediate: true },
+);
+
+// watch(translationSelection, (selection) => {
+//   selection.entries.forEach((item) => {
+//     if (item.mode === "ACCESS") {
+//       checkBoxAccess.value = true;
+//     }
+//     if (item.mode === "DOT1Q") {
+//       checkBoxDot1q.value = true;
+//     }
+//     if (item.mode === "REPLACE") {
+//       checkBoxReplace.value = true;
+//     }
+//     if (item.mode === "TRUNK") {
+//       checkBoxTrunk.value = true;
+//     }
+//   });
+
+//   emit("setTranslationConfig", {
+//     translation: selection,
+//     port: portNumber,
+//   });
+// });
 </script>
 
 <template>
