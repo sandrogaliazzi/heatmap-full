@@ -4,6 +4,7 @@ import OnuList from "./OnuList.vue";
 import fetchApi from "@/api";
 
 const { clients, city } = defineProps(["clients", "city"]);
+const emit = defineEmits(["exit"]);
 
 const onuList = ref([]);
 const onuListCopy = ref([]);
@@ -23,28 +24,24 @@ const getOltList = async () => {
   }
 };
 
+const citysFilter = {
+  "NOVA HARTZ": ["NOVA HARTZ"],
+  ARARICA: ["ARARICA"],
+  IGREJINHA: ["IGREJINHA", "NOVA HARTZ"],
+  SAPIRANGA: ["ARARICA"],
+  "TRES COROAS": ["IGREJINHA"],
+  "M. PEDRA": ["MORRO DA PEDRA", "FAZENDA FIALHO", "ARARICA"],
+  "FAZ. FIALHO": ["FAZENDA FIALHO", "MORRO DA PEDRA"],
+  PAROBE: ["PAROBÉ", "IGREJINHA", "NOVA HARTZ"],
+  "SÃO JOÃO DO DESERTO": ["SÃO JOÃO DO DESERTO", "MORUNGAVA", "FAZENDA FIALHO"],
+  MORUNGAVA: ["MORUNGAVA", "SÃO JOÃO DO DESERTO"],
+};
+
 const filterOltsByCity = (city) => {
-  switch (city) {
-    case "SAPIRANGA":
-      return heatmapOlts.value.filter((olt) => olt.oltPop === "ARARICA");
-    case "TRES COROAS":
-      return heatmapOlts.value.filter((olt) => olt.oltPop === "IGREJINHA");
-    case "SÃO JOÃO DO DESERTO":
-      return heatmapOlts.value.filter(
-        (olt) =>
-          olt.oltPop === "SÃO JOÃO DO DESERTO" || olt.oltPop === "MORUNGAVA",
-      );
-    case "M. PEDRA":
-      return heatmapOlts.value.filter(
-        (olt) => olt.oltPop === "M. PEDRA" || olt.oltPop === "FAZ. FIALHO",
-      );
-    case "PAROBE":
-      return heatmapOlts.value.filter(
-        (olt) => olt.oltPop === "NOVA HARTZ" || olt.oltPop === "PAROBE",
-      );
-    default:
-      return heatmapOlts.value.filter((olt) => olt.oltPop === city);
-  }
+  const olts = heatmapOlts.value.filter((olt) =>
+    citysFilter[city].includes(olt.oltPop),
+  );
+  return !olts.length ? heatmapOlts.value : olts;
 };
 
 const fetchFiberhomeOnu = async () => {

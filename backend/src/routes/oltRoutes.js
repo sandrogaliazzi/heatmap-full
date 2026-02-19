@@ -15,18 +15,27 @@ router
   .post(
     "/verificar-ramal-onu-configurar",
     auth,
-    oltController.VerificarOnuAConfigurarPon
+    oltController.VerificarOnuAConfigurarPon,
   )
   .post("/listar-onu", auth, oltController.listarOnu)
   .get("/descobrir-onu-fiberhome", auth, FiberHomeController.discoverOnus)
+  .post(
+    "/listar-onu-fiberhome-nao-autorizadas",
+    FiberHomeController.getUnregisteredOnus,
+  )
   .get("/listar-onu-fiberhome", auth, FiberHomeController.getAllONUsFromUNM)
   .post("/listar-perfis-gpon-parks", auth, oltController.VerificarPerfisGpon)
   .post(
     "/listar-vlan-translation",
     auth,
-    oltController.VerificarVlanTranslation
+    oltController.VerificarVlanTranslation,
   )
   .post("/liberar-onu-fiberhome", auth, FiberHomeController.addAndConfigOnu)
+  .post(
+    "/liberar-onu-fiberhome-avulsa",
+    auth,
+    FiberHomeController.executeTl1Script,
+  )
   .post("/verificar-onu-fiberhome", auth, FiberHomeController.getOnuSignals)
   .post("/verificar-onu", auth, oltController.VerificarOnu)
   .post("/verificar-onu-completo", auth, oltController.VerificarOnuSummary)
@@ -42,6 +51,7 @@ router
   .post("/add-olt", auth, oltController.addOlt)
   .get("/listar-olt", auth, oltController.listOlts)
   .post("/editar-status-olt", auth, oltController.toggleOltActiveStatus)
+  .put("/update-olt", auth, oltController.updateOlt)
   .delete("/delete-olt", auth, oltController.deleteOlt);
 
 export default router;

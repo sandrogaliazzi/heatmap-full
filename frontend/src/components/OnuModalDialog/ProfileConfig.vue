@@ -6,6 +6,7 @@ import gerarScriptOnu from "./gerarScript";
 import { useNotificationStore } from "@/stores/notification";
 import { useUserStore } from "@/stores/user";
 import hubApi from "@/api/hubsoftApi";
+import FiberhomeOnuConfig from "./FiberhomeOnuConfig.vue";
 
 const notification = useNotificationStore();
 
@@ -110,15 +111,36 @@ const getGponProfiles = async () => {
 const unauthorizedOnuList = ref([]);
 const selectedOnu = ref(null);
 
-const getUnauthorizedOnu = async () => {
+const getUnauthorizedOnuInfoFromFiberhome = async () => {
+  try {
+    const response = await fetchApi.get("/descobrir-onu-fiberhome");
+
+    return response.data.onus;
+  } catch (error) {
+    console.log("erro ao consultar olts fiberhome", error.message);
+    loadingApi.value = false;
+  }
+};
+
+const getUnauthorizedOnuFromParks = async () => {
   try {
     const response = await fetchApi.post("listar-onu", {
       oltIp: selectedOlt.value.ipv4,
     });
 
-    unauthorizedOnuList.value = response.data;
+    return response.data;
   } catch (error) {
     console.log("erro ao consultar olts", error.message);
+  }
+};
+
+const getUnauthorizedOnu = async () => {
+  if (selectedOlt.value) {
+    if (selectedOlt.value.oltName.includes("FIBERHOME")) {
+      unauthorizedOnuList.value = await getUnauthorizedOnuInfoFromFiberhome();
+    } else {
+      unauthorizedOnuList.value = await getUnauthorizedOnuFromParks();
+    }
   }
 };
 
@@ -198,6 +220,12 @@ const handleSubmit = async () => {
   }
   if (isVEIPprofile.value) {
     script.value = mountCpeVEIPprofile();
+  } else if (isFiberome.value) {
+    script.value = fiberhomeConfig.value.mountFiberhomeScript(
+      selectedOnu.value.onuMac,
+      alias.value,
+      selectedOlt.value.ipv4,
+    );
   } else {
     script.value = mountCpeBridgeScript();
   }
@@ -214,6 +242,8 @@ const provisionOnu = async () => {
     script: script.value,
     hasUnaddedOnu: hasUnaddedOnu.value,
     onuAlias: alias.value || "ONU-ALIAS",
+    slot: fiberhomeConfig.value?.slot,
+    pon: fiberhomeConfig.value?.pon,
   };
 
   onProvision.value = true;
@@ -239,7 +269,9 @@ const provisionOnu = async () => {
   }
 
   try {
-    const response = await fetchApi.post("liberar-onu-avulsa", requestBody);
+    const response = isFiberome.value
+      ? await fetchApi.post("liberar-onu-fiberhome-avulsa", requestBody)
+      : await fetchApi.post("liberar-onu-avulsa", requestBody);
     if (response.status === 200) {
       editScript.value = false;
       script.value = "";
@@ -261,10 +293,17 @@ const provisionOnu = async () => {
   }
 };
 
+const isFiberome = ref(false);
+const fiberhomeConfig = ref("");
+
 watch(selectedOlt, (newOlt) => {
   if (newOlt) {
-    getGponProfiles();
-    getVlanTranslations();
+    if (newOlt.oltName.includes("FIBERHOME")) isFiberome.value = true;
+    else {
+      getGponProfiles();
+      getVlanTranslations();
+      isFiberome.value = false;
+    }
     getUnauthorizedOnu();
   }
 });
@@ -377,32 +416,36 @@ onMounted(async () => {
           </v-col>
         </v-row>
 
-        <v-row>
-          <v-col cols="12">
-            <v-select
-              v-if="gponProfiles.length > 0"
-              label="SELECIONAR PERFIL"
-              :items="gponProfiles"
-              :item-title="(item) => item.name"
-              :item-value="(item) => item"
-              v-model="selectedGponProfile"
-              :rules="inputRules"
-            ></v-select>
-          </v-col>
-        </v-row>
-
-        <template v-if="cpePortsNumber && !isVEIPprofile">
-          <v-row v-for="n in cpePortsNumber" :key="n">
-            <TranslationConfig
-              :vlanTranslations="vlanTranslations"
-              :port-number="n"
-              v-model:profile="selectedGponProfile"
-              v-model:cpeBridgeTranslation="cpeBridgeTranslation"
-              @set-translation-config="translationSelection = $event"
-            />
+        <template v-if="!isFiberome">
+          <v-row>
+            <v-col cols="12">
+              <v-select
+                v-if="gponProfiles.length > 0"
+                label="SELECIONAR PERFIL"
+                :items="gponProfiles"
+                :item-title="(item) => item.name"
+                :item-value="(item) => item"
+                v-model="selectedGponProfile"
+                :rules="inputRules"
+              ></v-select>
+            </v-col>
           </v-row>
-        </template>
 
+          <template v-if="cpePortsNumber && !isVEIPprofile">
+            <v-row v-for="n in cpePortsNumber" :key="n">
+              <TranslationConfig
+                :vlanTranslations="vlanTranslations"
+                :port-number="n"
+                v-model:profile="selectedGponProfile"
+                v-model:cpeBridgeTranslation="cpeBridgeTranslation"
+                @set-translation-config="translationSelection = $event"
+              />
+            </v-row>
+          </template>
+        </template>
+        <template v-else-if="isFiberome">
+          <FiberhomeOnuConfig ref="fiberhomeConfig" />
+        </template>
         <br />
 
         <v-btn
@@ -414,7 +457,11 @@ onMounted(async () => {
           @keyup.enter="handleSubmit"
         >
           GERAR SCRIPT
-          <v-dialog v-model="provisionDialog" min-width="400px">
+          <v-dialog
+            v-model="provisionDialog"
+            min-width="400px"
+            max-width="800px"
+          >
             <v-card :loading="onProvision">
               <v-card-text>
                 <v-sheet
@@ -423,7 +470,9 @@ onMounted(async () => {
                   rounded
                   class="pa-4"
                 >
-                  <pre>{{ script }}</pre>
+                  <p class="overflow-x-auto">
+                    {{ script }}
+                  </p>
                 </v-sheet>
                 <v-textarea v-else v-model="script"></v-textarea>
               </v-card-text>

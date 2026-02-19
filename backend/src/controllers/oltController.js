@@ -1270,6 +1270,32 @@ class oltController {
     });
   };
 
+  static updateOlt = (req, res) => {
+    const hubsoftId = req.body.hubsoft_id;
+
+    oltModel.findOneAndUpdate(
+      { hubsoft_id: hubsoftId }, // filtro
+      { $set: req.body }, // dados para atualizar
+      { new: true }, // retorna o documento atualizado
+      (err, oltAtualizada) => {
+        if (err) {
+          return res
+            .status(500)
+            .send({ message: `${err.message} - falha ao atualizar OLT.` });
+        }
+
+        if (!oltAtualizada) {
+          return res.status(404).send({ message: "OLT não encontrada." });
+        }
+
+        res.status(200).send({
+          message: "OLT atualizada com sucesso.",
+          data: oltAtualizada,
+        });
+      },
+    );
+  };
+
   static deleteOlt = (req, res) => {
     const id = req.params.id;
     oltModel.deleteOne({ _id: id }, (err) => {

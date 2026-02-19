@@ -206,13 +206,6 @@ function discoverNextOnuNumber(slot, pon) {
       console.error("Telnet client error:", err);
       reject(err);
     });
-
-    // Timeout de 30 segundos
-    setTimeout(30000).then(() => {
-      console.error("Timeout na descoberta do número da ONU");
-      client.end();
-      resolve(null);
-    });
   });
 }
 
@@ -312,6 +305,96 @@ class FiberHomeController {
         .status(500)
         .json({ error: "Erro ao descobrir ONUs", details: error.message });
     }
+  }
+
+  static async getUnregisteredOnus(req, res) {
+    const { oltIp, slot, pon } = req.body;
+
+    return new Promise((resolve) => {
+      const USER = process.env.UNM_USERNAME;
+      const PASS = process.env.UNM_PASSWORD;
+      const PORT = 3337;
+      const HOST = "192.168.21.9";
+
+      let buffer = "";
+      let ctag = Math.floor(Math.random() * 9000) + 1000;
+      let responded = false;
+      let loggedIn = false;
+
+      const client = new net.Socket();
+
+      console.log("➡️ Iniciando consulta ao UNM2000...");
+
+      client.setTimeout(6000, () => {
+        if (!responded) {
+          responded = true;
+          console.log("⏱️ Timeout na conexão com UNM2000");
+          client.destroy();
+          return resolve(
+            res.status(504).json({ error: "Timeout ao consultar o UNM2000" }),
+          );
+        }
+      });
+
+      client.connect(PORT, HOST, () => {
+        console.log(`🔌 Conectado em ${HOST}:${PORT}`);
+        const loginCmd = `LOGIN:::${ctag}::UN=${USER},PWD=${PASS};\r\n`;
+        console.log("➡️ Enviando LOGIN...");
+        client.write(loginCmd);
+      });
+
+      client.on("data", (data) => {
+        const chunk = data.toString();
+        buffer += chunk;
+
+        if (!loggedIn && buffer.includes("COMPLD")) {
+          loggedIn = true;
+          buffer = "";
+          const lstCmd = `LST-UNREGONU::OLTID=${oltIp},PONID=1-1-${slot}-${pon}:CTAG::;\r\n`;
+          client.write(lstCmd);
+          return;
+        }
+
+        if (
+          loggedIn &&
+          buffer.includes("COMPLD") &&
+          buffer.trim().endsWith(";")
+        ) {
+          if (!responded) {
+            responded = true;
+            console.log("✅ Resposta completa recebida do UNM2000");
+            client.end();
+            client.removeAllListeners();
+            return resolve(res.status(200).json({ onus: buffer.toString() }));
+          }
+        }
+      });
+
+      client.on("error", (err) => {
+        if (!responded) {
+          responded = true;
+          console.log("❌ Erro na conexão:", err.message);
+          client.destroy();
+          return resolve(
+            res
+              .status(500)
+              .json({ error: `Erro de conexão SSH/TCP: ${err.message}` }),
+          );
+        }
+      });
+
+      client.on("close", () => {
+        if (!responded) {
+          responded = true;
+          console.log("⚠️ Conexão encerrada pelo servidor antes da resposta.");
+          return resolve(
+            res.status(500).json({
+              error: "Conexão encerrada inesperadamente pelo UNM2000",
+            }),
+          );
+        }
+      });
+    });
   }
 
   static getAllONUsFromUNM(_, res) {
@@ -809,6 +892,94 @@ class FiberHomeController {
         details: error.message,
       });
     }
+  }
+
+  static async executeTl1Script(req, res) {
+    const { script, slot, pon } = req.body;
+
+    if (!script || typeof script !== "string") {
+      return res.status(400).json({ error: "Script TL1 inválido" });
+    }
+
+    let onuNumber;
+    try {
+      onuNumber = await discoverNextOnuNumber(slot, pon);
+    } catch (err) {
+      console.error("Erro ao descobrir número de ONU:", err.message);
+      return res.status(500).json({ error: "Erro ao descobrir número de ONU" });
+    }
+
+    const USER = process.env.UNM_USERNAME;
+    const PASS = process.env.UNM_PASSWORD;
+    const PORT = 3337;
+    const HOST = "192.168.21.9";
+
+    const commands = script
+      .replaceAll("[[onuNumber]]", onuNumber)
+      .split(";")
+      .map((cmd) => cmd.trim())
+      .filter(Boolean);
+
+    if (commands.length === 0) {
+      return res.status(400).json({ error: "Nenhum comando TL1 encontrado" });
+    }
+
+    let buffer = "";
+    let ctag = Math.floor(Math.random() * 9000) + 1000;
+    let step = -1;
+
+    const client = new net.Socket();
+
+    client.connect(PORT, HOST, () => {
+      console.log("Conectado ao UNM2000");
+      const loginCmd = `LOGIN:::${ctag}::UN=${USER},PWD=${PASS};\r\n`;
+      client.write(loginCmd);
+    });
+
+    client.on("data", (data) => {
+      buffer += data.toString();
+
+      if (!buffer.includes("COMPLD") || !buffer.trim().endsWith(";")) {
+        return;
+      }
+
+      const response = buffer;
+      buffer = "";
+
+      console.log("⬅️ Resposta TL1:", response.trim());
+
+      if (step === -1) {
+        step = 0;
+      } else {
+        step++;
+      }
+
+      if (step < commands.length) {
+        ctag++;
+        const cmd = `${commands[step]};\r\n`;
+        console.log("➡️ Enviando:", cmd.trim());
+        client.write(cmd);
+        return;
+      }
+
+      client.end();
+      return res.status(200).json({
+        success: true,
+        message: "Script TL1 executado com sucesso",
+      });
+    });
+
+    client.on("error", (err) => {
+      console.error("Erro de conexão TL1:", err.message);
+      client.end();
+      return res.status(500).json({
+        error: `Erro ao conectar no UNM: ${err.message}`,
+      });
+    });
+
+    client.on("close", () => {
+      console.log("Conexão TL1 encerrada");
+    });
   }
 }
 

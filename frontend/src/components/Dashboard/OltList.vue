@@ -46,7 +46,8 @@ const addOlt = async (olt) => {
       hubsoft_id: olt.id_equipamento,
       oltName: olt.nome,
       oltPop: oltPop(olt.nome),
-      active: false,
+      active: true,
+      interfaces: olt.interfaces,
     });
   } catch (error) {
     console.log("erro ao adicionar olt", error.message);
@@ -59,10 +60,29 @@ const matchOlt = (olt) => {
   );
 };
 
+const updateOlt = async (olt) => {
+  try {
+    await fetchApi.put("/update-olt", {
+      oltIp: olt.ipv4,
+      ipv4: olt.ipv4,
+      hubsoft_id: olt.id_equipamento,
+      oltName: olt.nome,
+      oltPop: oltPop(olt.nome),
+      active: true,
+      interfaces: olt.interfaces,
+    });
+  } catch (error) {
+    console.log("erro ao atualizar olt", error.message);
+  }
+};
+
 const syncWithHub = async () => {
   syncWithHubLoading.value = true;
   try {
     oltList.value = await fetchOltList();
+
+    await Promise.all(oltList.value.map((olt) => updateOlt(olt)));
+
     const oltsNotSync = oltList.value.filter(
       (olt) =>
         !heatmapOlts.value.find(

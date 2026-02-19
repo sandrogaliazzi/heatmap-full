@@ -6,6 +6,7 @@ const oltSchema = new mongoose.Schema({
   oltName: { type: String, required: true },
   oltPop: { type: String, required: true },
   active: { type: Boolean, default: true },
+  interfaces: { type: Array, required: false },
 });
 
 const oltModel = mongoose.model("olts", oltSchema);
