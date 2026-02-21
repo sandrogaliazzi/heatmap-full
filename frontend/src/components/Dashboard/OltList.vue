@@ -184,7 +184,7 @@ onMounted(async () => {
     <v-col cols="12" md="10" class="scrollable-column">
       <v-expansion-panels>
         <v-expansion-panel
-          v-for="olt in filteredOltList || oltList"
+          v-for="olt in filteredOltList || heatmapOlts"
           :key="olt.id_equipamento"
           :title="olt.nome"
           v-model="panel"

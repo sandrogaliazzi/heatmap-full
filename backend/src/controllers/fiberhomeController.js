@@ -2,6 +2,7 @@ import net from "net";
 import dotenv from "dotenv";
 import { setTimeout } from "timers/promises";
 import Auditoria from "../models/auditoriaModel.js";
+import oltModel from "../models/oltModel.js";
 dotenv.config();
 
 function parseOnuLine(line) {
@@ -307,8 +308,8 @@ class FiberHomeController {
     }
   }
 
-  static async getUnregisteredOnus(req, res) {
-    const { oltIp, slot, pon } = req.body;
+  static async getUnregisteredOnus(_, res) {
+    const olts = await oltModel.find({ active: true });
 
     return new Promise((resolve) => {
       const USER = process.env.UNM_USERNAME;

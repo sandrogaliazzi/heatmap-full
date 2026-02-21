@@ -178,15 +178,36 @@ watch(setPolygonDrawMode, (mode) => {
   }
 });
 
-const setPlace = (place) => {
-  const isCoordinates = /^(-?\d+(\.\d+)?)(?:,\s*|\s+)(-?\d+(\.\d+)?)$/;
+const parseCoordinates = (input) => {
+  if (typeof input !== "string") return null;
 
+  // Extrai possíveis números (lat/lng)
+  const matches = input.match(/-?\d+(?:[.,]\d+)?/g);
+  if (!matches || matches.length !== 2) return null;
+
+  // Normaliza vírgula decimal para ponto
+  const latitude = parseFloat(matches[0].replace(",", "."));
+  const longitude = parseFloat(matches[1].replace(",", "."));
+
+  // Validação básica de latitude e longitude
+  if (
+    Number.isNaN(latitude) ||
+    Number.isNaN(longitude) ||
+    latitude < -90 ||
+    latitude > 90 ||
+    longitude < -180 ||
+    longitude > 180
+  ) {
+    return null;
+  }
+
+  return { latitude, longitude };
+};
+
+const setPlace = (place) => {
   if (selectedUserLocation.value === null) selectedUserLocation.value = {};
-  selectedUserLocation.value.coords = isCoordinates.test(place.name)
-    ? {
-        latitude: Number.parseFloat(place.name.split(" ")[0]),
-        longitude: Number.parseFloat(place.name.split(" ")[1]),
-      }
+  selectedUserLocation.value.coords = parseCoordinates(place.name)
+    ? parseCoordinates(place.name)
     : {
         latitude: place.geometry.location.lat(),
         longitude: place.geometry.location.lng(),

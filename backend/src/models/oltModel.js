@@ -7,6 +7,8 @@ const oltSchema = new mongoose.Schema({
   oltPop: { type: String, required: true },
   active: { type: Boolean, default: true },
   interfaces: { type: Array, required: false },
+  vendor: { type: String, required: false },
+  citys: { type: Array, required: false },
 });
 
 const oltModel = mongoose.model("olts", oltSchema);
