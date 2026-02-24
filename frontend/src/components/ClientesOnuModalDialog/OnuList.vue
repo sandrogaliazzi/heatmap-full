@@ -22,41 +22,48 @@ const apiDataLoaded = ref(false);
 const chartKey = ref(0);
 const awatingApi = ref(false);
 
-const checkOnuSignal = async (onu) => {
+const checkOnuSignal = async (onus) => {
   isLoadingSignal.value = true;
+
+  const fiberhomeOnus = onus.filter((onu) => onu.onuNumber);
   let signal;
-  if (!onu.onuNumber) {
-    signal = await fetchApi.post(
-      "verificar-onu-completo",
-      {
-        oltIp: onu.oltIp,
-        onuAlias: onu.mac,
-      },
-      {
-        headers: {
-          "Cache-Control": "no-cache",
-          Pragma: "no-cache",
-          Expires: "0",
-        },
-        params: {
-          t: new Date().getTime(),
-        },
-      },
+
+  if (!fiberhomeOnus.length) {
+    signal = await Promise.all(
+      onus.map(async (onu) => {
+        const response = await fetchApi.post(
+          "verificar-onu-completo",
+          {
+            oltIp: onu.oltIp,
+            onuAlias: onu.name,
+          },
+          {
+            headers: {
+              "Cache-Control": "no-cache",
+              Pragma: "no-cache",
+              Expires: "0",
+            },
+            params: {
+              t: new Date().getTime(),
+            },
+          },
+        );
+        return response.data;
+      }),
     );
   } else {
-    signal = await fetchApi.post("verificar-onu-fiberhome", [
-      {
-        slot: onu.slot,
-        onuNumber: onu.onuNumber,
-        pon: onu.pon,
-        mac: onu.mac,
-      },
-    ]);
+    const response = await fetchApi.post("verificar-onu-fiberhome", {
+      onus: fiberhomeOnus,
+    });
+
+    signal = response.data;
   }
 
-  signalList.value[onu.mac] = Array.isArray(signal.data)
-    ? signal.data[0]
-    : signal.data;
+  signalList.value = signal.reduce(
+    (acc, val) => ({ ...acc, [val.mac || val.Serial]: val }),
+    {},
+  );
+
   isLoadingSignal.value = false;
 };
 
@@ -107,14 +114,6 @@ const formatVlan = (vlan) => {
   return vlan?.split("_").pop();
 };
 
-const checkAllSignal = async (onuList) => {
-  signalList.value = {};
-
-  const signals = onuList.map(async (onu) => await checkOnuSignal(onu));
-
-  await Promise.all(signals);
-};
-
 const deleteOnuParks = async (onu) => {
   try {
     const response = await fetchApi.post("deletar-onu", {
@@ -147,6 +146,7 @@ const deleteOnuFiberHome = async (onu) => {
       pon: onu.pon,
       mac: onu.mac,
       alias: onu.name,
+      oltIp: onu.oltIp,
     });
     if (response.status === 200) {
       notification.setNotification({
@@ -264,7 +264,7 @@ const showClientSignalHistory = async (client) => {
           rounded="xl"
           variant="tonal"
           :loading="isLoadingSignal"
-          @click="checkAllSignal(onuList)"
+          @click="checkOnuSignal(onuList)"
           v-if="onuList.length <= 128"
           class="mr-3"
           >Calcular sinal
@@ -331,7 +331,7 @@ const showClientSignalHistory = async (client) => {
                         <v-btn
                           prepend-icon="mdi-broadcast"
                           size="small"
-                          @click="checkOnuSignal(item)"
+                          @click="checkOnuSignal([item])"
                           >Verificar sinal</v-btn
                         >
                       </v-list-item>

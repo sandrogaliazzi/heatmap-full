@@ -210,6 +210,75 @@ function discoverNextOnuNumber(slot, pon) {
   });
 }
 
+function parseOmddm(response) {
+  const lines = response.split("\n");
+
+  for (const line of lines) {
+    if (!line.trim().match(/^\d+\s+/)) continue;
+
+    const cols = line.trim().split(/\s+/);
+
+    return {
+      rxPower: toFloat(cols[1]), // RxPower (ONU)
+      txPower: toFloat(cols[3]), // TxPower
+      biasCurrent: toFloat(cols[5]), // CurrTxBias
+      temperature: toFloat(cols[7]), // Temperature
+      voltage: toFloat(cols[9]), // Voltage
+      txPowerOlt: toFloat(cols[11]), // PTxPower
+      rxPowerOlt: toFloat(cols[12]), // PRxPower
+    };
+  }
+
+  return {
+    rxPower: null,
+    txPower: null,
+    biasCurrent: null,
+    temperature: null,
+    voltage: null,
+    txPowerOlt: null,
+    rxPowerOlt: null,
+  };
+}
+
+function parseUnregisteredOnus(raw, meta) {
+  const result = [];
+
+  const lines = raw.split("\n");
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    // ignora lixo
+    if (!trimmed) continue;
+    if (trimmed.startsWith("-")) continue;
+    if (trimmed.startsWith("MAC")) continue;
+    if (!trimmed.includes("Unauth")) continue;
+
+    // divide por 2 ou mais espaços
+    const columns = trimmed.split(/\s{2,}/);
+
+    if (columns.length < 2) continue;
+
+    result.push({
+      onuMac: columns[0], // PRKS00da3a9c
+      onuType: columns[columns.length - 1], // HG260
+      slot: meta.slot,
+      pon: meta.pon,
+      oltIp: meta.oltIp,
+      oltRamal: meta.oltRamal,
+      oltName: meta.oltName,
+      ponVlan: meta.ponVlan,
+    });
+  }
+
+  return result;
+}
+
+function toFloat(value) {
+  if (!value || value === "--") return null;
+  return parseFloat(value.replace(",", "."));
+}
+
 class FiberHomeController {
   static async discoverOnus(_, res) {
     const HOST = process.env.FIBERHOME_HOST; // IP da OLT
@@ -308,8 +377,19 @@ class FiberHomeController {
     }
   }
 
-  static async getUnregisteredOnus(_, res) {
-    const olts = await oltModel.find({ active: true });
+  static async getRawUnregisteredOnusData(oltIp) {
+    const olt = await oltModel.find({ oltIp });
+
+    const slotAndPonList = olt.flatMap((olt) =>
+      olt.interfaces.map((int) => ({
+        slot: int.interface_gpon.slot,
+        pon: int.interface_gpon.pon,
+        oltIp: olt.oltIp,
+        oltName: olt.oltName,
+        oltRamal: int.nome,
+        ponVlan: int.interface_gpon.vlan,
+      })),
+    );
 
     return new Promise((resolve) => {
       const USER = process.env.UNM_USERNAME;
@@ -317,88 +397,137 @@ class FiberHomeController {
       const PORT = 3337;
       const HOST = "192.168.21.9";
 
-      let buffer = "";
-      let ctag = Math.floor(Math.random() * 9000) + 1000;
-      let responded = false;
-      let loggedIn = false;
-
       const client = new net.Socket();
 
-      console.log("➡️ Iniciando consulta ao UNM2000...");
+      let buffer = "";
+      let ctag = Math.floor(Math.random() * 9000) + 1000;
+      let loggedIn = false;
+      let responded = false;
+
+      let queue = [...slotAndPonList];
+      let results = [];
+      let current = null;
+
+      const sendNextCommand = () => {
+        if (queue.length === 0) {
+          responded = true;
+          client.end();
+          return resolve({ onus: results });
+        }
+
+        current = queue.shift();
+        buffer = "";
+
+        const cmd = `LST-UNREGONU::OLTID=${current.oltIp},PONID=1-1-${current.slot}-${current.pon}:CTAG::;\r\n`;
+        client.write(cmd);
+      };
 
       client.setTimeout(6000, () => {
         if (!responded) {
           responded = true;
-          console.log("⏱️ Timeout na conexão com UNM2000");
           client.destroy();
-          return resolve(
-            res.status(504).json({ error: "Timeout ao consultar o UNM2000" }),
-          );
+          return resolve({
+            error: "Timeout ao consultar o UNM2000",
+          });
         }
       });
 
       client.connect(PORT, HOST, () => {
-        console.log(`🔌 Conectado em ${HOST}:${PORT}`);
         const loginCmd = `LOGIN:::${ctag}::UN=${USER},PWD=${PASS};\r\n`;
-        console.log("➡️ Enviando LOGIN...");
         client.write(loginCmd);
       });
 
       client.on("data", (data) => {
-        const chunk = data.toString();
-        buffer += chunk;
+        buffer += data.toString();
 
+        // LOGIN OK
         if (!loggedIn && buffer.includes("COMPLD")) {
           loggedIn = true;
           buffer = "";
-          const lstCmd = `LST-UNREGONU::OLTID=${oltIp},PONID=1-1-${slot}-${pon}:CTAG::;\r\n`;
-          client.write(lstCmd);
+          sendNextCommand();
           return;
         }
 
+        // Resposta de comando TL1 completa
         if (
           loggedIn &&
           buffer.includes("COMPLD") &&
           buffer.trim().endsWith(";")
         ) {
-          if (!responded) {
-            responded = true;
-            console.log("✅ Resposta completa recebida do UNM2000");
-            client.end();
-            client.removeAllListeners();
-            return resolve(res.status(200).json({ onus: buffer.toString() }));
-          }
+          results.push({
+            ...current,
+            raw: buffer,
+          });
+
+          sendNextCommand();
         }
       });
 
       client.on("error", (err) => {
         if (!responded) {
           responded = true;
-          console.log("❌ Erro na conexão:", err.message);
           client.destroy();
-          return resolve(
-            res
-              .status(500)
-              .json({ error: `Erro de conexão SSH/TCP: ${err.message}` }),
-          );
+          return resolve({ error: `Erro TCP: ${err.message}` });
         }
       });
 
       client.on("close", () => {
         if (!responded) {
           responded = true;
-          console.log("⚠️ Conexão encerrada pelo servidor antes da resposta.");
-          return resolve(
-            res.status(500).json({
-              error: "Conexão encerrada inesperadamente pelo UNM2000",
-            }),
-          );
+          return resolve({
+            error: "Conexão encerrada inesperadamente pelo UNM2000",
+          });
         }
       });
     });
   }
 
-  static getAllONUsFromUNM(_, res) {
+  static async getUnregisteredOnus(req, res) {
+    const oltIp = req.body.oltIp;
+    const response = [];
+
+    const data = await FiberHomeController.getRawUnregisteredOnusData(oltIp);
+    if (data.error) return res.status(500).json(data);
+
+    const blockRecordsRegex = /block_records\s*=\s*(\d+)/i;
+    const linhaOnuRegex =
+      /^([A-Z0-9]{6,})\s+.*\sUnauth\s+[\d-]+\s[\d:]+\s+([A-Z0-9_-]+)\s*$/gim;
+
+    data.onus.forEach((item) => {
+      if (!item.raw) return;
+
+      const blockMatch = item.raw.match(blockRecordsRegex);
+      const blockRecords = blockMatch ? parseInt(blockMatch[1], 10) : 0;
+
+      if (blockRecords > 0) {
+        let match;
+        while ((match = linhaOnuRegex.exec(item.raw)) !== null) {
+          response.push({
+            onuMac: match[1], // PRKS00da3a9c
+            onuType: match[2], // HG260
+            slot: item.slot,
+            pon: item.pon,
+            oltIp: item.oltIp,
+            oltRamal: item.oltRamal,
+            oltName: item.oltName,
+            ponVlan: item.ponVlan,
+          });
+        }
+      }
+    });
+
+    return res.status(200).json(response);
+  }
+
+  static async getAllONUsFromUNM(_, res) {
+    const olts = await oltModel.find({ vendor: "FIBERHOME" });
+
+    if (!olts || olts.length === 0) {
+      return res
+        .status(404)
+        .json({ error: "Nenhuma OLT FiberHome encontrada" });
+    }
+
     return new Promise((resolve) => {
       const USER = process.env.UNM_USERNAME;
       const PASS = process.env.UNM_PASSWORD;
@@ -409,15 +538,17 @@ class FiberHomeController {
       let ctag = Math.floor(Math.random() * 9000) + 1000;
       let responded = false;
       let loggedIn = false;
+      let oltIndex = 0;
+
+      const allOnus = [];
 
       const client = new net.Socket();
 
       console.log("➡️ Iniciando consulta ao UNM2000...");
 
-      client.setTimeout(6000, () => {
+      client.setTimeout(8000, () => {
         if (!responded) {
           responded = true;
-          console.log("⏱️ Timeout na conexão com UNM2000");
           client.destroy();
           return resolve(
             res.status(504).json({ error: "Timeout ao consultar o UNM2000" }),
@@ -425,50 +556,64 @@ class FiberHomeController {
         }
       });
 
+      const sendNextOlt = () => {
+        if (oltIndex >= olts.length) {
+          responded = true;
+          client.end();
+          return resolve(res.status(200).json({ onus: allOnus }));
+        }
+
+        const olt = olts[oltIndex];
+        buffer = "";
+        ctag++;
+
+        console.log(`➡️ Consultando OLT ${olt.oltName} (${olt.oltIp})`);
+
+        const cmd = `LST-ONU::OLTID=${olt.oltIp}:${ctag}::;\r\n`;
+        client.write(cmd);
+      };
+
       client.connect(PORT, HOST, () => {
         console.log(`🔌 Conectado em ${HOST}:${PORT}`);
         const loginCmd = `LOGIN:::${ctag}::UN=${USER},PWD=${PASS};\r\n`;
-        console.log("➡️ Enviando LOGIN...");
         client.write(loginCmd);
       });
 
       client.on("data", (data) => {
-        const chunk = data.toString();
-        buffer += chunk;
+        buffer += data.toString();
 
+        // LOGIN OK
         if (!loggedIn && buffer.includes("COMPLD")) {
           loggedIn = true;
           buffer = "";
-          const lstCmd = `LST-ONU::OLTID=192.168.200.2:CTAG::;\r\n`;
-          client.write(lstCmd);
-          return;
+          return sendNextOlt();
         }
 
+        // resposta completa de um LST-ONU
         if (
           loggedIn &&
           buffer.includes("COMPLD") &&
           buffer.trim().endsWith(";")
         ) {
-          if (!responded) {
-            responded = true;
-            console.log("✅ Resposta completa recebida do UNM2000");
-            const parsed = parseOnuListFromUnm(buffer);
-            client.end();
-            client.removeAllListeners();
-            return resolve(res.status(200).json({ onus: parsed }));
-          }
+          console.log(`✅ OLT ${olts[oltIndex].oltName} processada`);
+
+          const parsed = parseOnuListFromUnm(buffer, olts[oltIndex]);
+          allOnus.push(...parsed);
+
+          oltIndex++;
+          buffer = "";
+          return sendNextOlt();
         }
       });
 
       client.on("error", (err) => {
         if (!responded) {
           responded = true;
-          console.log("❌ Erro na conexão:", err.message);
           client.destroy();
           return resolve(
-            res
-              .status(500)
-              .json({ error: `Erro de conexão SSH/TCP: ${err.message}` }),
+            res.status(500).json({
+              error: `Erro de conexão UNM2000: ${err.message}`,
+            }),
           );
         }
       });
@@ -476,7 +621,6 @@ class FiberHomeController {
       client.on("close", () => {
         if (!responded) {
           responded = true;
-          console.log("⚠️ Conexão encerrada pelo servidor antes da resposta.");
           return resolve(
             res.status(500).json({
               error: "Conexão encerrada inesperadamente pelo UNM2000",
@@ -488,14 +632,13 @@ class FiberHomeController {
   }
 
   static async deleteOnu(req, res) {
-    const { slot, pon, mac, onuIdType = "MAC", alias } = req.body;
+    const { slot, pon, mac, onuIdType = "MAC", alias, oltIp } = req.body;
 
     return new Promise((resolve, reject) => {
       const USER = process.env.UNM_USERNAME;
       const PASS = process.env.UNM_PASSWORD;
       const PORT = 3337;
       const HOST = "192.168.21.9";
-      const OLTID = "192.168.200.2";
 
       let buffer = "";
       let ctag = Math.floor(Math.random() * 9000) + 1000;
@@ -517,7 +660,7 @@ class FiberHomeController {
           step = 1;
           buffer = "";
           ctag++;
-          const delCmd = `DEL-ONU::OLTID=${OLTID},PONID=1-1-${slot}-${pon}:CTAG::ONUIDTYPE=${onuIdType},ONUID=${mac};\r\n`;
+          const delCmd = `DEL-ONU::OLTID=${oltIp},PONID=1-1-${slot}-${pon}:CTAG::ONUIDTYPE=${onuIdType},ONUID=${mac};\r\n`;
           console.log("➡️ Enviando:", delCmd.trim());
           client.write(delCmd);
           return;
@@ -582,28 +725,22 @@ class FiberHomeController {
   }
 
   static async addAndConfigOnu(req, res) {
-    const { slot, pon, mac, onuAlias, onuType, vlan } = req.body;
-    let onuNumber;
-    try {
-      onuNumber = await discoverNextOnuNumber(slot, pon);
-    } catch (error) {
-      console.error("Erro ao descobrir n mero de ONU:", error.message);
-      return res.status(500).json({ error: "Erro ao descobrir n mero de ONU" });
-    }
+    const { slot, pon, mac, onuAlias, onuType, vlan, oltIp, useVeipService } =
+      req.body;
 
     return new Promise((resolve, reject) => {
       const USER = process.env.UNM_USERNAME;
       const PASS = process.env.UNM_PASSWORD;
       const PORT = 3337;
       const HOST = "192.168.21.9";
+
       let buffer = "";
       let ctag = Math.floor(Math.random() * 9000) + 1000;
-
-      const client = new net.Socket();
       let step = 0;
 
+      const client = new net.Socket();
+
       client.connect(PORT, HOST, () => {
-        console.log("Conectado ao UNM2000");
         const loginCmd = `LOGIN:::${ctag}::UN=${USER},PWD=${PASS};\r\n`;
         client.write(loginCmd);
       });
@@ -611,18 +748,21 @@ class FiberHomeController {
       client.on("data", (data) => {
         buffer += data.toString();
 
-        // 1. LOGIN
+        // 1️⃣ LOGIN
         if (step === 0 && buffer.includes("COMPLD")) {
           step = 1;
           buffer = "";
           ctag++;
-          const addCmd = `ADD-ONU::OLTID=192.168.200.2,PONID=1-1-${slot}-${pon}:CTAG::AUTHTYPE=MAC,ONUID=${mac},PWD=12345678,ONUNO=${onuNumber},NAME=${onuAlias},DESC=NA,ONUTYPE=${onuType};\r\n`;
-          console.log("➡️ Enviando:", addCmd.trim());
+
+          const addCmd =
+            `ADD-ONU::OLTID=${oltIp},PONID=1-1-${slot}-${pon}:CTAG::` +
+            `AUTHTYPE=MAC,ONUID=${mac},PWD=12345678,NAME=${onuAlias},DESC=NA,ONUTYPE=${onuType};\r\n`;
+
           client.write(addCmd);
           return;
         }
 
-        // 2. ADD-ONU
+        // 2️⃣ ADD-ONU
         if (
           step === 1 &&
           buffer.includes("COMPLD") &&
@@ -631,43 +771,79 @@ class FiberHomeController {
           step = 2;
           buffer = "";
           ctag++;
-          const cfgCmd = `CFG-LANPORT::OLTID=192.168.200.2,PONID=1-1-${slot}-${pon},ONUIDTYPE=MAC,ONUID=${mac},ONUPORT=NA-NA-NA-1:CTAG::VLANMOD=Tag,PVID=${vlan},PCOS=0;\r\n`;
-          console.log("➡️ Enviando:", cfgCmd.trim());
-          client.write(cfgCmd);
+
+          // 🔀 muda VLANMODE conforme VEIP
+          const vlanMode = useVeipService ? "Transparent" : "Tag";
+
+          const cfgLanCmd =
+            `CFG-LANPORT::OLTID=${oltIp},PONID=1-1-${slot}-${pon},` +
+            `ONUIDTYPE=MAC,ONUID=${mac},ONUPORT=NA-NA-NA-1:CTAG::` +
+            `VLANMOD=${vlanMode},PVID=${vlan},PCOS=0;\r\n`;
+
+          client.write(cfgLanCmd);
           return;
         }
 
-        // 3. CFG-LANPORT
+        // 3️⃣ CFG-LANPORT
         if (
           step === 2 &&
           buffer.includes("COMPLD") &&
           buffer.trim().endsWith(";")
         ) {
-          client.end();
-          const auditoriaEntry = new Auditoria({
-            user: req.user.name,
-            status: "cadastrado",
-            message: `cpe ${mac} provisionada na olt FIBERHOME | interface ${slot}/${pon}.`,
-            type: "cpe",
-            client: onuAlias,
-            ipAddress: req.clientIP,
-          });
+          buffer = "";
+          ctag++;
 
-          auditoriaEntry.save();
-          resolve(res.status(200).json({ success: true, message: buffer }));
+          // 👉 se NÃO usar VEIP, finaliza aqui
+          if (!useVeipService) {
+            client.end();
+            return finalizeSuccess();
+          }
+
+          // 👉 se usar VEIP, segue para CFG-VEIPSERVICE
+          step = 3;
+
+          const veipCmd =
+            `CFG-VEIPSERVICE::OLTID=${oltIp},PONID=1-1-${slot}-${pon},` +
+            `ONUIDTYPE=MAC,ONUID=${mac},ONUPORT=NA-NA-NA-1:CTAG::` +
+            `ServiceId=1,CVLANID=${vlan},ServiceModelProfile=INTELBRAS_ROUTER,ServiceType=DATA;\r\n`;
+
+          client.write(veipCmd);
+          return;
+        }
+
+        // 4️⃣ CFG-VEIPSERVICE
+        if (
+          step === 3 &&
+          buffer.includes("COMPLD") &&
+          buffer.trim().endsWith(";")
+        ) {
+          client.end();
+          return finalizeSuccess();
         }
       });
 
       client.on("error", (err) => {
-        console.error("Erro de conexão:", err.message);
-
-        reject(
-          res
-            .status(500)
-            .json({ error: `erro ao conectar no unm: ${err.message}` }),
-        );
         client.end();
+        reject(
+          res.status(500).json({
+            error: `erro ao conectar no UNM: ${err.message}`,
+          }),
+        );
       });
+
+      const finalizeSuccess = () => {
+        const auditoriaEntry = new Auditoria({
+          user: req.user.name,
+          status: "cadastrado",
+          message: `cpe ${mac} provisionada na olt FIBERHOME | interface ${slot}/${pon}.`,
+          type: "cpe",
+          client: onuAlias,
+          ipAddress: req.clientIP,
+        });
+
+        auditoriaEntry.save();
+        resolve(res.status(200).json({ success: true }));
+      };
     });
   }
 
@@ -788,6 +964,87 @@ class FiberHomeController {
     });
   }
 
+  static async getOnuOpticalPower(req, res) {
+    const { onus } = req.body;
+
+    if (!Array.isArray(onus) || onus.length === 0) {
+      return res.status(400).json({ error: "Array de ONUs inválido" });
+    }
+
+    const USER = process.env.UNM_USERNAME;
+    const PASS = process.env.UNM_PASSWORD;
+    const HOST = "192.168.21.9";
+    const PORT = 3337;
+
+    let buffer = "";
+    let ctag = Math.floor(Math.random() * 9000) + 1000;
+    let step = -1;
+
+    const results = [];
+
+    const commands = onus.map((onu) => ({
+      onu,
+      cmd: `LST-OMDDM::OLTID=${onu.oltIp},PONID=1-1-${onu.slot}-${onu.pon},ONUIDTYPE=ONU_NUMBER,ONUID=${onu.onuNumber},PEERFLAG=True`,
+    }));
+
+    const client = new net.Socket();
+
+    client.connect(PORT, HOST, () => {
+      client.write(`LOGIN:::${ctag}::UN=${USER},PWD=${PASS};\r\n`);
+    });
+
+    client.on("data", (data) => {
+      buffer += data.toString();
+
+      if (!buffer.includes("COMPLD") || !buffer.trim().endsWith(";")) return;
+
+      const response = buffer;
+      buffer = "";
+
+      if (step === -1) {
+        step = 0;
+      } else {
+        const { onu } = commands[step - 1];
+        const optical = parseOmddm(response);
+
+        results.push({
+          name: onu.name,
+          mac: onu.mac,
+          slot: onu.slot,
+          pon: onu.pon,
+          onuNumber: onu.onuNumber,
+          RSSI:
+            optical.rxPowerOlt !== null
+              ? `${optical.rxPowerOlt}dBm (+-3dBm)`
+              : null,
+          ["Power Level"]:
+            optical.rxPower !== null ? `${optical.rxPower}dBm (+-3dBm)` : null,
+          temperature: optical.temperature,
+          voltage: optical.voltage,
+          biasCurrent: optical.biasCurrent,
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      if (step < commands.length) {
+        const { cmd } = commands[step];
+        ctag++;
+        client.write(`${cmd}:${ctag}::;\r\n`);
+        console.log(`➡️  ${cmd}`);
+        step++;
+        return;
+      }
+
+      client.end();
+      return res.status(200).json(results);
+    });
+
+    client.on("error", (err) => {
+      client.end();
+      return res.status(500).json({ error: err.message });
+    });
+  }
+
   static parseOpticModuleOutput(buffer, onu) {
     const lines = buffer.split(/\r?\n/);
     let rxPower = null;
@@ -902,21 +1159,12 @@ class FiberHomeController {
       return res.status(400).json({ error: "Script TL1 inválido" });
     }
 
-    let onuNumber;
-    try {
-      onuNumber = await discoverNextOnuNumber(slot, pon);
-    } catch (err) {
-      console.error("Erro ao descobrir número de ONU:", err.message);
-      return res.status(500).json({ error: "Erro ao descobrir número de ONU" });
-    }
-
     const USER = process.env.UNM_USERNAME;
     const PASS = process.env.UNM_PASSWORD;
     const PORT = 3337;
     const HOST = "192.168.21.9";
 
     const commands = script
-      .replaceAll("[[onuNumber]]", onuNumber)
       .split(";")
       .map((cmd) => cmd.trim())
       .filter(Boolean);

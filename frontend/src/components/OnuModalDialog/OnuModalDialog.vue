@@ -42,8 +42,8 @@ const getOltRamals = async () => {
 const getUnauthorizedOnuInfo = async () => {
   try {
     const promiseList = heatmapOlts.value.map(async (olt) => {
-      if (olt.oltName.includes("FIBERHOME")) {
-        const onus = await getUnauthorizedOnuInfoFromFiberhome();
+      if (olt.vendor === "FIBERHOME") {
+        const onus = await getUnauthorizedOnuInfoFromFiberhome(olt.oltIp);
         return [...onus, olt.oltIp];
       }
       const response = await fetchApi.post("listar-onu", { oltIp: olt.oltIp });
@@ -71,11 +71,16 @@ const getUnauthorizedOnuInfo = async () => {
   }
 };
 
-const getUnauthorizedOnuInfoFromFiberhome = async () => {
+const getUnauthorizedOnuInfoFromFiberhome = async (oltIp) => {
   try {
-    const response = await fetchApi.get("/descobrir-onu-fiberhome");
+    const response = await fetchApi.post(
+      "/listar-onu-fiberhome-nao-autorizadas/",
+      {
+        oltIp,
+      },
+    );
 
-    return response.data.onus;
+    return response.data;
   } catch (error) {
     console.log("erro ao consultar olts fiberhome", error.message);
     loadingApi.value = false;
@@ -88,7 +93,7 @@ const mergeOnuAndRamalData = async () => {
   return unauthorizedOnuInfo.map((onuData) => {
     const matchingData = oltRamals.value.find(
       (ramalData) =>
-        ramalData.oltIp == onuData.oltIp && ramalData.oltPon == onuData.gpon
+        ramalData.oltIp == onuData.oltIp && ramalData.oltPon == onuData.gpon,
     );
     return matchingData ? { ...onuData, ...matchingData } : onuData;
   });

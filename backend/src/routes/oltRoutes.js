@@ -21,6 +21,7 @@ router
   .get("/descobrir-onu-fiberhome", auth, FiberHomeController.discoverOnus)
   .post(
     "/listar-onu-fiberhome-nao-autorizadas",
+    auth,
     FiberHomeController.getUnregisteredOnus,
   )
   .get("/listar-onu-fiberhome", auth, FiberHomeController.getAllONUsFromUNM)
@@ -36,7 +37,11 @@ router
     auth,
     FiberHomeController.executeTl1Script,
   )
-  .post("/verificar-onu-fiberhome", auth, FiberHomeController.getOnuSignals)
+  .post(
+    "/verificar-onu-fiberhome",
+    auth,
+    FiberHomeController.getOnuOpticalPower,
+  )
   .post("/verificar-onu", auth, oltController.VerificarOnu)
   .post("/verificar-onu-completo", auth, oltController.VerificarOnuSummary)
   .post("/verificar-pon", auth, oltController.VerificarSinalPon)

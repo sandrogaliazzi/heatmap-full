@@ -3,10 +3,12 @@ import { ref, onMounted, computed } from "vue";
 import fetchApi from "@/api";
 import hubApi from "@/api/hubsoftApi";
 import { useNotificationStore } from "@/stores/notification";
+import Olt from "./Olt.vue";
 
 const oltList = ref([]);
 const query = ref("");
 const panel = ref([]);
+const enableForm = ref(false);
 const syncWithHubLoading = ref(false);
 const notification = useNotificationStore();
 
@@ -52,12 +54,6 @@ const addOlt = async (olt) => {
   } catch (error) {
     console.log("erro ao adicionar olt", error.message);
   }
-};
-
-const matchOlt = (olt) => {
-  return heatmapOlts.value.find(
-    (holt) => holt.hubsoft_id == olt.id_equipamento,
-  );
 };
 
 const updateOlt = async (olt) => {
@@ -121,15 +117,16 @@ const syncWithHub = async () => {
 };
 
 const filteredOltList = computed(() => {
-  return oltList.value.filter((olt) =>
-    olt.nome.toLowerCase().includes(query.value.toLowerCase()),
+  if (!query.value) return heatmapOlts.value;
+  return heatmapOlts.value.filter((olt) =>
+    olt.oltName.toLowerCase().includes(query.value.toLowerCase()),
   );
 });
 
 const changeOltActiveStatus = async (status, olt) => {
   try {
     const response = await fetchApi.post("/editar-status-olt", {
-      id: olt.id_equipamento,
+      id: olt.hubsoft_id,
       status,
     });
     if (response.status === 200) {
@@ -137,9 +134,6 @@ const changeOltActiveStatus = async (status, olt) => {
         status: "success",
         msg: "Status alterado com sucesso",
       });
-      heatmapOlts.value.find(
-        (holt) => holt.hubsoft_id == olt.id_equipamento,
-      ).active = status;
       getHeatmapOltList();
     }
   } catch (error) {
@@ -185,28 +179,34 @@ onMounted(async () => {
       <v-expansion-panels>
         <v-expansion-panel
           v-for="olt in filteredOltList || heatmapOlts"
-          :key="olt.id_equipamento"
-          :title="olt.nome"
+          :key="olt.oltIp"
+          :title="olt.oltName"
           v-model="panel"
           multiple
         >
           <v-expansion-panel-text>
-            <v-switch
-              :model-value="matchOlt(olt)?.active"
-              color="primary"
-              label="ativo no heatmap"
-              @update:model-value="changeOltActiveStatus($event, olt)"
-            ></v-switch>
-            <v-list>
-              <v-list-item
-                v-for="oltInterface in olt.interfaces"
-                :key="oltInterface.id_interface_conexao"
-                :subtitle="oltInterface.descricao"
-                :title="oltInterface.nome"
-                :value="oltInterface.nome"
-              >
-              </v-list-item>
-            </v-list>
+            <div class="d-flex justify-space-between align-center">
+              <v-switch
+                :model-value="olt.active"
+                color="primary"
+                label="ativo no heatmap"
+                @update:model-value="changeOltActiveStatus($event, olt)"
+              ></v-switch>
+              <v-switch
+                :model-value="enableForm"
+                color="primary"
+                label="habilitar edição"
+                @update:model-value="enableForm = $event"
+              ></v-switch>
+            </div>
+            <Olt
+              :olt="olt"
+              :enableForm="enableForm"
+              @refreshOltList="
+                getHeatmapOltList;
+                enableForm = false;
+              "
+            />
           </v-expansion-panel-text>
         </v-expansion-panel>
       </v-expansion-panels>

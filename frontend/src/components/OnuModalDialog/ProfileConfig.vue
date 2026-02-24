@@ -113,9 +113,13 @@ const selectedOnu = ref(null);
 
 const getUnauthorizedOnuInfoFromFiberhome = async () => {
   try {
-    const response = await fetchApi.get("/descobrir-onu-fiberhome");
-
-    return response.data.onus;
+    const response = await fetchApi.post(
+      "/listar-onu-fiberhome-nao-autorizadas",
+      {
+        oltIp: selectedOlt.value.oltIp,
+      },
+    );
+    return response.data;
   } catch (error) {
     console.log("erro ao consultar olts fiberhome", error.message);
     loadingApi.value = false;
@@ -221,11 +225,7 @@ const handleSubmit = async () => {
   if (isVEIPprofile.value) {
     script.value = mountCpeVEIPprofile();
   } else if (isFiberome.value) {
-    script.value = fiberhomeConfig.value.mountFiberhomeScript(
-      selectedOnu.value.onuMac,
-      alias.value,
-      selectedOlt.value.ipv4,
-    );
+    script.value = fiberhomeConfig.value.mountFiberhomeScript();
   } else {
     script.value = mountCpeBridgeScript();
   }
@@ -444,7 +444,11 @@ onMounted(async () => {
           </template>
         </template>
         <template v-else-if="isFiberome">
-          <FiberhomeOnuConfig ref="fiberhomeConfig" />
+          <FiberhomeOnuConfig
+            ref="fiberhomeConfig"
+            v-if="selectedOnu"
+            :onu="selectedOnu"
+          />
         </template>
         <br />
 

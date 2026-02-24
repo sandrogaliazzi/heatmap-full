@@ -22,6 +22,7 @@ const selectedClient = ref(hubsoftData?.selectedClient);
 const selectedService = ref(hubsoftData?.selectedService);
 const interfaces = ref([]);
 const selectedInterface = ref(hubsoftData?.selectedInterface);
+const useVeipService = ref(false);
 
 const inputRules = [
   (value) => {
@@ -136,11 +137,13 @@ const provisionOnuFiberhome = async (requestBody) => {
   try {
     const response = await fetchApi.post("liberar-onu-fiberhome", {
       slot: formData.slot,
-      pon: formData.gpon,
+      pon: formData.pon,
       vlan: formData.ponVlan,
       onuAlias: normalizeName(selectedClient.value.nome_razaosocial),
-      onuType: formData.onuModel,
+      onuType: formData.onuType,
       mac: formData.onuMac,
+      oltIp: formData.oltIp,
+      useVeipService: useVeipService.value,
     });
     if (response.status === 200) {
       loadingSubmit.value = false;
@@ -180,11 +183,12 @@ const handleSubmit = async () => {
       ),
       sinalTX: formData["Power Level"],
       sinalRX: formData["RSSI"],
+      useVeipService: useVeipService.value,
     };
 
     await configClientAuth();
 
-    if (formData.oltName === "FIBERHOME") {
+    if (formData.oltName.includes("FIBERHOME")) {
       await provisionOnuFiberhome(requestBody);
     } else {
       await provisionOnuParks(requestBody);
@@ -192,7 +196,10 @@ const handleSubmit = async () => {
   }
 };
 
-onMounted(() => loadInterfaces());
+onMounted(() => {
+  loadInterfaces();
+  console.log("onu", formData);
+});
 </script>
 
 <template>
@@ -283,6 +290,12 @@ onMounted(() => loadInterfaces());
       prepend-inner-icon="mdi-tools"
       placeholder="Digite o nome da Técnico"
     ></v-text-field>
+
+    <v-checkbox
+      label="perfil router veip"
+      color="orange"
+      v-model="useVeipService"
+    ></v-checkbox>
 
     <br />
 

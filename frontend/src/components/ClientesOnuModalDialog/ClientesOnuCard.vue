@@ -24,23 +24,8 @@ const getOltList = async () => {
   }
 };
 
-const citysFilter = {
-  "NOVA HARTZ": ["NOVA HARTZ"],
-  ARARICA: ["ARARICA"],
-  IGREJINHA: ["IGREJINHA", "NOVA HARTZ"],
-  SAPIRANGA: ["ARARICA"],
-  "TRES COROAS": ["IGREJINHA"],
-  "M. PEDRA": ["MORRO DA PEDRA", "FAZENDA FIALHO", "ARARICA"],
-  "FAZ. FIALHO": ["FAZENDA FIALHO", "MORRO DA PEDRA"],
-  PAROBE: ["PAROBÉ", "IGREJINHA", "NOVA HARTZ"],
-  "SÃO JOÃO DO DESERTO": ["SÃO JOÃO DO DESERTO", "MORUNGAVA", "FAZENDA FIALHO"],
-  MORUNGAVA: ["MORUNGAVA", "SÃO JOÃO DO DESERTO"],
-};
-
 const filterOltsByCity = (city) => {
-  const olts = heatmapOlts.value.filter((olt) =>
-    citysFilter[city].includes(olt.oltPop),
-  );
+  const olts = heatmapOlts.value.filter((olt) => olt.areas.includes(city));
   return !olts.length ? heatmapOlts.value : olts;
 };
 
@@ -58,13 +43,17 @@ const fetchAllOnu = async () => {
   const oltList =
     city && city !== "INDEFINIDO" ? filterOltsByCity(city) : heatmapOlts.value;
 
+  let fetchFiberhomeOnuTimes = 0;
+
   const promiseList = oltList.map(async (olt) => {
     if (olt.oltName.includes("FIBERHOME")) {
+      if (fetchFiberhomeOnuTimes > 0) return [];
+      fetchFiberhomeOnuTimes++;
       return await fetchFiberhomeOnu();
     }
 
     const onuData = await fetchApi.post("verificar-onu-name-olt", {
-      oltIp: olt.ipv4,
+      oltIp: olt.ipv4 || olt.oltIp,
     });
 
     return onuData.data;

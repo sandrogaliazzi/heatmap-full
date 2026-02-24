@@ -2,25 +2,32 @@
 import { ref } from "vue";
 import FiberhomeOnuFormConfig from "./FiberhomeOnuFormConfig.vue";
 
+const { onu } = defineProps({
+  onu: {
+    type: Object,
+    required: true,
+  },
+});
+
 const config = ref([]);
-const slot = ref(null);
-const pon = ref(null);
-const isVeip = ref(false);
+const slot = ref(onu?.slot || null);
+const pon = ref(onu?.pon || null);
 
 const onValueChanged = (value) => {
   config.value[value.configNumber - 1] = value;
 };
 
 const mountFiberhomeScript = (
-  mac = "ITBS-ONU",
+  mac = onu.onuMac,
   alias = "SANDRO TESTE",
-  oltIp = "192.168.200.2",
+  oltIp = onu.oltIp,
+  onuType = onu.onuType,
 ) => {
   let script = "";
   let veipServiceId = 0;
 
   const addOnu =
-    `ADD-ONU::OLTID=${oltIp},PONID=1-1-${slot.value}-${pon.value}:CTAG::AUTHTYPE=MAC,ONUID=${mac},PWD=12345678,ONUNO=[[onuNumber]],NAME=${alias},DESC=NA,ONUTYPE=AN5506-01-A1;\r\n`.trim();
+    `ADD-ONU::OLTID=${oltIp},PONID=1-1-${slot.value}-${pon.value}:CTAG::AUTHTYPE=MAC,ONUID=${mac},PWD=12345678,NAME=${alias},DESC=NA,ONUTYPE=${onuType};\r\n`.trim();
 
   const onuConfig = config.value.reduce((acc, onu) => {
     if (onu.configType === "veip") veipServiceId++;

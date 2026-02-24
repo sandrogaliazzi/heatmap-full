@@ -488,45 +488,55 @@ class oltController {
   };
 
   static VerificarOnuSummary = (req, res) => {
-    let host = req.body.oltIp;
-    let onuAlias = req.body.onuAlias;
+    const host = req.body.oltIp;
+    const onuAlias = req.body.onuAlias;
     const username = process.env.PARKS_USERNAME;
     const password = `#${process.env.PARKS_PASSWORD}`;
+
+    if (!host || !onuAlias) {
+      return res.status(400).json({ error: "Parâmetros inválidos" });
+    }
+
     const conn = new Client();
+    let responded = false; // 🔒 trava de resposta
+
+    const safeRespond = (status, payload) => {
+      if (responded) return;
+      responded = true;
+      res.status(status).json(payload);
+    };
 
     conn
       .on("ready", () => {
         conn.shell((err, stream) => {
           if (err) {
-            console.error(err);
-            res.status(500).json({ error: "Error connecting to the OLT" });
+            safeRespond(500, { error: "Erro ao abrir shell SSH" });
+            conn.end();
             return;
           }
 
           let dataBuffer = "";
-          let jsonOutput = {}; // Updated to store the entire object
+          const jsonOutput = {};
 
           stream
-            .on("close", () => {
-              res.json(jsonOutput); // Send jsonOutput as the response
-
-              conn.end();
-            })
             .on("data", (data) => {
               dataBuffer += data.toString();
-              if (dataBuffer.includes("\n")) {
-                const lines = dataBuffer.split("\n");
-                dataBuffer = lines.pop();
-                for (const line of lines) {
-                  if (line.includes(":")) {
-                    const [key, ...values] = line.split(":");
-                    const trimmedKey = key.trim();
-                    const trimmedValue = values.join(":").trim();
 
-                    jsonOutput[trimmedKey] = trimmedValue;
-                  }
-                }
+              if (!dataBuffer.includes("\n")) return;
+
+              const lines = dataBuffer.split("\n");
+              dataBuffer = lines.pop();
+
+              for (const line of lines) {
+                if (!line.includes(":")) continue;
+
+                const [key, ...values] = line.split(":");
+                jsonOutput[key.trim()] = values.join(":").trim();
               }
+            })
+            .on("close", () => {
+              safeRespond(200, jsonOutput);
+              conn.end();
             });
 
           stream.write(`show gpon onu ${onuAlias} summary\n`);
@@ -534,14 +544,16 @@ class oltController {
         });
       })
       .on("error", (err) => {
-        console.error(err);
-        res.status(500).json({ error: "Error connecting to the OLT" });
+        console.error("SSH error:", err.message);
+        safeRespond(500, { error: "Erro ao conectar na OLT" });
+        conn.end();
       })
       .connect({
-        host: host,
+        host,
         port: 22,
-        username: username,
-        password: password,
+        username,
+        password,
+        readyTimeout: 8000, // 👈 evita travar
       });
   };
 
@@ -986,15 +998,30 @@ class oltController {
     let onuSerial = req.body.onuSerial;
     let onuAlias = req.body.onuAlias;
     let user = req.body.user;
+    let useVeipService = req.body.useVeipService;
     let gpon = oltPon;
-    let flowProfile =
-      oltIp === "192.168.214.2" || oltIp === "192.168.217.2"
-        ? `bridge_vlan${onuVlan}`
-        : `bridge_vlan_${onuVlan}`;
-
+    let flowProfile = "";
     let sinalTX = req.body.sinalTX;
     let sinalRX = req.body.sinalRX;
     let date_time = new Date().toLocaleString("PT-br");
+
+    function setFlowProfile() {
+      let vlan;
+      if (
+        oltIp === "192.168.214.2" ||
+        (oltIp === "192.168.217.2" && !useVeipService)
+      ) {
+        vlan = `bridge_vlan${onuVlan}`;
+      } else if (useVeipService) {
+        vlan = `router_Veip_vlan${onuVlan}`;
+      } else {
+        vlan = `bridge_vlan_${onuVlan}`;
+      }
+
+      return vlan;
+    }
+
+    flowProfile = setFlowProfile();
 
     let clienteDb = {
       date_time,
@@ -1066,21 +1093,36 @@ class oltController {
               }
             });
 
-          stream.write("configure terminal\n");
-          stream.write(`interface ${gpon}\n`);
-          stream.write(`onu add serial-number ${onuSerial}\n`);
-          stream.write(`onu ${onuSerial} alias ${onuAlias}\n`);
-          stream.write(`onu ${onuSerial} flow ${flowProfile}\n`);
-          stream.write(
-            `onu ${onuSerial} vlan-translation-profile _${onuVlan} uni-port 1\n`,
-          );
-          stream.write(
-            `onu ${onuSerial} ethernet-profile auto-on uni-port 1\n`,
-          );
-          stream.write("end\n");
-          stream.write("copy r s\n");
-          stream.write(`show gpon onu ${onuSerial} status\n`);
-          stream.write("exit\n");
+          if (!useVeipService) {
+            stream.write("configure terminal\n");
+            stream.write(`interface ${gpon}\n`);
+            stream.write(`onu add serial-number ${onuSerial}\n`);
+            stream.write(`onu ${onuSerial} alias ${onuAlias}\n`);
+            stream.write(`onu ${onuSerial} flow ${flowProfile}\n`);
+            stream.write(
+              `onu ${onuSerial} vlan-translation-profile _${onuVlan} uni-port 1\n`,
+            );
+            stream.write(
+              `onu ${onuSerial} ethernet-profile auto-on uni-port 1\n`,
+            );
+            stream.write("end\n");
+            stream.write("copy r s\n");
+            stream.write(`show gpon onu ${onuSerial} status\n`);
+            stream.write("exit\n");
+          } else {
+            stream.write("configure terminal\n");
+            stream.write(`interface ${gpon}\n`);
+            stream.write(`onu add serial-number ${onuSerial}\n`);
+            stream.write(
+              `onu ${onuSerial} ethernet-profile auto-on uni-port 1-2\n`,
+            );
+            stream.write(`onu ${onuSerial} alias ${onuAlias}\n`);
+            stream.write(`onu ${onuSerial} flow ${flowProfile}\n`);
+            stream.write("end\n");
+            stream.write("copy r s\n");
+            stream.write(`show gpon onu ${onuSerial} status\n`);
+            stream.write("exit\n");
+          }
         });
       })
       .connect({
