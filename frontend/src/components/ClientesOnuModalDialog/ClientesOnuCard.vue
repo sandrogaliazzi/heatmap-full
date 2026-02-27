@@ -165,6 +165,15 @@ onMounted(async () => {
   await getOltList();
   await fetchAllOnu();
   findOnuListFromCto();
+  console.log(
+    "onuList.value",
+    onuList.value.map((onu) => {
+      return {
+        name: onu.name,
+        mac: onu.mac,
+      };
+    }),
+  );
 });
 </script>
 

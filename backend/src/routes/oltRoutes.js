@@ -25,6 +25,11 @@ router
     FiberHomeController.getUnregisteredOnus,
   )
   .get("/listar-onu-fiberhome", auth, FiberHomeController.getAllONUsFromUNM)
+  .post(
+    "/listar-onu-fiberhome-por-pon",
+    auth,
+    FiberHomeController.getOnusFromOltPon,
+  )
   .post("/listar-perfis-gpon-parks", auth, oltController.VerificarPerfisGpon)
   .post(
     "/listar-vlan-translation",

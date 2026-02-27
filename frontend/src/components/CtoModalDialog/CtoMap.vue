@@ -3,6 +3,7 @@ import { toRefs, ref, watch, computed } from "vue";
 
 import ctoIcon from "@/assets/ctoconect.png";
 import personIcon from "@/assets/personIcon.png";
+import fetchApi from "@/api";
 
 const props = defineProps([
   "isMapVisible",
@@ -33,6 +34,23 @@ const locatedClients = computed(() => {
     position: { value: { lat: +client.lat, lng: +client.lng } },
   }));
 });
+
+const removeClienteLocation = async (id) => {
+  if (confirm("deseja remover a localizacao deste cliente?")) {
+    try {
+      const response = await fetchApi.delete(`/deletectoclient/${id}`);
+      if (response.status === 201) {
+        alert("Localizacao removida com sucesso");
+      }
+    } catch (error) {
+      console.error(error);
+      notification.setNotification({
+        status: "error",
+        msg: "Erro ao remover localizacao",
+      });
+    }
+  }
+};
 
 const hasLocatedClients = computed(() => {
   return !locatedClients.value.length ? false : true;
@@ -103,7 +121,13 @@ watch(isMapVisible, () => (positionClicked.value = null));
               :closeclick="true"
               @closeclick="infoWindowId = null"
             >
-              <div>
+              <div class="d-flex flex-column ga-2">
+                <v-btn
+                  size="x-small"
+                  color="red"
+                  @click="removeClienteLocation(client.id)"
+                  >Remover</v-btn
+                >
                 <span
                   class="text-grey-darken-3 font-weight-bold text-center"
                   style="font-size: 10px"

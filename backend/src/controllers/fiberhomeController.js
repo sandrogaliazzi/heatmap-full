@@ -631,6 +631,105 @@ class FiberHomeController {
     });
   }
 
+  static async getOnusFromOltPon(req, res) {
+    const { oltIp, slot, pon } = req.body;
+
+    if (!oltIp || !slot || !pon) {
+      return res.status(400).json({
+        error: "oltIp, slot e pon são obrigatórios",
+      });
+    }
+
+    return new Promise((resolve) => {
+      const USER = process.env.UNM_USERNAME;
+      const PASS = process.env.UNM_PASSWORD;
+      const PORT = 3337;
+      const HOST = "192.168.21.9";
+
+      let buffer = "";
+      let ctag = Math.floor(Math.random() * 9000) + 1000;
+      let responded = false;
+      let loggedIn = false;
+
+      const client = new net.Socket();
+
+      console.log(`➡️ Consultando OLT ${oltIp} | Slot ${slot} | PON ${pon}`);
+
+      client.setTimeout(8000, () => {
+        if (!responded) {
+          responded = true;
+          client.destroy();
+          return resolve(
+            res.status(504).json({
+              error: "Timeout ao consultar o UNM2000",
+            }),
+          );
+        }
+      });
+
+      client.connect(PORT, HOST, () => {
+        console.log(`🔌 Conectado em ${HOST}:${PORT}`);
+        const loginCmd = `LOGIN:::${ctag}::UN=${USER},PWD=${PASS};\r\n`;
+        client.write(loginCmd);
+      });
+
+      client.on("data", (data) => {
+        buffer += data.toString();
+
+        // LOGIN OK
+        if (!loggedIn && buffer.includes("COMPLD")) {
+          loggedIn = true;
+          buffer = "";
+          ctag++;
+
+          const cmd = `LST-ONU::OLTID=${oltIp},PONID=1-1-${slot}-${pon}:${ctag}::;\r\n`;
+          return client.write(cmd);
+        }
+
+        // resposta completa do LST-ONU
+        if (
+          loggedIn &&
+          buffer.includes("COMPLD") &&
+          buffer.trim().endsWith(";")
+        ) {
+          responded = true;
+          client.end();
+
+          const onus = parseOnuListFromUnm(buffer, {
+            oltIp,
+            slot,
+            pon,
+          });
+
+          return resolve(res.status(200).json({ onus }));
+        }
+      });
+
+      client.on("error", (err) => {
+        if (!responded) {
+          responded = true;
+          client.destroy();
+          return resolve(
+            res.status(500).json({
+              error: `Erro de conexão UNM2000: ${err.message}`,
+            }),
+          );
+        }
+      });
+
+      client.on("close", () => {
+        if (!responded) {
+          responded = true;
+          return resolve(
+            res.status(500).json({
+              error: "Conexão encerrada inesperadamente pelo UNM2000",
+            }),
+          );
+        }
+      });
+    });
+  }
+
   static async deleteOnu(req, res) {
     const { slot, pon, mac, onuIdType = "MAC", alias, oltIp } = req.body;
 

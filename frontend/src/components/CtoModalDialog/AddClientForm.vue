@@ -19,6 +19,7 @@ const name = ref("");
 const pppoe = ref("");
 const formRef = ref(null);
 const loading = ref(false);
+const reservado = ref(false);
 
 const { nameRules, positionRules } = formValidationRules;
 
@@ -34,6 +35,10 @@ watch(name, (value) => {
 
     pppoe.value = pppoeMounted;
   }
+});
+
+watch(reservado, (value) => {
+  if (value) isBindedToHubsoft.value = false;
 });
 
 const showNotification = () => {
@@ -58,12 +63,20 @@ const sendNewClient = async (bodyRequest) => {
   try {
     const response = await fetchApi.post("client", bodyRequest);
 
-    return response.data;
+    return response;
   } catch (err) {
     notification.setNotification({
       msg: err.msg,
       status: "red",
     });
+  }
+};
+
+const addClientReservados = async (body) => {
+  try {
+    await fetchApi.post("/reservados", body);
+  } catch (error) {
+    console.log(error);
   }
 };
 
@@ -81,7 +94,7 @@ const handleAfterSubmitTasks = () => {
 const handleFormSubmit = async () => {
   const { valid } = await formRef.value.validate();
 
-  const { id, name: cto_name } = cto.value;
+  const { id: cto_id, name: cto_name } = cto.value;
   const { lat, lng } = clientPosition.value;
 
   if (valid) {
@@ -90,20 +103,42 @@ const handleFormSubmit = async () => {
     const bodyRequest = {
       name: isBindedToHubsoft.value
         ? normalizeName(selectedClient.value.nome_razaosocial)
-        : name.value.toUpperCase(),
+        : reservado.value
+          ? name.value.toUpperCase() + " (RESERVADO)"
+          : name.value.toUpperCase(),
       pppoe: pppoe.value,
       lat: lat.toString(),
       lng: lng.toString(),
-      cto_id: id,
+      cto_id: cto_id,
       user: userStore.user.name,
       cto_name,
       date_time: new Date().toLocaleString("pt-BR"),
     };
 
-    await sendNewClient(bodyRequest);
+    const response = await sendNewClient(bodyRequest);
 
-    handleAfterSubmitTasks();
+    if (response.status === 201) {
+      if (reservado.value) {
+        const { id } = response.data;
+
+        await addClientReservados({
+          tomodat_id: id,
+          name: name.value.toUpperCase(),
+          coord: { lat, lng },
+          cto_id: cto_id,
+          user: bodyRequest.user,
+        });
+      }
+      handleAfterSubmitTasks();
+    } else {
+      loading.value = false;
+      notification.setNotification({
+        msg: "Erro ao cadastrar cliente" + response.data,
+        status: "red",
+      });
+    }
   }
+  reservado.value = false;
 };
 
 const isBindedToHubsoft = ref(false);
@@ -125,11 +160,18 @@ const handleServiceSelection = (service) => {
 <template>
   <v-form ref="formRef" @submit.prevent="handleFormSubmit">
     <v-container>
-      <v-switch
-        label="vincular cliente hubsoft"
-        color="primary"
-        v-model="isBindedToHubsoft"
-      ></v-switch>
+      <data class="d-flex flex-column flex-md-row justify-space-between">
+        <v-switch
+          label="vincular cliente hubsoft"
+          color="primary"
+          v-model="isBindedToHubsoft"
+        ></v-switch>
+        <v-switch
+          label="Adicionar apenas como reserva"
+          color="primary"
+          v-model="reservado"
+        ></v-switch>
+      </data>
       <v-row>
         <v-col cols="12">
           <v-text-field
