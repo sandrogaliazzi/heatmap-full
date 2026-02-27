@@ -6,6 +6,7 @@ import PonSignal from "./PonSingal";
 import TableSignalsData from "./TableSignalsData.vue";
 import ClientTableData from "./ClientTableData.vue";
 import RamalForm from "./RamalForm.vue";
+import { useNotificationStore } from "@/stores/notification";
 
 const isLoadingRamals = ref(true);
 const ramals = ref([]);
@@ -17,6 +18,7 @@ const cardId = ref("");
 const loading = ref(false);
 const showReport = ref(false);
 const showClientReport = ref(false);
+const notificationStore = useNotificationStore();
 
 const closeDialog = inject("closeDialog");
 
@@ -44,16 +46,14 @@ const getRamals = async () => {
   try {
     const oltRamals = await fetchApi("ramais");
     ramals.value = oltRamals.data;
-    // ramals.value.push({
-    //   oltRamal: "PON TESTE",
-    //   oltIp: "162.168.200.2",
-    //   oltPon: "1/1",
-    //   ponVlan: "1010",
-    //   oltName: "FIBERHOME",
-    // });
     isLoadingRamals.value = false;
   } catch (error) {
-    // handle this shit later
+    notificationStore.addNotification({
+      type: "error",
+      message: "Erro ao buscar ramais " + error.message,
+    });
+  } finally {
+    isLoadingRamals.value = false;
   }
 };
 
@@ -80,27 +80,31 @@ function calculateAverages(data) {
   };
 }
 
-const getOnuSignalsFromFiberHome = async (slot, pon) => {
+const getOnuSignalsFromFiberHome = async (oltIp, slot, pon) => {
   try {
-    const onus = await fetchApi.get("listar-onu-fiberhome");
+    const response = await fetchApi.post("listar-onu-fiberhome-por-pon", {
+      oltIp,
+      slot,
+      pon,
+    });
 
-    const filterBySlotAndPon = onus.data.onus.filter(
-      (onu) => onu.slot === slot && onu.pon === pon,
-    );
+    const onus = response.data.onus;
 
-    if (filterBySlotAndPon.length === 0) {
+    if (onus.length === 0) {
       return { data: [] };
     }
-    const signals = await fetchApi.post(
-      "verificar-onu-fiberhome",
-      filterBySlotAndPon,
-    );
+    const signals = await fetchApi.post("verificar-onu-fiberhome", {
+      onus: onus,
+    });
 
     return signals.data.map((onu) => ({
       alias: onu.name,
       rx: parseFloat(onu["RSSI"].split("dBm")[0]),
       tx: parseFloat(onu["Power Level"].split("dBm")[0]),
-      status: "ACTIVE",
+      status:
+        parseFloat(onu["RSSI"].split("dBm")[0]) !== 0
+          ? "ACTIVE (PROVISIONED)"
+          : "INACTIVE",
     }));
   } catch (error) {
     console.log(error);
@@ -108,30 +112,41 @@ const getOnuSignalsFromFiberHome = async (slot, pon) => {
 };
 
 const selectRamal = async (ramal) => {
-  cardId.value = ramal._id;
-  loading.value = true;
-  gponData.value = [];
+  try {
+    cardId.value = ramal._id;
+    loading.value = true;
+    gponData.value = [];
 
-  const { oltIp, oltPon } = ramal;
+    const { oltIp, oltPon } = ramal;
 
-  let ponSignalsData = [];
+    let ponSignalsData = [];
 
-  if (ramal.oltName.includes("FIBERHOME")) {
-    const [slot, pon] = oltPon.split("/");
-    ponSignalsData.data = await getOnuSignalsFromFiberHome(slot, pon);
-  } else {
-    ponSignalsData = await fetchApi.post("verificar-pon", {
-      oltIp,
-      oltPon,
+    if (ramal.oltName.includes("FIBERHOME")) {
+      const [slot, pon] = oltPon.split("/");
+      ponSignalsData.data = await getOnuSignalsFromFiberHome(oltIp, slot, pon);
+    } else {
+      ponSignalsData = await fetchApi.post("verificar-pon", {
+        oltIp,
+        oltPon,
+      });
+    }
+
+    ponSignals.value = ponSignalsData.data;
+    average.value = calculateAverages(
+      ponSignalsData.data.filter(
+        (onu) => onu.status === "ACTIVE (PROVISIONED)",
+      ),
+    );
+
+    loading.value = false;
+  } catch (error) {
+    notificationStore.addNotification({
+      type: "error",
+      message: "Erro ao buscar sinais do ramal " + error.message,
     });
+  } finally {
+    loading.value = false;
   }
-
-  ponSignals.value = ponSignalsData.data;
-  average.value = calculateAverages(
-    ponSignalsData.data.filter((onu) => onu.status === "ACTIVE (PROVISIONED)"),
-  );
-
-  loading.value = false;
 };
 
 onMounted(async () => {

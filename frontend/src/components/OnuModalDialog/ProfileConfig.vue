@@ -58,6 +58,8 @@ const addOnu = () => {
   unauthorizedOnuList.value.push({
     onuMac: newOnu.value,
     gpon: `gpon1/${oltPon.value}`,
+    oltIp: selectedOlt.value.oltIp,
+    onuType: "AN5506-01-A1",
   });
 
   newOnu.value = "";
