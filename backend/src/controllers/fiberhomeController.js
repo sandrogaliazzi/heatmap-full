@@ -1,6 +1,5 @@
 import net from "net";
 import dotenv from "dotenv";
-import { setTimeout } from "timers/promises";
 import Auditoria from "../models/auditoriaModel.js";
 import oltModel from "../models/oltModel.js";
 dotenv.config();

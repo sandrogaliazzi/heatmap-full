@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { Client } from "ssh2";
 import dotenv from "dotenv";
 import cron from "node-cron";
+import net from "net";
 dotenv.config();
 
 mongoose.connect(process.env.MONGO_DB_ACCESS);
@@ -35,6 +36,16 @@ async function isExecutionNeeded() {
     console.error("Erro ao verificar logs existentes:", error);
     return true; // Em caso de erro, evita bloquear a execução
   }
+}
+
+function formatVlan(slot, pon) {
+  let vlan = "";
+  vlan = `1${slot}${pon}`;
+  if (vlan.length < 4) {
+    vlan = `10${slot}${pon}`;
+  }
+
+  return vlan;
 }
 
 function parseOnuListFromUnm(tl1Output) {
@@ -110,7 +121,6 @@ async function getOnusFromOltPon(oltIp, slot, pon) {
         loggedIn = true;
         buffer = "";
         ctag++;
-
         const cmd = `LST-ONU::OLTID=${oltIp},PONID=1-1-${slot}-${pon}:${ctag}::;\r\n`;
         return client.write(cmd);
       }
@@ -130,7 +140,7 @@ async function getOnusFromOltPon(oltIp, slot, pon) {
           pon,
         });
 
-        return { onus: onus };
+        return resolve({ onus });
       }
     });
 
@@ -155,82 +165,123 @@ async function getOnusFromOltPon(oltIp, slot, pon) {
   });
 }
 
+function toFloat(value) {
+  if (!value || value === "--") return null;
+  return parseFloat(value.replace(",", "."));
+}
+
+function parseOmddm(response) {
+  const lines = response.split("\n");
+
+  for (const line of lines) {
+    if (!line.trim().match(/^\d+\s+/)) continue;
+
+    const cols = line.trim().split(/\s+/);
+
+    return {
+      rxPower: toFloat(cols[1]), // RxPower (ONU)
+      txPower: toFloat(cols[3]), // TxPower
+      biasCurrent: toFloat(cols[5]), // CurrTxBias
+      temperature: toFloat(cols[7]), // Temperature
+      voltage: toFloat(cols[9]), // Voltage
+      txPowerOlt: toFloat(cols[11]), // PTxPower
+      rxPowerOlt: toFloat(cols[12]), // PRxPower
+    };
+  }
+
+  return {
+    rxPower: null,
+    txPower: null,
+    biasCurrent: null,
+    temperature: null,
+    voltage: null,
+    txPowerOlt: null,
+    rxPowerOlt: null,
+  };
+}
+
+function formatSignalValue(value) {
+  return parseFloat(value.split("dBm")[0].trim());
+}
+
 async function getOnuOpticalPower(onus) {
   if (!Array.isArray(onus) || onus.length === 0) {
     return { error: "Array de ONUs inválido" };
   }
 
-  const USER = process.env.UNM_USERNAME;
-  const PASS = process.env.UNM_PASSWORD;
-  const HOST = "192.168.21.9";
-  const PORT = 3337;
+  return new Promise((resolve) => {
+    const USER = process.env.UNM_USERNAME;
+    const PASS = process.env.UNM_PASSWORD;
+    const HOST = "192.168.21.9";
+    const PORT = 3337;
 
-  let buffer = "";
-  let ctag = Math.floor(Math.random() * 9000) + 1000;
-  let step = -1;
+    let buffer = "";
+    let ctag = Math.floor(Math.random() * 9000) + 1000;
+    let step = -1;
 
-  const results = [];
+    const results = [];
 
-  const commands = onus.map((onu) => ({
-    onu,
-    cmd: `LST-OMDDM::OLTID=${onu.oltIp},PONID=1-1-${onu.slot}-${onu.pon},ONUIDTYPE=ONU_NUMBER,ONUID=${onu.onuNumber},PEERFLAG=True`,
-  }));
+    const commands = onus.map((onu) => ({
+      onu,
+      cmd: `LST-OMDDM::OLTID=${onu.oltIp},PONID=1-1-${onu.slot}-${onu.pon},ONUIDTYPE=ONU_NUMBER,ONUID=${onu.onuNumber},PEERFLAG=True`,
+    }));
 
-  const client = new net.Socket();
+    const client = new net.Socket();
 
-  client.connect(PORT, HOST, () => {
-    client.write(`LOGIN:::${ctag}::UN=${USER},PWD=${PASS};\r\n`);
-  });
+    client.connect(PORT, HOST, () => {
+      client.write(`LOGIN:::${ctag}::UN=${USER},PWD=${PASS};\r\n`);
+    });
 
-  client.on("data", (data) => {
-    buffer += data.toString();
+    client.on("data", (data) => {
+      buffer += data.toString();
 
-    if (!buffer.includes("COMPLD") || !buffer.trim().endsWith(";")) return;
+      if (!buffer.includes("COMPLD") || !buffer.trim().endsWith(";")) return;
 
-    const response = buffer;
-    buffer = "";
+      const response = buffer;
+      buffer = "";
 
-    if (step === -1) {
-      step = 0;
-    } else {
-      const { onu } = commands[step - 1];
-      const optical = parseOmddm(response);
+      if (step === -1) {
+        step = 0;
+      } else {
+        const { onu } = commands[step - 1];
+        const optical = parseOmddm(response);
 
-      results.push({
-        name: onu.name,
-        mac: onu.mac,
-        slot: onu.slot,
-        pon: onu.pon,
-        onuNumber: onu.onuNumber,
-        RSSI:
-          optical.rxPowerOlt !== null
-            ? `${optical.rxPowerOlt}dBm (+-3dBm)`
-            : null,
-        ["Power Level"]:
-          optical.rxPower !== null ? `${optical.rxPower}dBm (+-3dBm)` : null,
-        temperature: optical.temperature,
-        voltage: optical.voltage,
-        biasCurrent: optical.biasCurrent,
-        timestamp: new Date().toISOString(),
-      });
-    }
+        results.push({
+          name: onu.name,
+          mac: onu.mac,
+          slot: onu.slot,
+          pon: onu.pon,
+          onuNumber: onu.onuNumber,
+          RSSI:
+            optical.rxPowerOlt !== null
+              ? `${optical.rxPowerOlt}dBm (+-3dBm)`
+              : null,
+          ["Power Level"]:
+            optical.rxPower !== null ? `${optical.rxPower}dBm (+-3dBm)` : null,
+          temperature: optical.temperature,
+          voltage: optical.voltage,
+          biasCurrent: optical.biasCurrent,
+          timestamp: new Date().toISOString(),
+        });
+      }
 
-    if (step < commands.length) {
-      const { cmd } = commands[step];
-      ctag++;
-      client.write(`${cmd}:${ctag}::;\r\n`);
-      console.log(`➡️  ${cmd}`);
-      step++;
-      return;
-    }
+      if (step < commands.length) {
+        const { cmd } = commands[step];
+        ctag++;
+        client.write(`${cmd}:${ctag}::;\r\n`);
+        console.log(`➡️  ${cmd}`);
+        step++;
+        return;
+      }
 
-    client.end();
-    return results;
-  });
+      client.end();
+      return resolve({ results });
+    });
 
-  client.on("error", (err) => {
-    client.end();
-    return { error: err.message };
+    client.on("error", (err) => {
+      client.end();
+      return resolve({ error: err.message });
+    });
   });
 }
 
@@ -260,8 +311,15 @@ async function SaveRamalLog(logData) {
 function calculateAverages(data) {
   if (data.length === 0) return { avgTx: null, avgRx: null };
 
-  const totalTx = data.reduce((sum, item) => sum + item.tx, 0);
-  const totalRx = data.reduce((sum, item) => sum + item.rx, 0);
+  const totalTx = data.reduce(
+    (sum, item) =>
+      sum + (item.tx || formatSignalValue(item["Power Level"]) || 0),
+    0,
+  );
+  const totalRx = data.reduce(
+    (sum, item) => sum + (item.rx || formatSignalValue(item.RSSI) || 0),
+    0,
+  );
 
   return {
     tx: parseFloat((totalTx / data.length).toFixed(2)),
@@ -367,9 +425,9 @@ async function savePongSignals() {
         );
         continue;
       }
-      ponSignal = opticalData;
+      ponSignal = opticalData.results;
     } else {
-      ponSignal = await VerificarSinalPon(oltIp, oltPon);
+      //ponSignal = await VerificarSinalPon(oltIp, oltPon);
     }
 
     if (ponSignal.length > 0) {
