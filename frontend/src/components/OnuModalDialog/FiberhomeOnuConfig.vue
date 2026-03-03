@@ -18,8 +18,8 @@ const onValueChanged = (value) => {
 };
 
 const mountFiberhomeScript = (
+  alias = "ONU-ALIAS",
   mac = onu.onuMac,
-  alias = "SANDRO TESTE",
   oltIp = onu.oltIp,
   onuType = onu.onuType,
 ) => {

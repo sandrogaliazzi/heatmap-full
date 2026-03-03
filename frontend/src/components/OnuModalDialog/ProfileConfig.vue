@@ -227,7 +227,12 @@ const handleSubmit = async () => {
   if (isVEIPprofile.value) {
     script.value = mountCpeVEIPprofile();
   } else if (isFiberome.value) {
-    script.value = fiberhomeConfig.value.mountFiberhomeScript();
+    script.value = fiberhomeConfig.value.mountFiberhomeScript(
+      alias.value || "ONU-ALIAS",
+      selectedOnu.value.onuMac,
+      selectedOnu.value.oltIp,
+      selectedOnu.value.onuType,
+    );
   } else {
     script.value = mountCpeBridgeScript();
   }

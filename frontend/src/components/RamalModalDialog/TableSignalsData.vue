@@ -9,7 +9,7 @@ const { ramals } = defineProps(["ramals"]);
 
 const data = ref([]);
 const date = ref(
-  new Date().toLocaleDateString("pt-BR").split("/").reverse().join("-")
+  new Date().toLocaleDateString("pt-BR").split("/").reverse().join("-"),
 );
 const isLoadingData = ref(true);
 const notFound = ref(false);
@@ -234,22 +234,27 @@ onMounted(() => {
                     </tbody>
 
                     <tbody>
-                      <tr v-for="client in item.clients" :key="client.alias">
+                      <tr
+                        v-for="client in item.clients"
+                        :key="client.alias || client.name"
+                      >
                         <td class="py-2">
                           <div class="d-flex align-center ga-5">
-                            <span>{{ client.alias }}</span>
+                            <span>{{ client.alias || client.name }}</span>
                             <v-btn
                               size="x-small"
                               rounded="xl"
                               variant="outlined"
                               prepend-icon="mdi-pen"
                               text="copiar nome"
-                              @click="copyName(client.alias)"
+                              @click="copyName(client.alias || client.name)"
                             ></v-btn>
                           </div>
                         </td>
-                        <td class="py-2">{{ client.tx }}</td>
-                        <td class="py-2">{{ client.rx }}</td>
+                        <td class="py-2">{{ client.tx || client["RSSI"] }}</td>
+                        <td class="py-2">
+                          {{ client.rx || client["Power Level"] }}
+                        </td>
                       </tr>
                     </tbody>
                   </v-table>
