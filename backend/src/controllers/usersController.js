@@ -106,21 +106,35 @@ class UserController {
       let { name, password } = req.body;
 
       if (!(name && password)) {
-        res.status(400).send("All input is required");
+        res.status(400).send("Credenciais invalidas.");
       }
 
       let usuario = await user.findOne({ name });
 
       if (usuario && (await bcrypt.compare(password, usuario.password))) {
+        if (usuario.blocked) {
+          return res.status(403).json({ message: "Usuario bloqueado." });
+        }
+
         let token = jwt.sign(
           { user_id: usuario._id, name },
           process.env.TOKEN_KEY,
           {
-            expiresIn: "24h",
+            expiresIn: "15m",
           },
         );
 
-        usuario.save((usuario.token = token));
+        let refreshToken = jwt.sign(
+          { user_id: usuario._id, name },
+          process.env.REFRESH_TOKEN_KEY,
+          {
+            expiresIn: "7d",
+          },
+        );
+
+        usuario.token = token;
+        usuario.refreshToken = refreshToken;
+        await usuario.save();
 
         const auditoriaEntry = new auditoria({
           user: name,
@@ -132,7 +146,24 @@ class UserController {
 
         await auditoriaEntry.save();
 
-        res.status(201).send(usuario);
+        res.cookie("refreshToken", refreshToken, {
+          httpOnly: true,
+          sameSite: "lax",
+        });
+
+        const userData = {
+          id: usuario._id,
+          name: usuario.name,
+          category: usuario.category,
+          token: usuario.token,
+          avatar: usuario.avatar,
+          avatar_id: usuario.avatar_id,
+          sellerClass: usuario.sellerClass,
+          goal: usuario.goal,
+          color: usuario.color,
+        };
+
+        res.status(201).send(userData);
       } else {
         const auditoriaEntry = new auditoria({
           user: name,
@@ -161,6 +192,81 @@ class UserController {
         res.status(500).send({ message: err.message });
       }
     });
+  };
+
+  static refreshToken = async (req, res) => {
+    const { refreshToken } = req.cookies;
+
+    if (!refreshToken) {
+      return res.status(401).send("token nao encontrado.");
+    }
+
+    jwt.verify(
+      refreshToken,
+      process.env.REFRESH_TOKEN_KEY,
+      async (err, userData) => {
+        if (err) {
+          return res.status(403).send("refresh Token inválido.");
+        }
+
+        const usuario = await user.findOne({ name: userData.name });
+        if (!usuario) {
+          return res.status(404).json({ message: "Usuario não encontrado." });
+        }
+
+        if (usuario.refreshToken !== refreshToken) {
+          return res.status(403).send("refresh Token inválido.");
+        }
+
+        const accessToken = jwt.sign(
+          { user_id: userData._id, name: userData.name },
+          process.env.TOKEN_KEY,
+          { expiresIn: "15m" },
+        );
+        res.status(200).json({ token: accessToken });
+      },
+    );
+  };
+
+  static deleteUserRefreshToken = async (req, res) => {
+    try {
+      const userId = req.params.id;
+
+      const usuario = await user.findById(userId);
+
+      if (!usuario) {
+        return res.status(404).json({ message: "Usuario nao encontrado." });
+      }
+
+      usuario.refreshToken = null;
+      await usuario.save();
+
+      res.status(200).json({ message: "Refresh token deletado com sucesso." });
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao deletar refresh token." });
+    }
+  };
+
+  static bloquearUser = async (req, res) => {
+    try {
+      const userId = req.params.id;
+
+      const usuario = await user.findById(userId);
+
+      if (!usuario) {
+        return res.status(404).json({ message: "Usuario nao encontrado." });
+      }
+
+      usuario.blocked = !usuario.blocked;
+      usuario.refreshToken = null;
+      await usuario.save();
+
+      res.status(200).json({
+        message: `Usuario ${usuario.blocked ? "bloqueado" : "desbloqueado"} com sucesso.`,
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Erro ao atualizar status do usuario." });
+    }
   };
 }
 

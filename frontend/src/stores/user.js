@@ -12,7 +12,7 @@ export const useUserStore = defineStore("user", () => {
     localStorage.setItem("user", JSON.stringify(userData));
     localStorage.setItem("token", userData.token);
     const auth = useAuthStore();
-    auth.updateAccessToken(userData.token);
+    auth.tokenExpired = false;
     isAuthenticated.value = true;
   };
 

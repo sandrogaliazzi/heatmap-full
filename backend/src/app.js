@@ -5,6 +5,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import cors from "cors";
 import injectClientIP from "./middleware/injecClientIp.js";
+import cookieParser from "cookie-parser";
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -12,12 +13,18 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-//app.use(cors());
+// app.use(
+//   cors({
+//     origin: "http://localhost:5000",
+//     credentials: true,
+//   }),
+// );
+
 app.use("/images", express.static(path.join(__dirname, "../assets/images")));
 
 app.set("trust proxy", true);
 app.use(injectClientIP);
-
+app.use(cookieParser());
 db.on("error", console.log.bind(console, "erro de conexão"));
 db.once("open", () => {
   let now = new Date().toLocaleString("PT-br");

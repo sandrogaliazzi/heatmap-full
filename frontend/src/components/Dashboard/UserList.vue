@@ -4,6 +4,9 @@ import UserRegisterCard from "./UserRegisterCard.vue";
 import DialogBox from "../Dialog/Dialog.vue";
 import { ref, onMounted, computed } from "vue";
 import avatar from "@/assets/avatar.png";
+import { useNotificationStore } from "@/stores/notification";
+
+const notification = useNotificationStore();
 
 const users = ref([]);
 const loginData = ref([]);
@@ -49,7 +52,7 @@ const fetchLogins = async () => {
 
 const filteredUsers = computed(() => {
   return users.value.filter((user) =>
-    user.name.includes(query.value.toLowerCase())
+    user.name.includes(query.value.toLowerCase()),
   );
 });
 
@@ -69,14 +72,82 @@ const cancelEdit = () => {
   dialog.value = false;
 };
 
+const blockUser = async (id) => {
+  if (confirm("deseja bloquear/desbloquear este usuário?")) {
+    try {
+      const response = await fetchApi.put(`user/block/${id}`);
+      if (response.status === 200) {
+        notification.setNotification({
+          msg: "Usuário bloqueado/desbloqueado com sucesso",
+          status: "success",
+        });
+      }
+      loadUsers();
+    } catch (e) {
+      notification.setNotification({
+        msg: "Erro ao bloquear/desbloquear usuário",
+        status: "error",
+      });
+      console.log(e.message);
+    }
+  }
+};
+
+const revokeRefreshToken = async (id) => {
+  if (confirm("deseja revogar o token de acesso deste usuário?")) {
+    try {
+      const response = await fetchApi.put(`user/revoke/${id}`);
+      if (response.status === 200) {
+        notification.setNotification({
+          msg: "Token revogado com sucesso",
+          status: "success",
+        });
+      }
+    } catch (e) {
+      console.log(e.message);
+      notification.setNotification({
+        msg: "Erro ao revogar token",
+        status: "error",
+      });
+    }
+  }
+};
+
+const revokeAllUsersTokens = async () => {
+  if (confirm("deseja revogar os tokens de acesso de todos os usuários?")) {
+    try {
+      await Promise.all(
+        users.value.map((user) => fetchApi.put(`user-revoke/${user._id}`)),
+      );
+      notification.setNotification({
+        msg: "Tokens revogados com sucesso",
+        status: "success",
+      });
+    } catch (e) {
+      console.log(e.message);
+      notification.setNotification({
+        msg: "Erro ao revogar tokens",
+        status: "error",
+      });
+    }
+  }
+};
+
 const deleteUser = async (id) => {
   if (confirm("deseja excluir este usuário?")) {
     try {
       await fetchApi.delete(`users/${id}`);
-      alert("usuário deletado com sucesso");
+      notification.setNotification({
+        msg: "Usuário deletado com sucesso",
+        status: "success",
+      });
       loadUsers();
     } catch (e) {
       console.log(e.message);
+      notification.setNotification({
+        msg: "Erro ao deletar usuário",
+        status: "error",
+      });
     }
   }
 };
@@ -106,6 +177,14 @@ const deleteUser = async (id) => {
         >
         </v-text-field>
       </v-form>
+      <v-btn
+        @click="revokeAllUsersTokens"
+        color="warning"
+        variant="tonal"
+        block
+        class="my-4"
+        >Revogar todos os tokens</v-btn
+      >
     </v-col>
     <v-col cols="12" md="10" class="scrollable-column">
       <v-list nav lines="three">
@@ -135,25 +214,7 @@ const deleteUser = async (id) => {
               <p>{{ user.category }}</p>
             </v-list-item-subtitle>
             <template #append>
-              <div class="d-none d-sm-flex">
-                <v-btn
-                  prepend-icon="mdi-update"
-                  variant="tonal"
-                  color="primary"
-                  class="ma-2"
-                  @click="editUser(user._id)"
-                  >Editar</v-btn
-                >
-                <v-btn
-                  prepend-icon="mdi-delete"
-                  variant="tonal"
-                  color="error"
-                  @click="deleteUser(user._id)"
-                  class="ma-2"
-                  >Excluir</v-btn
-                >
-              </div>
-              <div class="d-flex d-sm-none">
+              <div class="d-flex">
                 <v-menu>
                   <template v-slot:activator="{ props }">
                     <v-btn
@@ -167,12 +228,26 @@ const deleteUser = async (id) => {
                     <v-list-item
                       title="Editar"
                       value="Editar"
+                      prepend-icon="mdi-update"
                       @click="editUser(user._id)"
                     />
                     <v-list-item
                       title="Excluir"
                       value="Excluir"
+                      prepend-icon="mdi-delete"
                       @click="deleteUser(user._id)"
+                    />
+                    <v-list-item
+                      prepend-icon="mdi-account-cancel"
+                      :title="user.blocked ? 'Desbloquear' : 'Bloquear'"
+                      :value="user.blocked ? 'Desbloquear' : 'Bloquear'"
+                      @click="blockUser(user._id)"
+                    />
+                    <v-list-item
+                      title="Revogar token"
+                      value="Revogar token"
+                      prepend-icon="mdi-key-remove"
+                      @click="revokeRefreshToken(user._id)"
                     />
                   </v-list>
                 </v-menu>

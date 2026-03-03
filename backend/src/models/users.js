@@ -11,6 +11,8 @@ const UserSchema = new mongoose.Schema({
   sellerClass: { type: Number },
   goal: { type: Number },
   color: { type: String },
+  refreshToken: { type: String },
+  blocked: { type: Boolean, default: false },
 });
 
 const user = mongoose.model("user", UserSchema);

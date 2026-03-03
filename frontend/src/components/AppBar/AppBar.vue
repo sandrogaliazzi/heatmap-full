@@ -56,7 +56,7 @@ const handleUserLocation = () => {
       enableHighAccuracy: true,
       timeout: 5000,
       maximumAge: 0,
-    }
+    },
   );
 };
 </script>
@@ -116,6 +116,7 @@ const handleUserLocation = () => {
     :rail="!isMobile"
     :permanent="!isMobile"
     v-model="drawer"
+    :width="300"
   >
     <ButtonGroup
       :isCtoMarkerVisible="isCtoMarkerVisible"

@@ -31,7 +31,12 @@ const isValidLogin = async () => {
 
     return response.status === 201 ? response.data : false;
   } catch (e) {
-    showLoginFail("Usuário ou senha incorretos");
+    console.log(e.response.status);
+    if (e.response.status === 403) {
+      showLoginFail("Usuário bloqueado. Entre em contato com o administrador.");
+    } else {
+      showLoginFail("Usuário ou senha incorretos");
+    }
   }
 };
 
@@ -54,7 +59,6 @@ const handleLogin = async () => {
     const checkedUser = await isValidLogin();
 
     if (checkedUser) setUser(checkedUser);
-    else showLoginFail("Usuário ou senha incorretos");
   } else {
     showLoginFail("Erro, dados incompletos");
   }

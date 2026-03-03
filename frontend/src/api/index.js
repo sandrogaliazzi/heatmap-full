@@ -7,27 +7,78 @@ const BASE_URL = "https://api.heatmap.conectnet.net/";
 const headersConfig = {
   Accept: "application/json",
   "Content-Type": "application/json",
-  "x-access-token": localStorage.getItem("token") || "",
 };
 
 const fetchApi = axios.create({
   baseURL: BASE_URL,
   headers: headersConfig,
+  withCredentials: true,
 });
 
-fetchApi.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  (error) => {
-    if (error) {
-      const errorStatus = error.response.status;
+const getTokenWithRefreshToken = async () => {
+  try {
+    const response = await fetchApi.get("/refresh-token", {
+      _isRefreshTokenRequest: true,
+    });
 
-      if (errorStatus === 403 || errorStatus === 401) {
+    if (response.status !== 200) {
+      return null;
+    }
+    const { token } = response.data;
+    const user = JSON.parse(localStorage.getItem("user"));
+    user.token = token;
+    localStorage.setItem("user", JSON.stringify(user));
+    return token;
+  } catch (error) {
+    console.error("Error refreshing token:", error);
+  }
+};
+
+fetchApi.interceptors.response.use(
+  (response) => response,
+
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (originalRequest?._isRefreshTokenRequest) {
+      const auth = useAuthStore();
+      auth.tokenExpired = true;
+      return Promise.reject(error);
+    }
+
+    if (originalRequest.url === "/login") {
+      return Promise.reject(error);
+    }
+
+    if (
+      (error.response?.status === 401 || error.response?.status === 403) &&
+      !originalRequest._retry
+    ) {
+      originalRequest._retry = true;
+
+      try {
+        const newToken = await getTokenWithRefreshToken();
+
+        if (!newToken) {
+          const auth = useAuthStore();
+          auth.tokenExpired = true;
+          return Promise.reject(
+            new Error("Token expirado. Faça login novamente."),
+          );
+        }
+
+        fetchApi.defaults.headers.common["x-access-token"] = newToken;
+        originalRequest.headers["x-access-token"] = newToken;
+
+        return fetchApi(originalRequest);
+      } catch (refreshError) {
         const auth = useAuthStore();
         auth.tokenExpired = true;
+        return Promise.reject(refreshError);
       }
     }
+
+    return Promise.reject(error);
   },
 );
 

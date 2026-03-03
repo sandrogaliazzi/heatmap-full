@@ -43,7 +43,7 @@ const toggleMarkers = (marker) => {
 };
 </script>
 <template>
-  <div class="d-flex justify-center my-5 flex-wrap">
+  <div class="d-flex my-5">
     <v-btn icon @click="emit('toggleDrawMode')">
       <v-icon :color="setPolygonDrawMode ? 'success' : ''"
         >mdi-map-marker-path</v-icon

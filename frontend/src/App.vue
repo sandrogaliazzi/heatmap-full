@@ -3,12 +3,16 @@ import { storeToRefs } from "pinia";
 import { useAuthStore } from "@/stores/auth";
 import Notification from "@/components/Notification/Notification";
 
-import { provide, ref } from "vue";
+import { provide, ref, watch } from "vue";
 import { useRouter } from "vue-router";
+import { useRoute } from "vue-router";
 
 const auth = useAuthStore();
 const router = useRouter();
+const route = useRoute();
 const isDarkTheme = ref(true);
+
+const openLoginModal = ref(false);
 
 const setAppTheme = () => {
   isDarkTheme.value = !isDarkTheme.value;
@@ -18,10 +22,17 @@ provide("changeTheme", setAppTheme);
 
 const { tokenExpired } = storeToRefs(auth);
 
+watch(tokenExpired, (newValue) => {
+  if (newValue && route.name !== "Login") {
+    console.log("Token expirado, abrindo modal de login.");
+    openLoginModal.value = true;
+  }
+});
+
 const login = () => {
   tokenExpired.value = false;
-  auth.stopTokenMonitoring();
   localStorage.removeItem("user");
+  localStorage.removeItem("token");
   router.push({ name: "Login" }).then(() => {
     router.go(0); // Reload the page to reset the state
   });
@@ -35,7 +46,7 @@ const login = () => {
       <!-- <teste /> -->
     </v-main>
     <Notification />
-    <v-dialog v-model="tokenExpired" persistent width="auto">
+    <v-dialog v-model="openLoginModal" persistent width="auto">
       <v-sheet
         class="pa-4 text-center mx-auto"
         elevation="12"

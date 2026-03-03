@@ -427,7 +427,7 @@ async function savePongSignals() {
       }
       ponSignal = opticalData.results;
     } else {
-      //ponSignal = await VerificarSinalPon(oltIp, oltPon);
+      ponSignal = await VerificarSinalPon(oltIp, oltPon);
     }
 
     if (ponSignal.length > 0) {
