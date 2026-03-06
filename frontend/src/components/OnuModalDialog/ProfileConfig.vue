@@ -7,6 +7,7 @@ import { useNotificationStore } from "@/stores/notification";
 import { useUserStore } from "@/stores/user";
 import hubApi from "@/api/hubsoftApi";
 import FiberhomeOnuConfig from "./FiberhomeOnuConfig.vue";
+import { getClientNameByMAC } from "./util";
 
 const notification = useNotificationStore();
 
@@ -40,6 +41,7 @@ const formRef = ref(null);
 const closeDialog = inject("closeDialog");
 const hasClientBinding = ref(false);
 const hasUnaddedOnu = ref(false);
+const loading = ref(false);
 
 const addOnu = () => {
   if (!newOnu.value || !oltPon.value) {
@@ -111,7 +113,7 @@ const getGponProfiles = async () => {
 };
 
 const unauthorizedOnuList = ref([]);
-const selectedOnu = ref(null);
+const selectedOnu = ref([]);
 
 const getUnauthorizedOnuInfoFromFiberhome = async () => {
   try {
@@ -141,6 +143,7 @@ const getUnauthorizedOnuFromParks = async () => {
 };
 
 const getUnauthorizedOnu = async () => {
+  loading.value = true;
   if (selectedOlt.value) {
     if (selectedOlt.value.oltName.includes("FIBERHOME")) {
       unauthorizedOnuList.value = await getUnauthorizedOnuInfoFromFiberhome();
@@ -148,6 +151,7 @@ const getUnauthorizedOnu = async () => {
       unauthorizedOnuList.value = await getUnauthorizedOnuFromParks();
     }
   }
+  loading.value = false;
 };
 
 const cpePortsNumber = ref(0);
@@ -186,33 +190,43 @@ const getVlanTranslations = async () => {
 const cpeBridgeTranslation = ref({});
 const translationSelection = ref(null);
 
-const mountCpeBridgeScript = () => {
+const mountCpeBridgeScript =  () => {
   return gerarScriptOnu(
-    cpeBridgeTranslation.value,
-    selectedGponProfile.value.name,
-    alias.value || "ONU-ALIAS",
-    selectedOnu.value.onuMac,
-    hasUnaddedOnu.value,
+    selectedOnu.value.map((onu, index) => ({
+      vlanData: cpeBridgeTranslation.value,
+      flowProfile: selectedGponProfile.value.name,
+      alias: selectedOnu.value[index]?.name || alias.value || `ONU-ALIAS-${onu.onuMac.slice(-4)}`,
+      mac: onu.onuMac,
+      hasUnaddedOnu: hasUnaddedOnu.value,
+    })),
   );
 };
 
 const mountCpeVEIPprofile = () => {
   const script = [];
+  const parts = [];
 
-  if (hasUnaddedOnu.value) {
-    script.push(`onu add serial-number ${selectedOnu.value.onuMac}`);
+  for(const onu of selectedOnu.value) {
+    if (hasUnaddedOnu.value) {
+    parts.push(`onu add serial-number ${onu.onuMac}`);
   }
-  script.push(
-    `onu ${selectedOnu.value.onuMac} ethernet-profile auto-on uni-port 1-${selectedGponProfile.value.entries.length + 1}`,
+  parts.push(
+    `onu ${onu.onuMac} ethernet-profile auto-on uni-port 1-${selectedGponProfile.value.entries.length + 1}`,
   );
-  script.push(`onu ${selectedOnu.value.onuMac} upstream-fec disabled`);
-  script.push(
-    `onu ${selectedOnu.value.onuMac} flow-profile ${selectedGponProfile.value.name}`,
+  parts.push(`onu ${onu.onuMac} upstream-fec disabled`);
+  parts.push(
+    `onu ${onu.onuMac} flow-profile ${selectedGponProfile.value.name}`,
   );
-  script.push(
-    `onu ${selectedOnu.value.onuMac} alias ${alias.value || "ONU-ALIAS"}`,
+  parts.push(
+    `onu ${onu.onuMac} alias ${onu?.name || alias.value || "ONU-ALIAS"}`,
   );
-  return script.join("\n");
+
+  script.push(parts.join("\n"));
+
+  parts.length = 0;
+  }
+
+  return script;
 };
 
 const script = ref("");
@@ -227,12 +241,7 @@ const handleSubmit = async () => {
   if (isVEIPprofile.value) {
     script.value = mountCpeVEIPprofile();
   } else if (isFiberome.value) {
-    script.value = fiberhomeConfig.value.mountFiberhomeScript(
-      alias.value || "ONU-ALIAS",
-      selectedOnu.value.onuMac,
-      selectedOnu.value.oltIp,
-      selectedOnu.value.onuType,
-    );
+    script.value = fiberhomeConfig.value.mountFiberhomeScript(selectedOnu.value, alias.value);
   } else {
     script.value = mountCpeBridgeScript();
   }
@@ -243,12 +252,15 @@ const handleSubmit = async () => {
 const onProvision = ref(false);
 
 const provisionOnu = async () => {
+
+  for(const onu of selectedOnu.value) {
+   
   const requestBody = {
-    oltIp: selectedOlt.value.ipv4,
-    oltPon: selectedOnu.value.gpon,
-    script: script.value,
+    oltIp: selectedOlt.value.oltIp,
+    oltPon: onu.gpon,
+    script: script.value.find((part) => part.includes(onu.onuMac)),
     hasUnaddedOnu: hasUnaddedOnu.value,
-    onuAlias: alias.value || "ONU-ALIAS",
+    onuAlias: alias.value || `ONU-ALIAS-${onu.onuMac.slice(-4)}`,
     slot: fiberhomeConfig.value?.slot,
     pon: fiberhomeConfig.value?.pon,
   };
@@ -280,23 +292,34 @@ const provisionOnu = async () => {
       ? await fetchApi.post("liberar-onu-fiberhome-avulsa", requestBody)
       : await fetchApi.post("liberar-onu-avulsa", requestBody);
     if (response.status === 200) {
-      editScript.value = false;
-      script.value = "";
-      selectedOlt.value = null;
-      selectedOnu.value = null;
-      selectedGponProfile.value = null;
-      cpePortsNumber.value = 0;
-      cpeBridgeTranslation.value = {};
-      translationSelection.value = null;
-
       triggerNotification("ONU provisionada com sucesso!", "success");
     }
   } catch (error) {
     console.log("erro ao provisionar onu", error.message);
     triggerNotification("Erro ao provisionar ONU!", "error");
-  } finally {
-    onProvision.value = false;
-    provisionDialog.value = false;
+  }
+  await new Promise((resolve) => setTimeout(resolve, 2000));
+
+}
+
+  editScript.value = false;
+  script.value = "";
+  selectedOlt.value = null;
+  selectedOnu.value = [];
+  unauthorizedOnuList.value = [];
+  selectedGponProfile.value = null;
+  cpePortsNumber.value = 0;
+  cpeBridgeTranslation.value = {};
+  translationSelection.value = null;
+  onProvision.value = false;
+  provisionDialog.value = false;
+};
+
+const toggleOnuSelection = () => {
+  if (selectedOnu.value.length > 0) {
+    selectedOnu.value = [];
+  } else {
+    selectedOnu.value = [...unauthorizedOnuList.value];
   }
 };
 
@@ -305,6 +328,7 @@ const fiberhomeConfig = ref("");
 
 watch(selectedOlt, (newOlt) => {
   if (newOlt) {
+    selectedOnu.value = [];
     if (newOlt.oltName.includes("FIBERHOME")) isFiberome.value = true;
     else {
       getGponProfiles();
@@ -315,13 +339,37 @@ watch(selectedOlt, (newOlt) => {
   }
 });
 
+watch(
+  () => selectedOnu.value.map(o => o?.onuMac),
+  async (macs) => {
+    if(!macs) return;
+    if (macs.length > 1) {
+      const aliasFormat = selectedOlt.value.oltName.includes("FIBERHOME")
+        ? "fiberhome"
+        : "parks";
+
+      const response = await Promise.all(
+        macs.map((mac) =>
+          getClientNameByMAC(mac, aliasFormat)
+        )
+      );
+
+      console.log("alias encontrados", response);
+
+      selectedOnu.value.forEach((onu, index) => {
+        onu.name = response[index].name;
+      });
+    }
+  }
+);
+
 onMounted(async () => {
   oltList.value = await getOltList();
 });
 </script>
 
 <template>
-  <v-card>
+  <v-card :loading="loading">
     <v-card-title class="bg-orange">
       <div class="d-flex justify-space-between align-center">
         <div class="d-flex">
@@ -348,6 +396,9 @@ onMounted(async () => {
           </v-col>
         </v-row>
         <v-row align="center">
+          <v-col cols=2>
+            <v-btn icon="mdi-refresh" variant="plain" @click="getUnauthorizedOnu" color="primary"></v-btn> 
+          </v-col>
           <v-col cols="8">
             <v-select
               v-if="unauthorizedOnuList.length > 0"
@@ -357,12 +408,29 @@ onMounted(async () => {
               :item-value="(item) => item"
               v-model="selectedOnu"
               :rules="inputRules"
+              multiple
+              chips
             >
+              <template v-slot:prepend-item>
+                <v-btn
+                  color="primary"
+                  variant="plain"
+                  block
+                  @click="toggleOnuSelection"
+                  >Selecionar todas</v-btn
+                >
+              </template>
             </v-select>
           </v-col>
-          <v-col cols="4">
-            <v-btn color="primary" variant="text" @click="dialog = true">
-              Add onu manual
+          <v-col cols="2">
+            <v-btn
+              color="primary"
+              variant="text"
+              class="mt-2"
+              block
+              @click="dialog = true"
+            >
+              Add
               <v-dialog v-model="dialog" width="500">
                 <v-sheet color="grey-darken-4">
                   <v-container>
@@ -399,13 +467,13 @@ onMounted(async () => {
           </v-col>
         </v-row>
 
-        <v-row>
+        <v-row v-if="selectedOnu.length === 1">
           <v-col>
             <v-text-field label="ALIAS" v-model="alias"></v-text-field>
           </v-col>
         </v-row>
 
-        <v-row>
+        <v-row v-if="selectedOnu.length === 1">
           <v-col cols="8">
             <v-switch
               label="Vincular ao serviço do cliente"
@@ -481,8 +549,10 @@ onMounted(async () => {
                   rounded
                   class="pa-4"
                 >
-                  <p class="overflow-x-auto">
-                    {{ script }}
+                  <p class="overflow-x-auto" v-for="part in script" :key="part">
+                    <pre>{{ part }}</pre>
+                    <v-divider></v-divider>
+                    <br />
                   </p>
                 </v-sheet>
                 <v-textarea v-else v-model="script"></v-textarea>

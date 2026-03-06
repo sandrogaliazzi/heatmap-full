@@ -17,30 +17,39 @@ const onValueChanged = (value) => {
   config.value[value.configNumber - 1] = value;
 };
 
-const mountFiberhomeScript = (
-  alias = "ONU-ALIAS",
-  mac = onu.onuMac,
-  oltIp = onu.oltIp,
-  onuType = onu.onuType,
-) => {
-  let script = "";
+const mountFiberhomeScript = (onuList, onuAlias) => {
+  const script = [];
+  const parts = [];
+
   let veipServiceId = 0;
 
-  const addOnu =
-    `ADD-ONU::OLTID=${oltIp},PONID=1-1-${slot.value}-${pon.value}:CTAG::AUTHTYPE=MAC,ONUID=${mac},PWD=12345678,NAME=${alias},DESC=NA,ONUTYPE=${onuType};\r\n`.trim();
+  for (const onu of onuList) {
+    const alias = onuAlias || onu?.name || `ONU-ALIAS-${onu.onuMac.slice(-4)}`;
+    const mac = onu.onuMac;
+    const oltIp = onu.oltIp;
+    const onuType = onu.onuType;
 
-  const onuConfig = config.value.reduce((acc, onu) => {
-    if (onu.configType === "veip") veipServiceId++;
-    const script =
-      onu.configType === "lan"
-        ? `CFG-LANPORT::OLTID=${oltIp},PONID=1-1-${slot.value}-${pon.value},ONUIDTYPE=MAC,ONUID=${mac},ONUPORT=NA-NA-NA-${onu.portNumber}:CTAG::VLANMOD=${onu.vlanMode},PVID=${onu.vlan},PCOS=0;\r\n`.trim()
-        : `CFG-VEIPSERVICE::OLTID=${oltIp},PONID=1-1-${slot.value}-${pon.value},ONUIDTYPE=MAC,ONUID=${mac},ONUPORT=NA-NA-NA-1:CTAG::ServiceId=${veipServiceId},CVLANID=${onu.vlan},ServiceModelProfile=INTELBRAS_ROUTER,ServiceType=DATA;\r\n`.trim();
-    acc += script;
+    const addOnu =
+      `ADD-ONU::OLTID=${oltIp},PONID=1-1-${slot.value}-${pon.value}:CTAG::AUTHTYPE=MAC,ONUID=${mac},PWD=12345678,NAME=${alias},DESC=NA,ONUTYPE=${onuType};\r\n`.trim();
 
-    return acc;
-  }, "");
+    const onuConfig = config.value.reduce((acc, onuConfig) => {
+      if (onuConfig.configType === "veip") veipServiceId++;
+      const script =
+        onuConfig.configType === "lan"
+          ? `CFG-LANPORT::OLTID=${oltIp},PONID=1-1-${slot.value}-${pon.value},ONUIDTYPE=MAC,ONUID=${mac},ONUPORT=NA-NA-NA-${onuConfig.portNumber}:CTAG::VLANMOD=${onuConfig.vlanMode},PVID=${onuConfig.vlan},PCOS=0;\r\n`.trim()
+          : `CFG-LANPORT::OLTID=${oltIp},PONID=1-1-${slot.value}-${pon.value},ONUIDTYPE=MAC,ONUID=${mac},ONUPORT=NA-NA-NA-${onuConfig.portNumber}:CTAG::VLANMOD=Transparent,PVID=${onuConfig.vlan},PCOS=0;\r\n`.trim() +
+            `CFG-VEIPSERVICE::OLTID=${oltIp},PONID=1-1-${slot.value}-${pon.value},ONUIDTYPE=MAC,ONUID=${mac},ONUPORT=NA-NA-NA-1:CTAG::ServiceId=${veipServiceId},CVLANID=${onuConfig.vlan},ServiceModelProfile=INTELBRAS_ROUTER,ServiceType=DATA;\r\n`.trim();
+      acc += script;
 
-  script += addOnu + onuConfig;
+      return acc;
+    }, "");
+
+    parts.push(addOnu);
+    parts.push(onuConfig);
+
+    script.push(parts.join("\n"));
+    parts.length = 0;
+  }
 
   return script;
 };

@@ -11,7 +11,7 @@ const { showNotification, notificationMessage, notificationStatus } =
   <v-snackbar
     v-model="showNotification"
     :color="notificationStatus"
-    timeout="3000"
+    timeout="2000"
     location="top"
   >
     {{ notificationMessage }}

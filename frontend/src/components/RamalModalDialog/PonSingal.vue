@@ -3,7 +3,11 @@ import { ref, computed, onMounted } from "vue";
 import { useNotificationStore } from "@/stores/notification";
 import signalChart from "./signalChart.vue";
 
-const { ramal, loading } = defineProps(["ramal", "loading"]);
+const { ramal, loading, rawSignals } = defineProps([
+  "ramal",
+  "loading",
+  "rawSignals",
+]);
 
 const onuList = defineModel();
 const emit = defineEmits(["refreshData"]);
@@ -42,6 +46,47 @@ function calculateAverages(data) {
     rx: parseFloat(avgRx.toFixed(2)),
   };
 }
+
+const downloadCsv = () => {
+  if (!rawSignals || rawSignals.length === 0) {
+    console.warn("Sem dados para exportar.");
+    return;
+  }
+
+  const headers = Object.keys(rawSignals[0]);
+
+  const csvRows = [];
+
+  csvRows.push(headers.join(";"));
+
+  for (const item of rawSignals) {
+    const row = headers.map((header) => {
+      let value = item[header] ?? "";
+
+      value = String(value).replace(/"/g, '""');
+
+      if (value.includes(";") || value.includes("\n") || value.includes('"')) {
+        value = `"${value}"`;
+      }
+
+      return value;
+    });
+
+    csvRows.push(row.join(";"));
+  }
+
+  const csvString = csvRows.join("\n");
+  const csvContent =
+    "data:text/csv;charset=utf-8," + encodeURIComponent(csvString);
+
+  const link = document.createElement("a");
+  link.href = csvContent;
+  link.download = `${ramal?.oltRamal ?? "export"}_signals.csv`;
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
 
 const headers = ref([
   {
@@ -117,7 +162,9 @@ onMounted(async () => {
   <v-card :loading="loading">
     <v-card-text>
       <v-card flat>
-        <v-card-title class="d-flex align-center justify-space-between">
+        <v-card-title
+          class="d-flex flex-column flex-md-row align-center justify-space-between flex-wrap"
+        >
           Lista clientes {{ ramal.oltRamal }}
 
           <div class="d-flex align-center ga-2 mt-2">
@@ -156,10 +203,35 @@ onMounted(async () => {
         ></v-data-table>
       </v-card>
     </v-card-text>
-    <v-card-actions>
-      <v-btn color="primary" block @click="saveGponData"
-        >Salvar no histórico</v-btn
-      >
+    <v-card-actions class="d-flex">
+      <v-row>
+        <v-col cols="12" md="6">
+          <v-btn
+            color="primary"
+            variant="tonal"
+            @click="saveGponData"
+            class="w-100"
+            >Salvar histórico</v-btn
+          >
+        </v-col>
+        <v-col cols="12" md="6">
+          <!-- <v-btn
+            color="secondary"
+            class="w-100"
+            variant="tonal"
+            @click="setDataByDate(ramalHistory[0])"
+            ></v-btn
+          > -->
+          <v-btn
+            class="w-100"
+            variant="tonal"
+            color="success"
+            @click="downloadCsv()"
+          >
+            Baixar Relatório
+          </v-btn>
+        </v-col>
+      </v-row>
     </v-card-actions>
   </v-card>
 </template>

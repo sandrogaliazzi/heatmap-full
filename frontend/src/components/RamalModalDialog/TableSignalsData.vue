@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import fetchApi from "@/api";
 import PieSignalChart from "./PieSignalChart.vue";
 
@@ -7,6 +7,8 @@ const emit = defineEmits(["closeDialog"]);
 
 const { ramals } = defineProps(["ramals"]);
 
+const selectedOlts = ref([]);
+const originalData = ref([]);
 const data = ref([]);
 const date = ref(
   new Date().toLocaleDateString("pt-BR").split("/").reverse().join("-"),
@@ -35,6 +37,25 @@ const classifySignal = (signal, ref) => {
   if (signal < -27) ref.value.badSignal += 1;
 };
 
+const oltNames = computed(() => {
+  return ramals
+    .map((ramal) => ramal.oltName)
+    .reduce((acc, val) => {
+      if (!acc.includes(val)) acc.push(val);
+
+      return acc;
+    }, []);
+});
+
+watch(selectedOlts, (oltList) => {
+  if (!oltList.length) data.value = originalData.value;
+
+  data.value = originalData.value.filter((item) =>
+    oltList.includes(item.oltName),
+  );
+  chartKey.value++;
+});
+
 const loadData = async () => {
   isLoadingData.value = true;
   try {
@@ -56,6 +77,8 @@ const loadData = async () => {
         clients: item.gpon_data.sort((a, b) => a.rx - b.rx),
       };
     });
+
+    originalData.value = data.value;
 
     isLoadingData.value = false;
     notFound.value = false;
@@ -103,9 +126,13 @@ onMounted(() => {
   <v-card flat :loading="isLoadingData">
     <v-card-title class="bg-orange">
       <div class="d-flex justify-space-between align-center">
-        <div class="d-flex">
-          <p class="me-2">Relatorio de Sinais</p>
+        <div class="d-flex ga-2">
+          <p>Relatorio de Sinais</p>
           <v-icon>mdi-chart-box</v-icon>
+          <v-progress-circular
+            indeterminate
+            v-if="isLoadingData"
+          ></v-progress-circular>
         </div>
         <div>
           <v-btn
@@ -137,19 +164,6 @@ onMounted(() => {
           >ver graficos</v-btn
         >
       </div>
-      <template v-if="isLoadingData">
-        <div
-          style="height: 600px"
-          class="d-flex flex-column justify-center align-center ga-2"
-        >
-          <v-progress-circular
-            color="orange"
-            indeterminate
-            size="128"
-          ></v-progress-circular>
-          <p class="mt-3">Carregando dados...</p>
-        </div>
-      </template>
       <template v-if="notFound && !isLoadingData">
         <div
           style="height: 600px"
@@ -186,6 +200,17 @@ onMounted(() => {
           hide-details
           single-line
         ></v-text-field>
+
+        <v-select
+          :items="oltNames"
+          variant="outlined"
+          label="filtrar por olt"
+          prepend-inner-icon="mdi-router-wireless"
+          multiple
+          chips
+          v-model="selectedOlts"
+        >
+        </v-select>
 
         <v-data-table
           :headers="headers"

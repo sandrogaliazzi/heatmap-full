@@ -7,7 +7,7 @@ const props = defineProps({
 const form = ref({
   vlan: null,
   vlanMode: null,
-  portNumber: null,
+  portNumber: 1,
   configType: "lan",
   configNumber: props.configNumber,
 });

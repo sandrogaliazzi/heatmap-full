@@ -19,6 +19,7 @@ const loading = ref(false);
 const showReport = ref(false);
 const showClientReport = ref(false);
 const notificationStore = useNotificationStore();
+const rawSignals = ref([]);
 
 const closeDialog = inject("closeDialog");
 
@@ -48,9 +49,9 @@ const getRamals = async () => {
     ramals.value = oltRamals.data;
     isLoadingRamals.value = false;
   } catch (error) {
-    notificationStore.addNotification({
-      type: "error",
-      message: "Erro ao buscar ramais " + error.message,
+    notificationStore.setNotification({
+      status: "error",
+      msg: "Erro ao buscar ramais " + error.message,
     });
   } finally {
     isLoadingRamals.value = false;
@@ -97,6 +98,8 @@ const getOnuSignalsFromFiberHome = async (oltIp, slot, pon) => {
       onus: onus,
     });
 
+    rawSignals.value = signals.data;
+
     return signals.data.map((onu) => ({
       alias: onu.name,
       rx: parseFloat(onu["RSSI"].split("dBm")[0]),
@@ -129,6 +132,7 @@ const selectRamal = async (ramal) => {
         oltIp,
         oltPon,
       });
+      rawSignals.value = ponSignalsData.data;
     }
 
     ponSignals.value = ponSignalsData.data;
@@ -140,9 +144,9 @@ const selectRamal = async (ramal) => {
 
     loading.value = false;
   } catch (error) {
-    notificationStore.addNotification({
-      type: "error",
-      message: "Erro ao buscar sinais do ramal " + error.message,
+    notificationStore.setNotification({
+      status: "error",
+      msg: "Erro ao buscar sinais do ramal " + error.message,
     });
   } finally {
     loading.value = false;
@@ -268,7 +272,6 @@ onMounted(async () => {
                   </v-btn>
                   <v-btn
                     v-if="ponSignals && cardId == ramal._id"
-                    class="ml-2"
                     color="success"
                     variant="tonal"
                   >
@@ -277,6 +280,7 @@ onMounted(async () => {
                       <PonSignal
                         v-model="ponSignals"
                         :ramal="ramal"
+                        :raw-signals="rawSignals"
                         :loading="loading"
                         @refresh-data="selectRamal(ramal)"
                       />

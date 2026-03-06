@@ -489,8 +489,6 @@ class FiberHomeController {
     if (data.error) return res.status(500).json(data);
 
     const blockRecordsRegex = /block_records\s*=\s*(\d+)/i;
-    const linhaOnuRegex =
-      /^([A-Z0-9]{6,})\s+.*\sUnauth\s+[\d-]+\s[\d:]+\s+([A-Z0-9_-]+)\s*$/gim;
 
     data.onus.forEach((item) => {
       if (!item.raw) return;
@@ -499,11 +497,15 @@ class FiberHomeController {
       const blockRecords = blockMatch ? parseInt(blockMatch[1], 10) : 0;
 
       if (blockRecords > 0) {
+        const linhaOnuRegex =
+          /^([A-Za-z0-9]+)\t.*?\t.*?\tUnauth\t[\d-]+\s[\d:]+\t([^\r\n]+)/gim;
+
         let match;
+
         while ((match = linhaOnuRegex.exec(item.raw)) !== null) {
           response.push({
-            onuMac: match[1], // PRKS00da3a9c
-            onuType: match[2], // HG260
+            onuMac: match[1],
+            onuType: match[2],
             slot: item.slot,
             pon: item.pon,
             oltIp: item.oltIp,
