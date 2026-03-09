@@ -323,6 +323,13 @@ const toggleOnuSelection = () => {
   }
 };
 
+const itemProps = (item) => {
+  return {
+    title: item.onuMac,
+    subtitle: item.slot ? `Slot: ${item.slot} - Pon: ${item.pon}` : item.gpon,
+  };
+}
+
 const isFiberome = ref(false);
 const fiberhomeConfig = ref("");
 
@@ -404,7 +411,7 @@ onMounted(async () => {
               v-if="unauthorizedOnuList.length > 0"
               label="SELECIONAR ONU"
               :items="unauthorizedOnuList"
-              :item-title="(item) => item.onuMac"
+              :item-props="itemProps"
               :item-value="(item) => item"
               v-model="selectedOnu"
               :rules="inputRules"

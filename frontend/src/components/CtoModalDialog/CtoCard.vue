@@ -93,18 +93,34 @@ const mapClients = (connections) => {
 const mapKey = ref(1);
 const freePorts = ref({});
 
-const calcFreePorts = (accessPoint) => {
-  const totalPorts = accessPoint
-    .filter((c) => c.splitter)
-    .filter((c) => c.splitter.name.startsWith(cto.name))
-    .map((c) => c.splitter)
-    .reduce((acc, cur) => acc + cur.ports_number, 0);
+const calcFreePorts = async () => {
+  const { lat, lng } = cto.coord;
 
-  const totalClients = mapClients(accessPoint).length;
-
-  freePorts.value = totalPorts - totalClients;
-
-  return { totalPorts, freePorts: freePorts.value };
+  try {
+    const response = await fetchApi.get(`/viability/${lat}/${lng}/10`);
+    if (response.data.length > 0) {
+      const { total_ports, free_ports_number } =
+        response.data[0]?.splitters.reduce(
+          (acc, val) => {
+            return {
+              total_ports: acc.total_ports + val.total_ports,
+              free_ports_number: acc.free_ports_number + val.free_ports_number,
+            };
+          },
+          { total_ports: 0, free_ports_number: 0 },
+        ) ?? { total_ports: 0, free_ports_number: 0 };
+      return { totalPorts: total_ports, freePorts: free_ports_number };
+    } else {
+      notification.setNotification({
+        msg: "Nenhuma informação de viabilidade encontrada para este CTO",
+        status: "red",
+      });
+      return { totalPorts: 0, freePorts: 0 };
+    }
+  } catch (e) {
+    console.error("Erro ao buscar viabilidade" + e.message);
+    return { totalPorts: 0, freePorts: 0 };
+  }
 };
 
 const loadCtoData = async (slide) => {
@@ -114,7 +130,7 @@ const loadCtoData = async (slide) => {
 
   clients.value = mapClients(response.data);
 
-  freePorts.value = calcFreePorts(response.data);
+  freePorts.value = await calcFreePorts();
 
   apConnList.value = response.data;
 

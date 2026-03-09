@@ -243,6 +243,23 @@ const showClientSignalHistory = async (client) => {
     console.log(error);
   }
 };
+
+const copyToClipboard = (text) => {
+  navigator.clipboard.writeText(text).then(
+    () => {
+      notification.setNotification({
+        status: "success",
+        msg: "Texto copiado para a área de transferência",
+      });
+    },
+    (err) => {
+      notification.setNotification({
+        status: "error",
+        msg: "Erro ao copiar texto: " + err,
+      });
+    },
+  );
+};
 </script>
 
 <template>
@@ -290,9 +307,18 @@ const showClientSignalHistory = async (client) => {
               :title="item.name"
             >
               <v-list-item-subtitle>
-                <span class="text-disabled me-2"
-                  >{{ item.mac }} VLAN: {{ formatVlan(item.flowProfile) }}</span
-                >
+                <div class="d-flex align-center">
+                  <span class="text-disabled me-2"
+                    >{{ item.mac }} VLAN:
+                    {{ formatVlan(item.flowProfile) }}</span
+                  >
+                  <v-btn
+                    size="x-small"
+                    variant="plain"
+                    icon="mdi-content-copy"
+                    @click="copyToClipboard(item.mac)"
+                  ></v-btn>
+                </div>
                 <v-chip
                   size="small"
                   :color="

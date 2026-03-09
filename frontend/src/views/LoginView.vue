@@ -31,7 +31,6 @@ const isValidLogin = async () => {
 
     return response.status === 201 ? response.data : false;
   } catch (e) {
-    console.log(e.response.status);
     if (e.response.status === 403) {
       showLoginFail("Usuário bloqueado. Entre em contato com o administrador.");
     } else {

@@ -17,7 +17,7 @@ const notification = useNotificationStore();
 
 const ramalHistory = ref([]);
 const prevData = ref(false);
-const selectedDate = ref("");
+const selectedDate = ref(new Date().toISOString().split("T")[0]);
 const showChart = ref(false);
 const avgRxList = ref([]);
 const avgTxList = ref([]);
@@ -123,9 +123,43 @@ const saveGponData = async () => {
   }
 };
 
-const setDataByDate = (data) => {
-  prevData.value = data.gpon_data;
-  selectedDate.value = data.date_time;
+const subtractOneDayFromCurrentDate = (dateValue) => {
+  const date = new Date(dateValue);
+  date.setDate(date.getDate() - 1);
+  return date.toISOString().split("T")[0];
+};
+
+const selectPrevData = () => {
+  selectedDate.value = subtractOneDayFromCurrentDate(selectedDate.value);
+  prevData.value = ramalHistory.value.find(
+    (item) => item.date_time.split("T")[0] === selectedDate.value,
+  )?.gpon_data;
+  if (!prevData.value) {
+    notification.setNotification({
+      msg: "Nenhum dado encontrado para a data selecionada",
+      status: "red",
+    });
+  }
+};
+
+const selectFollowingData = () => {
+  const followingDate = new Date(selectedDate.value);
+  followingDate.setDate(followingDate.getDate() + 1);
+  const followingDateString = followingDate.toISOString().split("T")[0];
+
+  const nextData = ramalHistory.value.find(
+    (item) => item.date_time.split("T")[0] === followingDateString,
+  )?.gpon_data;
+
+  if (nextData) {
+    selectedDate.value = followingDateString;
+    prevData.value = nextData;
+  } else {
+    notification.setNotification({
+      msg: "Nenhum dado encontrado para a data seguinte",
+      status: "red",
+    });
+  }
 };
 
 const activeOnuLength = computed(() => {
@@ -165,25 +199,34 @@ onMounted(async () => {
         <v-card-title
           class="d-flex flex-column flex-md-row align-center justify-space-between flex-wrap"
         >
-          Lista clientes {{ ramal.oltRamal }}
+          <span class="text-h6">{{ ramal.oltRamal }}</span>
 
           <div class="d-flex align-center ga-2 mt-2">
             <v-btn
               color="orange"
               variant="tonal"
+              prepend-icon="mdi-history"
               v-if="ramalHistory.length > 0"
               @click="showChart = !showChart"
             >
-              Ver histórico
+              histórico
             </v-btn>
-            <v-btn color="primary" variant="tonal" @click="emit('refreshData')"
+            <v-btn
+              color="primary"
+              variant="tonal"
+              @click="emit('refreshData')"
+              prepend-icon="mdi-refresh"
               >Recarregar</v-btn
             >
           </div>
         </v-card-title>
-        <v-card-subtitle>
+        <v-card-subtitle class="d-flex flex-column ga-2">
           <v-divider class="my-2"></v-divider>
-          ✅ {{ activeOnuLength }} online / ❌ {{ offlineOnuLength }} offline
+          <span
+            >✅ {{ activeOnuLength }} online / ❌
+            {{ offlineOnuLength }} offline</span
+          >
+          <span>{{ selectedDate.toString() }}</span>
         </v-card-subtitle>
         <template v-slot:text>
           <v-text-field
@@ -206,15 +249,6 @@ onMounted(async () => {
     <v-card-actions class="d-flex">
       <v-row>
         <v-col cols="12" md="6">
-          <v-btn
-            color="primary"
-            variant="tonal"
-            @click="saveGponData"
-            class="w-100"
-            >Salvar histórico</v-btn
-          >
-        </v-col>
-        <v-col cols="12" md="6">
           <!-- <v-btn
             color="secondary"
             class="w-100"
@@ -225,11 +259,22 @@ onMounted(async () => {
           <v-btn
             class="w-100"
             variant="tonal"
-            color="success"
-            @click="downloadCsv()"
+            color="orange"
+            prepend-icon="mdi-chevron-left"
+            @click="selectPrevData"
           >
-            Baixar Relatório
+            dia anterior
           </v-btn>
+        </v-col>
+        <v-col cols="12" md="6">
+          <v-btn
+            color="primary"
+            variant="tonal"
+            @click="selectFollowingData"
+            class="w-100"
+            append-icon="mdi-chevron-right"
+            >dia seguinte</v-btn
+          >
         </v-col>
       </v-row>
     </v-card-actions>
