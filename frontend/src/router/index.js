@@ -38,7 +38,11 @@ const router = createRouter({
       path: "/dashboard",
       component: DashboardView,
       children: [
-        { path: "", component: AdminPanel },
+        {
+          path: "",
+          component: AdminPanel,
+          meta: { requiresAuth: true, allowedRoles: ["adm"] },
+        },
 
         {
           path: "/users",
@@ -67,7 +71,12 @@ const router = createRouter({
       ],
     },
 
-    { path: "/comercial", name: "Comercial", component: DashboardComercial },
+    {
+      path: "/comercial",
+      name: "Comercial",
+      component: DashboardComercial,
+      meta: { requiresAuth: true, allowedRoles: ["adm", "vendas"] },
+    },
 
     { path: "/:pathMatch(.*)*", component: PageNotFoundView },
   ],
@@ -83,12 +92,7 @@ router.beforeEach((to, _) => {
   const userCategory = user.value?.category || parsedUser?.category;
 
   // Redireciona para login se não estiver autenticado
-  if (
-    !isAuthenticated.value &&
-    !localUser &&
-    to.name !== "Login" &&
-    to.name !== "Comercial"
-  ) {
+  if (!isAuthenticated.value && !localUser && to.name !== "Login") {
     return { name: "Login" };
   }
 

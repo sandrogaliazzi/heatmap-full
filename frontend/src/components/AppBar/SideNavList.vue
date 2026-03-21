@@ -101,6 +101,14 @@ const onCloseDialog = (value) => {
         @click="openDialog = !openDialog"
       ></v-list-item>
       <v-list-item
+        prepend-icon="mdi-sale"
+        title="Vendas"
+        value="vendas"
+        color="orange"
+        v-role="['adm', 'vendas']"
+        @click="router.push('/comercial')"
+      ></v-list-item>
+      <v-list-item
         prepend-icon="mdi-engine"
         title="Veículos Conect"
         value="ordens"
