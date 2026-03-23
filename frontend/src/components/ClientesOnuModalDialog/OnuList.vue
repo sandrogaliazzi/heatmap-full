@@ -26,11 +26,12 @@ const checkOnuSignal = async (onus) => {
   isLoadingSignal.value = true;
 
   const fiberhomeOnus = onus.filter((onu) => onu.onuNumber);
-  let signal;
+  const parksOnus = onus.filter((onu) => !onu.onuNumber);
+  let signal, parksSignal, fiberhomeSignal;
 
-  if (!fiberhomeOnus.length) {
-    signal = await Promise.all(
-      onus.map(async (onu) => {
+  if (parksOnus.length > 0) {
+    parksSignal = await Promise.all(
+      parksOnus.map(async (onu) => {
         const response = await fetchApi.post(
           "verificar-onu-completo",
           {
@@ -51,13 +52,17 @@ const checkOnuSignal = async (onus) => {
         return response.data;
       }),
     );
-  } else {
+  }
+
+  if (fiberhomeOnus.length > 0) {
     const response = await fetchApi.post("verificar-onu-fiberhome", {
       onus: fiberhomeOnus,
     });
 
-    signal = response.data;
+    fiberhomeSignal = response.data;
   }
+
+  signal = [...(parksSignal || []), ...(fiberhomeSignal || [])];
 
   signalList.value = signal.reduce(
     (acc, val) => ({ ...acc, [val.mac || val.Serial]: val }),
