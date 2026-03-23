@@ -152,7 +152,7 @@ router.post("/upload-pdf", async (req, res) => {
       {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: token,
         },
         body: form,
       },
