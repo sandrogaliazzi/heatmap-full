@@ -49,6 +49,7 @@ router
   )
   .post("/verificar-onu", auth, oltController.VerificarOnu)
   .post("/verificar-onu-completo", auth, oltController.VerificarOnuSummary)
+  .post("/verificar-onu-mac", auth, oltController.VerificarOnuAliasMac)
   .post("/verificar-pon", auth, oltController.VerificarSinalPon)
   .post("/verificar-onu-name-pon", auth, oltController.VerificarNomeOnuPon)
   .post("/verificar-onu-name-olt", auth, oltController.VerificarNomeOnuOlt)

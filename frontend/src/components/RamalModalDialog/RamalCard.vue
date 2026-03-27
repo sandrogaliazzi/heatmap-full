@@ -276,7 +276,7 @@ onMounted(async () => {
                     variant="tonal"
                   >
                     Exibir lista
-                    <v-dialog activator="parent" width="auto">
+                    <v-dialog activator="parent" max-width="800">
                       <PonSignal
                         v-model="ponSignals"
                         :ramal="ramal"

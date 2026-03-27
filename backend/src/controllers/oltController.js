@@ -656,6 +656,114 @@ class oltController {
       });
   };
 
+  static VerificarOnuAliasMac = (req, res) => {
+    let host = req.body.oltIp;
+    let gpon = req.body.oltPon;
+    const username = process.env.PARKS_USERNAME;
+    const password = `#${process.env.PARKS_PASSWORD}`;
+    const conn = new Client();
+
+    let responseSent = false;
+
+    conn
+      .on("ready", () => {
+        conn.shell((err, stream) => {
+          if (err) {
+            if (!responseSent) {
+              console.error(err);
+              res.status(500).json({ error: "Error connecting to the OLT" });
+              responseSent = true;
+            }
+            return;
+          }
+
+          let dataBuffer = "";
+          let jsonOutput = null;
+
+          stream
+            .on("close", () => {
+              if (!responseSent) {
+                res.json(jsonOutput);
+                responseSent = true;
+              }
+              conn.end();
+            })
+            .on("data", (data) => {
+              dataBuffer += data.toString();
+            });
+
+          stream.on("end", () => {
+            const items = [];
+            const lines = dataBuffer.split("\n");
+
+            for (let i = 0; i < lines.length; i++) {
+              const line = lines[i]?.trim();
+
+              if (!line) continue;
+
+              // Captura linhas como:
+              // 81-ANTONIO-WISSINHESKI (prks00dc219b):
+              // 82-itbs5f5f4174:
+              // 83-JHENIFER-O-42076 (prks00d77ec8):
+              // 84-prks00dc1dc7:
+              const match = line.match(/^(\d+)-(.+?):$/);
+
+              if (match) {
+                const rawValue = match[2].trim();
+
+                let alias = null;
+                let mac = null;
+
+                // Caso tenha alias + mac entre parênteses
+                // Ex: ANTONIO-WISSINHESKI (prks00dc219b)
+                const aliasMacMatch = rawValue.match(/^(.*?)\s*\(([^)]+)\)$/);
+
+                if (aliasMacMatch) {
+                  alias = aliasMacMatch[1]?.trim() || null;
+                  mac = aliasMacMatch[2]?.trim() || null;
+                } else {
+                  // Caso venha apenas algo como:
+                  // itbs5f5f4174
+                  // prks00dc1dc7
+                  mac = rawValue;
+                  alias = null;
+                }
+
+                // Se quiser normalizar o mac/serial em maiúsculo
+                if (mac) {
+                  mac = mac.toUpperCase();
+                }
+
+                items.push({
+                  alias: alias || null,
+                  mac: mac || null,
+                });
+              }
+            }
+
+            jsonOutput = items;
+          });
+
+          stream.write("terminal length 0\n");
+          stream.write(`sh interface ${gpon} onu\n`);
+          stream.write("exit\n");
+        });
+      })
+      .on("error", (err) => {
+        if (!responseSent) {
+          console.error(err);
+          res.status(500).json({ error: "Error connecting to the OLT" });
+          responseSent = true;
+        }
+      })
+      .connect({
+        host: host,
+        port: 22,
+        username: username,
+        password: password,
+      });
+  };
+
   static VerificarNomeOnuPon = (req, res) => {
     let host = req.body.oltIp;
     let gpon = req.body.oltPon;

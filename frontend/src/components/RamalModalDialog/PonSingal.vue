@@ -2,6 +2,8 @@
 import { ref, computed, onMounted } from "vue";
 import { useNotificationStore } from "@/stores/notification";
 import signalChart from "./signalChart.vue";
+import fetchApi from "@/api";
+import PonClientsMap from "./PonClientsMap.vue";
 
 const { ramal, loading, rawSignals } = defineProps([
   "ramal",
@@ -11,7 +13,6 @@ const { ramal, loading, rawSignals } = defineProps([
 
 const onuList = defineModel();
 const emit = defineEmits(["refreshData"]);
-import fetchApi from "@/api";
 
 const notification = useNotificationStore();
 
@@ -202,6 +203,17 @@ onMounted(async () => {
           <span class="text-h6">{{ ramal.oltRamal }}</span>
 
           <div class="d-flex align-center ga-2 mt-2">
+            <v-btn prepend-icon="mdi-map-search" variant="text">
+              Ver mapa
+              <v-dialog activator="parent" max-width="800">
+                <template v-slot:default="{ isActive }">
+                  <pon-clients-map
+                    :ramal="ramal"
+                    @closeDialog="isActive.value = false"
+                  />
+                </template>
+              </v-dialog>
+            </v-btn>
             <v-btn
               color="orange"
               variant="tonal"
