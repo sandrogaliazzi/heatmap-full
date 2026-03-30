@@ -2,6 +2,33 @@ import { ref, computed } from "vue";
 import { defineStore } from "pinia";
 import fetchApi from "@/api/index.js";
 
+const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutos
+const CACHE_KEY_FULL = "tomodat_cache_full";
+const CACHE_KEY_GUEST = "tomodat_cache_guest";
+
+function readCache(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const cache = JSON.parse(raw);
+    if (Date.now() - cache.timestamp > CACHE_TTL_MS) {
+      localStorage.removeItem(key);
+      return null;
+    }
+    return cache;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(key, data) {
+  try {
+    localStorage.setItem(key, JSON.stringify({ timestamp: Date.now(), ...data }));
+  } catch {
+    // localStorage cheio ou indisponível — ignora silenciosamente
+  }
+}
+
 export const useTomodatStore = defineStore("tomodat", () => {
   const ctoList = ref([]);
   const cableList = ref([]);
@@ -17,9 +44,16 @@ export const useTomodatStore = defineStore("tomodat", () => {
   const setPolygonDrawMode = ref(false);
 
   async function getTomodatData(user) {
-    let ctoResponse = [];
     try {
       if (user.category !== "convidado") {
+        const cached = readCache(CACHE_KEY_FULL);
+        if (cached) {
+          ctoList.value = cached.ctoList;
+          cableList.value = cached.cableList;
+          loadingData.value = false;
+          return;
+        }
+
         const [ctoResponse, cableResponse] = await Promise.all([
           fetchApi.get("/newfetch"),
           fetchApi.get("/cables"),
@@ -27,15 +61,33 @@ export const useTomodatStore = defineStore("tomodat", () => {
 
         ctoList.value = ctoResponse.data;
         cableList.value = cableResponse.data;
+        writeCache(CACHE_KEY_FULL, {
+          ctoList: ctoResponse.data,
+          cableList: cableResponse.data,
+        });
       } else {
-        ctoResponse = await fetchApi.get("/tomodat-basico");
-        ctoList.value = ctoResponse.data.filter((d) => d.dot !== null);
+        const cached = readCache(CACHE_KEY_GUEST);
+        if (cached) {
+          ctoList.value = cached.ctoList;
+          loadingData.value = false;
+          return;
+        }
+
+        const ctoResponse = await fetchApi.get("/tomodat-basico");
+        const filtered = ctoResponse.data.filter((d) => d.dot !== null);
+        ctoList.value = filtered;
+        writeCache(CACHE_KEY_GUEST, { ctoList: filtered });
       }
 
       loadingData.value = false;
     } catch (error) {
       console.error("Error fetching Tomodat data:", error);
     }
+  }
+
+  function invalidateCache() {
+    localStorage.removeItem(CACHE_KEY_FULL);
+    localStorage.removeItem(CACHE_KEY_GUEST);
   }
 
   async function getAllLocatedClients() {
@@ -148,5 +200,6 @@ export const useTomodatStore = defineStore("tomodat", () => {
     loadingData,
     mapZoom,
     isCableVisible,
+    invalidateCache,
   };
 });

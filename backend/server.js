@@ -8,9 +8,11 @@ const port = process.env.PORT || 5005; //always 5005
 
 const server = http.createServer(app);
 
-signalUpdateLoop();
-tomodatUpdateLoop();
-deleteReservados();
+if (process.env.NODE_ENV === "production") {
+  signalUpdateLoop();
+  tomodatUpdateLoop();
+  deleteReservados();
+}
 
 server.listen(port, () => {
   let now = new Date().toLocaleString("PT-br");
