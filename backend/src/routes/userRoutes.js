@@ -5,7 +5,7 @@ import auth from "../middleware/auth.js";
 const router = express.Router();
 
 router
-  .get("/users", UserController.ListarUsers) // lista todos os usurios do db
+  .get("/users", auth, UserController.ListarUsers) // lista todos os usurios do db
   .post("/users", auth, UserController.RegisterUser) // cadastra usuario no db
   .put("/users/:id", auth, UserController.atualizarUser) // atualiza usuario no db pelo id
   .put("/users/avatar/:id", auth, UserController.atualizarAvatar) // atualiza avatar do usuario
