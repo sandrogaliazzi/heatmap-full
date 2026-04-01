@@ -48,7 +48,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: sandrogaliazzi
+          username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extrair metadados da imagem do backend
@@ -106,10 +106,10 @@ jobs:
           cd "$APP_DIR"
 
           echo "==> Baixando nova imagem do backend"
-          docker compose pull node-api
+          docker-compose pull node-api
 
           echo "==> Reiniciando backend com nova imagem"
-          docker compose up -d node-api
+          docker-compose up -d node-api
 
           echo "==> Ajustando permissões do frontend"
           chmod -R 755 "$NEW_RELEASE"
