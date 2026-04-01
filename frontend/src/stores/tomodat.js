@@ -2,7 +2,7 @@ import { ref, computed } from "vue";
 import { defineStore } from "pinia";
 import fetchApi from "@/api/index.js";
 
-const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutos
+const CACHE_TTL_MS = 120 * 60 * 1000; // 120 minutos
 const CACHE_KEY_FULL = "tomodat_cache_full";
 const CACHE_KEY_GUEST = "tomodat_cache_guest";
 
