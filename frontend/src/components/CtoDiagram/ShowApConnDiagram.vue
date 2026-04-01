@@ -256,7 +256,7 @@ const getPortLabelAnchor = (node) => {
 .ap-conn-diagram {
   width: 100%;
   overflow: auto;
-  max-height: 80vh;
+  max-height: 100vh;
   overflow-x: auto;
   overflow-y: auto;
   background: #c4c4c4;

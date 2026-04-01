@@ -333,7 +333,7 @@ const serviceLocation = ref("teste");
       @positionSelected="onPositionSelected"
     />
 
-    <v-dialog v-model="showDiagram" max-width="1200">
+    <v-dialog v-model="showDiagram" :fullscreen="true" scrollable>
       <v-toolbar color="orange">
         <v-toolbar-title>Diagrama de conexões - {{ cto.name }}</v-toolbar-title>
         <v-spacer></v-spacer>
