@@ -1,16 +1,16 @@
 services:
   node-api:
-    build: ./backend
+    image: ghcr.io/sandrogaliazzi/heatmap-backend:latest
+    container_name: heatmap-backend
     ports:
       - "5005:5005"
-    volumes:
-      - ./backend:/app
-      - /app/node_modules
+    env_file:
+      - ./backend/.env
     environment:
       - NODE_ENV=production
     restart: always
     networks:
-      app-network:
+      - app-network
 
 networks:
   app-network:
