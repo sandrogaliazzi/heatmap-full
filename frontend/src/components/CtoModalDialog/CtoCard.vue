@@ -7,7 +7,7 @@ import AddClientForm from "./AddClientForm.vue";
 import ClientesOnuCard from "../ClientesOnuModalDialog/ClientesOnuCard.vue";
 import fetchApi from "@/api";
 import CtoNotes from "./CtoNotes.vue";
-import CtoConectors from "./CtoConectors.vue";
+import ShowApConnDiagram from "../CtoDiagram/ShowApConnDiagram.vue";
 import ClientMap from "./ClientMap.vue";
 import CtoHistory from "./CtoHistory.vue";
 import { useNotificationStore } from "@/stores/notification";
@@ -22,6 +22,7 @@ const apConnList = ref([]);
 const clientsWithLocation = ref([]);
 const isDataLoading = ref(true);
 const slideNumber = ref(1);
+const showDiagram = ref(false);
 
 const saveNote = async (note) => {
   try {
@@ -256,13 +257,19 @@ const serviceLocation = ref("teste");
 <template>
   <v-card>
     <v-card-title
-      class="d-flex justify-space-between align-center border-b"
+      class="d-flex flex-column flex-md-row justify-space-between align-center border-b"
       :class="cto.color === '#00ff00' ? 'bg-green' : 'bg-orange'"
     >
       <p style="cursor: pointer" @click="openNewGMapTab(cto.coord)">
         {{ cto.color === "#00ff00" ? "$" : "#" }}{{ cto.name }}
       </p>
       <div>
+        <v-btn
+        icon="mdi-sitemap"
+        variant="text"
+        @click="showDiagram = true">
+
+        </v-btn>
         <v-btn
           icon="mdi-map-marker"
           :color="userLocation ? 'red' : ''"
@@ -325,6 +332,15 @@ const serviceLocation = ref("teste");
       :isMapVisible="isMapVisible || slideNumber == 2"
       @positionSelected="onPositionSelected"
     />
+
+    <v-dialog v-model="showDiagram" max-width="1200">
+      <v-toolbar color="orange">
+        <v-toolbar-title>Diagrama de conexões - {{ cto.name }}</v-toolbar-title>
+        <v-spacer></v-spacer>
+        <v-btn icon="mdi-close" variant="text" @click="showDiagram = false" />
+      </v-toolbar>
+      <ShowApConnDiagram :connections="apConnList" v-if="apConnList" />
+    </v-dialog>
 
     <v-window v-model="slideNumber" class="overflow-auto">
       <v-window-item :value="1">

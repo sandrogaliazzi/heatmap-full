@@ -32,7 +32,7 @@ const routes = (app) => {
   app.route("/").get((req, res) => {
     res.status(200).send({
       message:
-        "Este é o servidor BACKEND da aplicação da Conectnet Telecomunicações",
+        "Este é o servidor BACKEND da aplicação HeatMap, estamos online e prontos para receber suas requisições!",
     });
   });
 

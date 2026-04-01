@@ -9,6 +9,8 @@ services:
     environment:
       - NODE_ENV=production
     restart: always
+    volumes:
+      - ./backend/images:/app/images
     networks:
       - app-network
 
