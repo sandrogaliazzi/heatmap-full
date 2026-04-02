@@ -257,6 +257,7 @@ const serviceLocation = ref("teste");
 
 <template>
   <v-card>
+    <!-- Header -->
     <v-card-title
       class="d-flex flex-column flex-md-row justify-space-between align-center border-b"
       :class="cto.color === '#00ff00' ? 'bg-green' : 'bg-orange'"
@@ -265,11 +266,7 @@ const serviceLocation = ref("teste");
         {{ cto.color === "#00ff00" ? "$" : "#" }}{{ cto.name }}
       </p>
       <div>
-        <v-btn
-        icon="mdi-sitemap"
-        variant="text"
-        @click="showDiagram = true">
-
+        <v-btn icon="mdi-sitemap" variant="text" @click="showDiagram = true">
         </v-btn>
         <v-btn
           icon="mdi-map-marker"
@@ -300,6 +297,7 @@ const serviceLocation = ref("teste");
         <v-btn variant="plain" icon="mdi-close" @click="closeDialog" />
       </div>
     </v-card-title>
+    <!-- número de vagas e anotacoes -->
     <v-card-subtitle
       class="mt-3 font-weight-bold d-flex flex-wrap ga-2 justify-space-between align-center"
     >
@@ -322,7 +320,7 @@ const serviceLocation = ref("teste");
         />
       </v-chip>
     </v-card-subtitle>
-
+    <!-- mini mapa cto -->
     <CtoMap
       :center="mapCenter"
       :key="mapKey"
@@ -333,19 +331,32 @@ const serviceLocation = ref("teste");
       :isMapVisible="isMapVisible || slideNumber == 2"
       @positionSelected="onPositionSelected"
     />
-
-    <v-dialog v-model="showDiagram" :fullscreen="true" scrollable >
+    <!-- digrana de fusoes -->
+    <v-dialog v-model="showDiagram" :fullscreen="true" scrollable>
       <v-toolbar color="orange">
         <v-toolbar-title>{{ cto.name }}</v-toolbar-title>
         <v-spacer></v-spacer>
-        <v-btn icon="mdi-magnify-plus" variant="text" @click="diagram?.zoomIn()" />
-        <v-btn icon="mdi-magnify-minus" variant="text" @click="diagram?.zoomOut()" />
+        <v-btn
+          icon="mdi-magnify-plus"
+          variant="text"
+          @click="diagram?.zoomIn()"
+        />
+        <v-btn
+          icon="mdi-magnify-minus"
+          variant="text"
+          @click="diagram?.zoomOut()"
+        />
         <v-btn icon="mdi-close" variant="text" @click="showDiagram = false" />
       </v-toolbar>
-      <ShowApConnDiagram :connections="apConnList" v-if="apConnList" ref="diagram" />
+      <ShowApConnDiagram
+        :connections="apConnList"
+        v-if="apConnList"
+        ref="diagram"
+      />
     </v-dialog>
 
     <v-window v-model="slideNumber" class="overflow-auto">
+      <!-- clientes -->
       <v-window-item :value="1">
         <v-card-text style="padding-bottom: 0">
           <template v-if="!isDataLoading">
@@ -383,11 +394,14 @@ const serviceLocation = ref("teste");
           </v-sheet>
         </v-card-text>
       </v-window-item>
+
+      <!-- form add cliente -->
       <v-window-item :value="2">
         <v-card-text>
           <AddClientForm
             :clientPosition="positionClicked"
             :cto="cto"
+            :clients="clients"
             @update-cto-clietns="loadCtoData({ slide: true })"
             @update-service-location="serviceLocation = $event"
           />
@@ -404,9 +418,13 @@ const serviceLocation = ref("teste");
           >
         </v-card-actions>
       </v-window-item>
+
+      <!-- histórico -->
       <v-window-item :value="3">
         <CtoHistory :ctoId="cto.id" />
       </v-window-item>
+
+      <!-- localização dos clietnes -->
       <v-window-item :value="4" v-if="clientLocation">
         <ClientMap
           :client-location="clientLocation"
@@ -418,6 +436,8 @@ const serviceLocation = ref("teste");
         />
       </v-window-item>
     </v-window>
+
+    <!-- card verificar sinal -->
     <v-card-text>
       <ClientesOnuCard v-if="showOnuCard" :clients="clients" :city="cto.city">
         <template #header>

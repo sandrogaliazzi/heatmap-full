@@ -6,6 +6,7 @@ const router = express.Router();
 
 router
   .get("/reservados", auth, ReservadosController.ListReservados) // Lista todos os reservados
+  .get("/reservados/:name", auth, ReservadosController.getReservadoByName) // Busca um reservado por nome
   .post("/reservados", auth, ReservadosController.CreateReservados) // Adiciona um novo reservado
   .put("/reservados/:id", auth, ReservadosController.UpdateReservados) // Atualiza um reservado
   .delete(

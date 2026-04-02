@@ -848,6 +848,8 @@ class FiberHomeController {
       client.on("data", (data) => {
         buffer += data.toString();
 
+        console.log("⬅️ Resposta TL1:", buffer.trim());
+
         // 1️⃣ LOGIN
         if (step === 0 && buffer.includes("COMPLD")) {
           step = 1;
@@ -857,6 +859,8 @@ class FiberHomeController {
           const addCmd =
             `ADD-ONU::OLTID=${oltIp},PONID=1-1-${slot}-${pon}:CTAG::` +
             `AUTHTYPE=MAC,ONUID=${mac},PWD=12345678,NAME=${onuAlias},DESC=NA,ONUTYPE=${onuType};\r\n`;
+
+          console.log("➡️ Enviando:", addCmd.trim());
 
           client.write(addCmd);
           return;
@@ -879,6 +883,8 @@ class FiberHomeController {
             `CFG-LANPORT::OLTID=${oltIp},PONID=1-1-${slot}-${pon},` +
             `ONUIDTYPE=MAC,ONUID=${mac},ONUPORT=NA-NA-NA-1:CTAG::` +
             `VLANMOD=${vlanMode},PVID=${vlan},PCOS=0;\r\n`;
+
+          console.log("➡️ Enviando:", cfgLanCmd.trim());
 
           client.write(cfgLanCmd);
           return;
@@ -906,6 +912,8 @@ class FiberHomeController {
             `CFG-VEIPSERVICE::OLTID=${oltIp},PONID=1-1-${slot}-${pon},` +
             `ONUIDTYPE=MAC,ONUID=${mac},ONUPORT=NA-NA-NA-1:CTAG::` +
             `ServiceId=1,CVLANID=${vlan},ServiceModelProfile=INTELBRAS_ROUTER,ServiceType=DATA;\r\n`;
+
+          console.log("➡️ Enviando:", veipCmd.trim());
 
           client.write(veipCmd);
           return;

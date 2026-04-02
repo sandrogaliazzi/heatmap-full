@@ -11,6 +11,16 @@ class ReservadosController {
     }
   };
 
+  static getReservadoByName = async (req, res) => {
+    try {
+      const { name } = req.params;
+      const reservado = await Reservados.findOne({ name });
+      res.status(200).json(reservado);
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  };
+
   static CreateReservados = async (req, res) => {
     try {
       const { tomodat_id, name, coord, cto_id, created_at, user } = req.body;
@@ -41,7 +51,7 @@ class ReservadosController {
           cto_id,
           created_at,
         },
-        { new: true }
+        { new: true },
       );
       res.status(200).json(updatedReservado);
     } catch (error) {
