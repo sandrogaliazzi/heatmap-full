@@ -14,7 +14,7 @@ import { useNotificationStore } from "@/stores/notification";
 
 const notification = useNotificationStore();
 
-const { cto, tomodatView } = defineProps(["cto", "tomodatView"]);
+const { cto } = defineProps(["cto"]);
 const emit = defineEmits(["setCtoFromChild"]);
 
 const ctoNotes = ref(false);
@@ -23,6 +23,7 @@ const clientsWithLocation = ref([]);
 const isDataLoading = ref(true);
 const slideNumber = ref(1);
 const showDiagram = ref(false);
+const diagram = ref(null);
 
 const saveNote = async (note) => {
   try {
@@ -333,13 +334,15 @@ const serviceLocation = ref("teste");
       @positionSelected="onPositionSelected"
     />
 
-    <v-dialog v-model="showDiagram" :fullscreen="true" scrollable>
+    <v-dialog v-model="showDiagram" :fullscreen="true" scrollable >
       <v-toolbar color="orange">
-        <v-toolbar-title>Diagrama de conexões - {{ cto.name }}</v-toolbar-title>
+        <v-toolbar-title>{{ cto.name }}</v-toolbar-title>
         <v-spacer></v-spacer>
+        <v-btn icon="mdi-magnify-plus" variant="text" @click="diagram?.zoomIn()" />
+        <v-btn icon="mdi-magnify-minus" variant="text" @click="diagram?.zoomOut()" />
         <v-btn icon="mdi-close" variant="text" @click="showDiagram = false" />
       </v-toolbar>
-      <ShowApConnDiagram :connections="apConnList" v-if="apConnList" />
+      <ShowApConnDiagram :connections="apConnList" v-if="apConnList" ref="diagram" />
     </v-dialog>
 
     <v-window v-model="slideNumber" class="overflow-auto">

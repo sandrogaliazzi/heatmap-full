@@ -12,6 +12,14 @@ onMounted(async () => {
 </script>
 
 <template>
+  <v-sheet
+    v-if="!items.length"
+    :height="400"
+    class="d-flex flex-column justify-center align-center"
+  >
+    <v-icon size="200px">mdi-history</v-icon>
+    <p class="text-button">Nenhum histórico disponível</p>
+  </v-sheet>
   <v-list>
     <v-list-item v-for="(item, index) in items" :key="index">
       <v-list-item-title class="font-weight-bold">

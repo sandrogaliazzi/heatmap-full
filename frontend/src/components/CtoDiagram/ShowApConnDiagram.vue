@@ -4,6 +4,10 @@
       :viewBox="`0 0 ${diagram.canvas.width} ${diagram.canvas.height}`"
       :width="diagram.canvas.width"
       :height="diagram.canvas.height"
+      :style="{
+        transform: `scale(${zoomScale})`,
+        transformOrigin: 'top center',
+      }"
       class="diagram-svg"
     >
       <text
@@ -34,11 +38,7 @@
             v-if="node.type !== 'client'"
             :transform="`translate(${node.x}, ${node.y})`"
           >
-            <rect
-              :width="nodeWidth"
-              :height="node.height"
-              class="node-box"
-            />
+            <rect :width="nodeWidth" :height="node.height" class="node-box" />
 
             <rect
               :width="nodeWidth"
@@ -60,10 +60,7 @@
               {{ node.subtitle }}
             </text>
 
-            <g
-              v-for="(port, index) in node.ports"
-              :key="`${node.id}-${port}`"
-            >
+            <g v-for="(port, index) in node.ports" :key="`${node.id}-${port}`">
               <rect
                 x="0"
                 :y="headerHeight + index * rowHeight"
@@ -107,8 +104,21 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { mapApConn } from './mapApConn'
+import { computed, defineExpose, ref } from "vue";
+import { mapApConn } from "./mapApConn";
+import { useWindowSize } from "vue-window-size";
+
+const { width } = useWindowSize();
+
+const zoomScale = ref(width.value < 600 ? 0.6 : 1);
+
+const zoomOut = () => {
+  zoomScale.value = Math.max(0.5, zoomScale.value - 0.1);
+};
+
+const zoomIn = () => {
+  zoomScale.value = Math.min(2, zoomScale.value + 0.1);
+};
 
 const props = defineProps({
   connections: {
@@ -117,20 +127,20 @@ const props = defineProps({
   },
   title: {
     type: String,
-    default: 'Diagrama de conexões',
+    default: "Diagrama de conexões",
   },
-})
+});
 
-const diagram = computed(() => mapApConn(props.connections))
+const diagram = computed(() => mapApConn(props.connections));
 
-const nodeWidth = computed(() => diagram.value.canvas.nodeWidth)
-const headerHeight = computed(() => diagram.value.canvas.headerHeight)
-const rowHeight = computed(() => diagram.value.canvas.rowHeight)
-const clientBoxSize = computed(() => diagram.value.canvas.clientBoxSize)
+const nodeWidth = computed(() => diagram.value.canvas.nodeWidth);
+const headerHeight = computed(() => diagram.value.canvas.headerHeight);
+const rowHeight = computed(() => diagram.value.canvas.rowHeight);
+const clientBoxSize = computed(() => diagram.value.canvas.clientBoxSize);
 
 const nodesById = computed(() => {
-  return new Map(diagram.value.nodes.map((node) => [node.id, node]))
-})
+  return new Map(diagram.value.nodes.map((node) => [node.id, node]));
+});
 
 const resolvedLinks = computed(() => {
   return diagram.value.links
@@ -139,117 +149,119 @@ const resolvedLinks = computed(() => {
       sourceNode: nodesById.value.get(link.sourceId),
       targetNode: nodesById.value.get(link.targetId),
     }))
-    .filter((link) => link.sourceNode && link.targetNode)
-})
+    .filter((link) => link.sourceNode && link.targetNode);
+});
 
 const getPortIndex = (node, port) => {
-  return node.ports.findIndex((item) => item === port)
-}
+  return node.ports.findIndex((item) => item === port);
+};
 
 const getPortPoint = (node, port) => {
-  if (node.type === 'client') {
+  if (node.type === "client") {
     return {
       x: node.x + clientBoxSize.value / 2,
       y: node.y,
-    }
+    };
   }
 
-  const portIndex = getPortIndex(node, port)
+  const portIndex = getPortIndex(node, port);
   const y =
     node.y +
     headerHeight.value +
     portIndex * rowHeight.value +
-    rowHeight.value / 2
+    rowHeight.value / 2;
 
-  if (node.anchorSide === 'right') {
+  if (node.anchorSide === "right") {
     return {
       x: node.x + nodeWidth.value,
       y,
-    }
+    };
   }
 
-  if (node.anchorSide === 'left') {
+  if (node.anchorSide === "left") {
     return {
       x: node.x,
       y,
-    }
+    };
   }
 
   return {
     x: node.x + nodeWidth.value / 2,
     y: node.y,
-  }
-}
+  };
+};
 
 const buildLinkPath = (link) => {
-  const start = getPortPoint(link.sourceNode, link.sourcePort)
-  const end = getPortPoint(link.targetNode, link.targetPort)
+  const start = getPortPoint(link.sourceNode, link.sourcePort);
+  const end = getPortPoint(link.targetNode, link.targetPort);
 
-  const sourceSide = link.sourceNode.side
-  const targetSide = link.targetNode.side
+  const sourceSide = link.sourceNode.side;
+  const targetSide = link.targetNode.side;
 
-  const isClientTarget = link.targetNode.type === 'client'
-  const isClientSource = link.sourceNode.type === 'client'
+  const isClientTarget = link.targetNode.type === "client";
+  const isClientSource = link.sourceNode.type === "client";
 
   // CLIENTES
   if (isClientTarget || isClientSource) {
     const splitterNode =
-      link.sourceNode.type === 'splitter' ? link.sourceNode : link.targetNode
+      link.sourceNode.type === "splitter" ? link.sourceNode : link.targetNode;
 
-    const sourcePoint =
-      link.sourceNode.type === 'client' ? end : start
-    const targetPoint =
-      link.targetNode.type === 'client' ? end : start
+    const sourcePoint = link.sourceNode.type === "client" ? end : start;
+    const targetPoint = link.targetNode.type === "client" ? end : start;
 
     const elbowX =
-      splitterNode.side === 'right'
-        ? sourcePoint.x - 60
-        : sourcePoint.x + 60
+      splitterNode.side === "right" ? sourcePoint.x - 60 : sourcePoint.x + 60;
 
-    const midY = targetPoint.y - 36
+    const midY = targetPoint.y - 36;
 
     return [
       `M ${sourcePoint.x} ${sourcePoint.y}`,
       `L ${elbowX} ${sourcePoint.y}`,
       `L ${targetPoint.x} ${midY}`,
       `L ${targetPoint.x} ${targetPoint.y}`,
-    ].join(' ')
+    ].join(" ");
   }
 
   // MESMO LADO
   if (sourceSide === targetSide) {
     const bendX =
-      sourceSide === 'left'
+      sourceSide === "left"
         ? Math.max(start.x, end.x) + 48
-        : Math.min(start.x, end.x) - 48
+        : Math.min(start.x, end.x) - 48;
 
     return [
       `M ${start.x} ${start.y}`,
       `L ${bendX} ${start.y}`,
       `L ${bendX} ${end.y}`,
       `L ${end.x} ${end.y}`,
-    ].join(' ')
+    ].join(" ");
   }
 
   // LADOS OPOSTOS
-  const startOffset = link.sourceNode.anchorSide === 'right' ? 48 : -48
-  const endOffset = link.targetNode.anchorSide === 'left' ? -48 : 48
+  const startOffset = link.sourceNode.anchorSide === "right" ? 48 : -48;
+  const endOffset = link.targetNode.anchorSide === "left" ? -48 : 48;
 
   return [
     `M ${start.x} ${start.y}`,
     `L ${start.x + startOffset} ${start.y}`,
     `L ${end.x + endOffset} ${end.y}`,
     `L ${end.x} ${end.y}`,
-  ].join(' ')
-}
+  ].join(" ");
+};
 
 const getPortLabelX = (node) => {
-  return node.anchorSide === 'right' ? nodeWidth.value - 10 : 10
-}
+  return node.anchorSide === "right" ? nodeWidth.value - 10 : 10;
+};
 
 const getPortLabelAnchor = (node) => {
-  return node.anchorSide === 'right' ? 'end' : 'start'
-}
+  return node.anchorSide === "right" ? "end" : "start";
+};
+
+defineExpose({
+  zoomIn,
+  zoomOut,
+  zoomScale,
+});
 </script>
 
 <style scoped>
@@ -259,6 +271,8 @@ const getPortLabelAnchor = (node) => {
   max-height: 100vh;
   overflow-x: auto;
   overflow-y: auto;
+  display: flex;
+  justify-content: center;
   background: #c4c4c4;
   padding: 12px;
   scrollbar-width: thin;
