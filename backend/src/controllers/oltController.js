@@ -1097,7 +1097,130 @@ class oltController {
       });
   };
 
-  static liberarOnu = (req, res) => {
+  static #fetchGponProfiles = (oltIp) => {
+    return new Promise((resolve, reject) => {
+      const conn = new Client();
+      const username = process.env.PARKS_USERNAME;
+      const password = `#${process.env.PARKS_PASSWORD}`;
+
+      conn
+        .on("ready", () => {
+          conn.shell((err, stream) => {
+            if (err) return reject(err);
+
+            let dataBuffer = "";
+            let perfis = [];
+            let currentPerfil = null;
+
+            const processDataBuffer = (buffer) => {
+              for (const line of buffer.split("\n")) {
+                const trimmed = line.trim();
+                if (
+                  !trimmed ||
+                  trimmed.startsWith("Index") ||
+                  trimmed.startsWith("----") ||
+                  trimmed.includes("show") ||
+                  trimmed.includes("exit") ||
+                  trimmed.includes("terminal length")
+                )
+                  continue;
+
+                if (
+                  !trimmed.includes("|") &&
+                  !/^\d+$/.test(trimmed) &&
+                  trimmed !== "-"
+                ) {
+                  if (currentPerfil && currentPerfil.entries.length > 0)
+                    perfis.push(currentPerfil);
+                  currentPerfil = { name: trimmed, entries: [] };
+                  continue;
+                }
+
+                if (trimmed.includes("|") && currentPerfil) {
+                  const values = trimmed
+                    .split("|")
+                    .map((v) => v.trim())
+                    .filter((v) => v !== "");
+                  if (values.length >= 8 && !isNaN(parseInt(values[0]))) {
+                    const normalized =
+                      values.length === 8 ? [...values, ""] : values;
+                    const [
+                      index,
+                      type,
+                      vlan,
+                      cos,
+                      encryption,
+                      downstream,
+                      bandwidthName,
+                      shared,
+                      pbmpPorts,
+                    ] = normalized;
+                    currentPerfil.entries.push({
+                      index: parseInt(index),
+                      type,
+                      vlan: vlan !== "-" ? parseInt(vlan) : vlan,
+                      cos: cos !== "-" ? cos : null,
+                      encryption,
+                      downstream: parseInt(downstream),
+                      bandwidthName,
+                      shared: shared === "Yes",
+                      pbmpPorts: pbmpPorts || "",
+                    });
+                  }
+                }
+              }
+            };
+
+            stream
+              .on("close", () => {
+                if (dataBuffer.trim()) processDataBuffer(dataBuffer);
+                if (currentPerfil) perfis.push(currentPerfil);
+                conn.end();
+                resolve(perfis);
+              })
+              .on("data", (data) => {
+                dataBuffer += data.toString();
+                const lines = dataBuffer.split("\n");
+                dataBuffer = lines.pop();
+                for (const line of lines) processDataBuffer(line + "\n");
+              });
+
+            stream.write("terminal length 0\n");
+            stream.write("sh gpon profile flow\n");
+            new Promise((r) => setTimeout(r, 300)).then(() =>
+              stream.write("exit\n"),
+            );
+          });
+        })
+        .on("error", reject)
+        .connect({ host: oltIp, port: 22, username, password });
+    });
+  };
+
+  static #resolveFlowProfile = (profiles, onuVlan, useVeipService) => {
+    const vlan = parseInt(onuVlan);
+    const matching = profiles.filter((p) =>
+      p.entries.some((e) => e.vlan === vlan),
+    );
+    if (useVeipService) {
+      return (
+        matching.find(
+          (p) =>
+            p.entries.some((e) => e.type === "VEIP") &&
+            p.name.startsWith("router"),
+        )?.name ?? ""
+      );
+    }
+    return (
+      matching.find(
+        (p) =>
+          p.entries.every((e) => e.type !== "VEIP") &&
+          p.name.startsWith("bridge"),
+      )?.name ?? ""
+    );
+  };
+
+  static liberarOnu = async (req, res) => {
     let oltIp = req.body.oltIp;
     let oltPon = req.body.oltPon;
     let onuVlan = req.body.onuVlan;
@@ -1108,28 +1231,28 @@ class oltController {
     let user = req.body.user;
     let useVeipService = req.body.useVeipService;
     let gpon = oltPon;
-    let flowProfile = "";
     let sinalTX = req.body.sinalTX;
     let sinalRX = req.body.sinalRX;
     let date_time = new Date().toLocaleString("PT-br");
 
-    function setFlowProfile() {
-      let vlan;
-      if (
-        oltIp === "192.168.214.2" ||
-        (oltIp === "192.168.217.2" && !useVeipService)
-      ) {
-        vlan = `bridge_vlan${onuVlan}`;
-      } else if (useVeipService) {
-        vlan = `router_Veip_vlan${onuVlan}`;
-      } else {
-        vlan = `bridge_vlan_${onuVlan}`;
-      }
-
-      return vlan;
+    let flowProfile = "";
+    try {
+      const profiles = await oltController.#fetchGponProfiles(oltIp);
+      flowProfile = oltController.#resolveFlowProfile(
+        profiles,
+        onuVlan,
+        useVeipService,
+      );
+    } catch (err) {
+      console.error("Erro ao buscar perfis gpon:", err);
+      return res
+        .status(500)
+        .json({ error: "Erro ao buscar perfis GPON da OLT" });
     }
 
-    flowProfile = setFlowProfile();
+    if (!flowProfile) {
+      return res.status(400).json({ error: "Perfil de fluxo não encontrado" });
+    }
 
     let clienteDb = {
       date_time,
