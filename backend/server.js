@@ -1,8 +1,10 @@
 import app from "./src/app.js";
 import http from "http";
+import cron from "node-cron";
 import signalUpdateLoop from "./src/scripts/uploadSignals.js";
 import tomodatUpdateLoop from "./src/scripts/updateFetch.js";
 import deleteReservados from "./src/scripts/deleteReservados.js";
+import { warmUpCache } from "./src/scripts/warmUpCache.js";
 
 const port = process.env.PORT || 5005; //always 5005
 
@@ -12,6 +14,8 @@ if (process.env.NODE_ENV === "production") {
   signalUpdateLoop();
   tomodatUpdateLoop();
   deleteReservados();
+  cron.schedule("0 */2 * * *", warmUpCache);
+  warmUpCache();
 }
 
 server.listen(port, () => {
