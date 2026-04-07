@@ -10,16 +10,23 @@ import SelectClientService from "../Hubsoft/SelectClientService.vue";
 const notification = useNotificationStore();
 const userStore = useUserStore();
 
-const props = defineProps(["clientPosition", "cto", "splitter"]);
+const props = defineProps([
+  "clientPosition",
+  "cto",
+  "splitter",
+  "clients",
+  "clientsWithLocation",
+]);
 const emit = defineEmits(["updateCtoClietns", "updateServiceLocation"]);
 
-const { clientPosition, cto } = toRefs(props);
+const { clientPosition, cto, clients, clientsWithLocation } = toRefs(props);
 
 const name = ref("");
 const pppoe = ref("");
 const formRef = ref(null);
 const loading = ref(false);
 const reservado = ref(false);
+const selectedNameFromClientList = ref("");
 
 const { nameRules, positionRules } = formValidationRules;
 
@@ -80,6 +87,31 @@ const addClientReservados = async (body) => {
   }
 };
 
+const findAndDeleteRerservado = async (name) => {
+  const reservado = name.replace(" (RESERVADO)", "").trim();
+  const locationId = clientsWithLocation.value.find(
+    (client) => client.name === name,
+  )?._id;
+
+  try {
+    const response = await fetchApi.get(`/reservados/${reservado}`);
+
+    if (response.status === 200) {
+      const reservadoData = response.data;
+
+      if (reservadoData) {
+        await fetchApi.delete(
+          `/reservados/${reservadoData._id}/${reservadoData.tomodat_id}`,
+        );
+        await fetchApi.delete(`/deletectoclient/${locationId}`);
+      }
+    }
+  } catch (error) {
+    console.log("Erro ao buscar ou deletar reservado:", error);
+    return;
+  }
+};
+
 const execFnList = (fnList) => fnList.forEach((fn) => fn());
 
 const handleAfterSubmitTasks = () => {
@@ -90,6 +122,14 @@ const handleAfterSubmitTasks = () => {
     updateCtoClietns,
   ]);
 };
+
+const searchClientComponentRef = ref(null);
+
+watch(selectedNameFromClientList, async (newValue) => {
+  if (newValue) {
+    searchClientComponentRef.value.setClientFromReservado(newValue);
+  }
+});
 
 const handleFormSubmit = async () => {
   const { valid } = await formRef.value.validate();
@@ -116,6 +156,10 @@ const handleFormSubmit = async () => {
     };
 
     const response = await sendNewClient(bodyRequest);
+
+    if (selectedNameFromClientList.value) {
+      await findAndDeleteRerservado(selectedNameFromClientList.value);
+    }
 
     if (response.status === 201) {
       if (reservado.value) {
@@ -174,6 +218,20 @@ const handleServiceSelection = (service) => {
       </data>
       <v-row>
         <v-col cols="12">
+          <v-select
+            v-model="selectedNameFromClientList"
+            :items="
+              clients
+                .map((c) => c.name)
+                .filter((name) => name.toLowerCase().includes('reservado'))
+            "
+            label="Selecionar reservado"
+            item-text="nome_razaosocial"
+            item-value="id"
+            v-if="isBindedToHubsoft"
+          ></v-select>
+        </v-col>
+        <v-col cols="12">
           <v-text-field
             v-model="name"
             v-if="!isBindedToHubsoft"
@@ -184,7 +242,10 @@ const handleServiceSelection = (service) => {
           ></v-text-field>
         </v-col>
         <v-col cols="12" v-if="isBindedToHubsoft">
-          <search-client @client-selected="selectedClient = $event" />
+          <search-client
+            ref="searchClientComponentRef"
+            @client-selected="selectedClient = $event"
+          />
         </v-col>
         <v-col cols="12" v-if="selectedClient && isBindedToHubsoft">
           <select-client-service
