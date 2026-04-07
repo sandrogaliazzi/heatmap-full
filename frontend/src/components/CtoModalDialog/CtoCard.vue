@@ -330,6 +330,7 @@ const serviceLocation = ref("teste");
       :userLocation="userLocation"
       :isMapVisible="isMapVisible || slideNumber == 2"
       @positionSelected="onPositionSelected"
+      @clientRemoved="loadCtoData"
     />
     <!-- digrana de fusoes -->
     <v-dialog v-model="showDiagram" :fullscreen="true" scrollable>
@@ -363,7 +364,7 @@ const serviceLocation = ref("teste");
             <template v-if="!showOnuCard">
               <CtoClientsList
                 v-if="clients.length > 0"
-                :clients="clients"
+                v-model="clients"
                 :cto="cto"
                 :clients-with-location="clientsWithLocation"
                 @adduser:location="(client) => addUserLocation(client)"
@@ -402,6 +403,7 @@ const serviceLocation = ref("teste");
             :clientPosition="positionClicked"
             :cto="cto"
             :clients="clients"
+            :clients-with-location="clientsWithLocation"
             @update-cto-clietns="loadCtoData({ slide: true })"
             @update-service-location="serviceLocation = $event"
           />

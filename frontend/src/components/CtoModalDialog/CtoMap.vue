@@ -41,6 +41,7 @@ const removeClienteLocation = async (id) => {
       const response = await fetchApi.delete(`/deletectoclient/${id}`);
       if (response.status === 201) {
         alert("Localizacao removida com sucesso");
+        emit("clientRemoved");
       }
     } catch (error) {
       console.error(error);

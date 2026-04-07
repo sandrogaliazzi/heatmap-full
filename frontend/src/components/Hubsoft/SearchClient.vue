@@ -6,6 +6,8 @@ const clientsFound = ref([]);
 const search = ref("");
 const selectedClient = ref(null);
 
+const autocompleteRef = ref(null);
+
 const emit = defineEmits(["client-selected"]);
 
 const inputRules = [
@@ -30,11 +32,10 @@ const loadingClients = ref(false);
 
 const searchClientByName = debounce(async (alias) => {
   if (alias.length < 3) return;
-  console.log("buscando cliente", alias);
   loadingClients.value = true;
   try {
     const response = await hubApi.get(
-      `api/v1/integracao/cliente?busca=nome_razaosocial&termo_busca=${alias}&relacoes=endereco_instalacao,endereco_cadastral,endereco_cobranca,status_conexao`
+      `api/v1/integracao/cliente?busca=nome_razaosocial&termo_busca=${alias}&relacoes=endereco_instalacao,endereco_cadastral,endereco_cobranca,status_conexao`,
     );
     if (response.status === 200) {
       clientsFound.value = response.data.clientes;
@@ -53,9 +54,21 @@ watch(selectedClient, (newClient) => {
     emit("client-selected", newClient);
   }
 });
+
+const setClientFromReservado = (reservado) => {
+  const name = reservado.replace(" (RESERVADO)", "");
+  selectedClient.value = name;
+  search.value = name;
+  autocompleteRef.value.focus();
+};
+
+defineExpose({
+  setClientFromReservado,
+});
 </script>
 <template>
   <v-autocomplete
+    ref="autocompleteRef"
     v-model="selectedClient"
     :rules="inputRules"
     clearable
@@ -67,5 +80,6 @@ watch(selectedClient, (newClient) => {
     prepend-inner-icon="mdi-account"
     placeholder="Digite o nome da cliente"
     :loading="loadingClients"
+    focused
   ></v-autocomplete>
 </template>
