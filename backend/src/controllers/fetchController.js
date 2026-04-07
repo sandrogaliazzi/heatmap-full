@@ -2,6 +2,7 @@ import fetTomodat from "../models/fetchModel.js";
 import { fetchTomodat } from "../scripts/fetchApiTomodat.js";
 import PppoeData from "../models/pppoeModel.js";
 import newFetch from "../models/newetchWithPppoe.js";
+import { getOrSetCache } from "../config/redisClient.js";
 
 class fetTomodatController {
   static CadastrarFetch = (req, res) => {
@@ -394,21 +395,15 @@ class fetTomodatController {
     }
   };
 
-  static ListarFetchNew = (_, res) => {
-    newFetch
-      .find(
-        {},
-        {
-          clients: 0,
-          percentage_free: 0,
-        }
-      ) // projeção aqui
-      .exec((err, fetTomodats) => {
-        if (err) {
-          return res.status(500).json({ erro: err.message });
-        }
-        res.status(200).json(fetTomodats);
-      });
+  static ListarFetchNew = async (_, res) => {
+    try {
+      const data = await getOrSetCache("cache:newfetch", 9000, () =>
+        newFetch.find({}, { clients: 0, percentage_free: 0 }).exec()
+      );
+      res.status(200).json(data);
+    } catch (err) {
+      res.status(500).json({ erro: err.message });
+    }
   };
 }
 

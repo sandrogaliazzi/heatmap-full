@@ -1,4 +1,13 @@
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: heatmap-redis
+    ports:
+      - "6379:6379"
+    restart: always
+    networks:
+      - app-network
+
   node-api:
     image: ghcr.io/sandrogaliazzi/heatmap-backend:latest
     container_name: heatmap-backend
@@ -8,7 +17,10 @@ services:
       - ./backend/.env
     environment:
       - NODE_ENV=production
+      - REDIS_URL=redis://redis:6379
     restart: always
+    depends_on:
+      - redis
     volumes:
       - ./backend/images:/app/images
     networks:
