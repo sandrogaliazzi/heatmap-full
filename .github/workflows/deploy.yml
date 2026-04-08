@@ -27,7 +27,7 @@ jobs:
       - name: Criar .env.production
         working-directory: frontend
         run: |
-          cat > .env.production << 'EOF'
+          cat > .env.production << EOF
           ${{ secrets.FRONTEND_ENV_PRODUCTION }}
           EOF
 
@@ -93,7 +93,13 @@ jobs:
             frontend/dist/ \
             ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:/home/administrador/heatmap-full/heatmap-full/frontend/releases/${{ env.TIMESTAMP }}/
 
-      - name: Atualizar backend e ativar release
+      - name: Enviar docker-compose para o servidor
+        run: |
+          rsync -avz \
+            docker-compose.yml \
+            ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:/home/administrador/heatmap-full/heatmap-full/
+
+      - name: Atualizar backend, redis e ativar release
         run: |
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "TIMESTAMP='${{ env.TIMESTAMP }}' bash -s" << 'EOF'
           set -e
@@ -105,11 +111,17 @@ jobs:
 
           cd "$APP_DIR"
 
-          echo "==> Baixando novas imagens"
+          echo "==> Baixando imagens do Redis e backend"
           docker-compose pull redis node-api
 
-          echo "==> Subindo Redis e backend"
-          docker-compose up -d redis node-api
+          echo "==> Subindo Redis"
+          docker-compose up -d redis
+
+          echo "==> Aguardando Redis iniciar"
+          sleep 5
+
+          echo "==> Subindo backend"
+          docker-compose up -d node-api
 
           echo "==> Ajustando permissões do frontend"
           chmod -R 755 "$NEW_RELEASE"
@@ -127,4 +139,7 @@ jobs:
 
           echo "==> Limpando imagens Docker antigas"
           docker image prune -f
+
+          echo "==> Containers ativos:"
+          docker ps
           EOF
