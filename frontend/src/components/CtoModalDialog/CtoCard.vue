@@ -130,6 +130,8 @@ const loadCtoData = async (slide) => {
 
   const response = await fetchApi("connections/" + cto.id);
 
+  console.log(response.data);
+
   clients.value = mapClients(response.data);
 
   freePorts.value = await calcFreePorts();

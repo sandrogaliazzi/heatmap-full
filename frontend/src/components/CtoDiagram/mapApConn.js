@@ -2,6 +2,7 @@ const NODE_WIDTH = 260;
 const HEADER_HEIGHT = 34;
 const ROW_HEIGHT = 28;
 const CLIENT_BOX_SIZE = 28;
+const NAV_BUTTON_HEIGHT = 32;
 
 const FIBER_COLORS = {
   1: "#00ff00",
@@ -24,7 +25,6 @@ const SIDE_X = {
 };
 
 const BASE_Y = 80;
-const BOTTOM_BASE_Y = 660;
 const BOTTOM_GAP = 42;
 
 const getFiberColor = (fiber) => FIBER_COLORS[fiber] || "#2563eb";
@@ -44,6 +44,16 @@ const parseNextApName = (nextAp) => {
     return parsed?.name || "";
   } catch {
     return "";
+  }
+};
+
+const parseNextAp = (nextAp) => {
+  if (!nextAp) return null;
+  try {
+    const parsed = typeof nextAp === "string" ? JSON.parse(nextAp) : nextAp;
+    return parsed?.id ? parsed : null;
+  } catch {
+    return null;
   }
 };
 
@@ -151,7 +161,8 @@ const getSlotLabelMap = (conn) => {
 
 const getNodeHeight = (node) => {
   if (node.type === "client") return CLIENT_BOX_SIZE;
-  return HEADER_HEIGHT + node.ports.length * ROW_HEIGHT;
+  const base = HEADER_HEIGHT + node.ports.length * ROW_HEIGHT;
+  return node.nextAp?.id ? base + NAV_BUTTON_HEIGHT : base;
 };
 
 const getVisualAnchorSide = (node) => {
@@ -167,6 +178,8 @@ const mergeConnectionData = (existing, incoming) => {
   return {
     ...existing,
     ...incoming,
+
+    next_ap: incoming.next_ap || existing.next_ap,
 
     cable: incoming.cable ?? existing.cable,
     splitter: incoming.splitter ?? existing.splitter,
@@ -260,6 +273,7 @@ const buildNodes = (connections) => {
       subtitle: getNodeSubtitle(conn),
       ports: getNodePorts(conn),
       slotLabelMap: getSlotLabelMap(conn),
+      nextAp: conn.cable_id != null ? parseNextAp(conn.next_ap) : null,
       x: 0,
       y: 0,
     };
@@ -301,6 +315,12 @@ const buildNodes = (connections) => {
     currentRightY += node.height + SIDE_VERTICAL_PADDING;
   });
 
+  // Compute dynamic bottom Y from the max bottom edge of side nodes + padding
+  const sideNodes = [...left, ...right];
+  const dynamicBottomY = sideNodes.length
+    ? Math.max(...sideNodes.map((n) => n.y + n.height)) + 120
+    : 660;
+
   const totalBottomWidth =
     bottom.length * CLIENT_BOX_SIZE +
     Math.max(0, bottom.length - 1) * BOTTOM_GAP;
@@ -309,7 +329,7 @@ const buildNodes = (connections) => {
 
   bottom.forEach((node, index) => {
     node.x = bottomStartX + index * (CLIENT_BOX_SIZE + BOTTOM_GAP);
-    node.y = BOTTOM_BASE_Y;
+    node.y = dynamicBottomY;
     node.height = getNodeHeight(node);
     node.anchorSide = getVisualAnchorSide(node);
   });
@@ -369,17 +389,48 @@ const buildLinks = (rawConnections, allConnections, nodesById) => {
     const isClientLink =
       sourceNode.type === "client" || targetNode.type === "client";
 
-    links.push({
-      id: `fusion-${fusion.id}`,
-      sourceId: sourceNode.id,
-      targetId: targetNode.id,
-      sourcePort: fusion.fiber_in,
-      targetPort: fusion.fiber_out,
-      color: isClientLink ? "#1d4ed8" : getFiberColor(fusion.fiber_in),
-      connectionType: fusion.connection_type,
-      loss: fusion.loss,
-      drawType: fusion.draw_type,
-    });
+    const colorIn = getFiberColor(fusion.fiber_in);
+    const colorOut = getFiberColor(fusion.fiber_out);
+
+    if (!isClientLink && colorIn !== colorOut) {
+      // Bicolor: split into two half-path links
+      links.push({
+        id: `fusion-${fusion.id}-first`,
+        sourceId: sourceNode.id,
+        targetId: targetNode.id,
+        sourcePort: fusion.fiber_in,
+        targetPort: fusion.fiber_out,
+        color: colorIn,
+        segment: "first",
+        connectionType: fusion.connection_type,
+        loss: fusion.loss,
+        drawType: fusion.draw_type,
+      });
+      links.push({
+        id: `fusion-${fusion.id}-second`,
+        sourceId: sourceNode.id,
+        targetId: targetNode.id,
+        sourcePort: fusion.fiber_in,
+        targetPort: fusion.fiber_out,
+        color: colorOut,
+        segment: "second",
+        connectionType: fusion.connection_type,
+        loss: fusion.loss,
+        drawType: fusion.draw_type,
+      });
+    } else {
+      links.push({
+        id: `fusion-${fusion.id}`,
+        sourceId: sourceNode.id,
+        targetId: targetNode.id,
+        sourcePort: fusion.fiber_in,
+        targetPort: fusion.fiber_out,
+        color: isClientLink ? "#1d4ed8" : colorIn,
+        connectionType: fusion.connection_type,
+        loss: fusion.loss,
+        drawType: fusion.draw_type,
+      });
+    }
   }
 
   return links;
@@ -416,6 +467,7 @@ export const mapApConn = (rawConnections = []) => {
       headerHeight: HEADER_HEIGHT,
       rowHeight: ROW_HEIGHT,
       clientBoxSize: CLIENT_BOX_SIZE,
+      navButtonHeight: NAV_BUTTON_HEIGHT,
     },
     nodes,
     links,
