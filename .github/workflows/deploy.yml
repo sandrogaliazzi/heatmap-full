@@ -108,8 +108,8 @@ jobs:
           echo "==> Baixando nova imagem do backend"
           docker-compose pull node-api
 
-          echo "==> Reiniciando backend com nova imagem"
-          docker-compose up -d node-api
+          echo "==> Subindo Redis e backend"
+          docker-compose up -d redis node-api
 
           echo "==> Ajustando permissões do frontend"
           chmod -R 755 "$NEW_RELEASE"
