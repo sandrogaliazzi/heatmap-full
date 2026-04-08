@@ -53,132 +53,141 @@
         }"
         class="diagram-svg"
       >
-      <text
-        :x="diagram.canvas.width / 2"
-        y="34"
-        text-anchor="middle"
-        class="diagram-title"
-      >
-        {{ currentApName }}
-      </text>
+        <text
+          :x="diagram.canvas.width / 2"
+          y="34"
+          text-anchor="middle"
+          class="diagram-title"
+        >
+          {{ currentApName }}
+        </text>
 
-      <g class="links-layer">
-        <path
-          v-for="link in resolvedLinks"
-          :key="link.id"
-          :d="buildLinkPath(link)"
-          :stroke="link.color"
-          stroke-width="5"
-          fill="none"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        />
-      </g>
+        <g class="links-layer">
+          <path
+            v-for="link in resolvedLinks"
+            :key="link.id"
+            :d="buildLinkPath(link)"
+            :stroke="link.color"
+            stroke-width="5"
+            fill="none"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </g>
 
-      <g class="nodes-layer">
-        <template v-for="node in diagram.nodes" :key="node.id">
-          <g
-            v-if="node.type !== 'client'"
-            :transform="`translate(${node.x}, ${node.y})`"
-          >
-            <rect :width="nodeWidth" :height="node.height" class="node-box" />
-
-            <rect
-              :width="nodeWidth"
-              :height="headerHeight"
-              class="node-header"
-            />
-
-            <text x="12" y="22" class="node-title">
-              {{ node.title }}
-            </text>
-
-            <text
-              v-if="node.subtitle"
-              :x="nodeWidth - 12"
-              y="22"
-              text-anchor="end"
-              class="node-subtitle"
+        <g class="nodes-layer">
+          <template v-for="node in diagram.nodes" :key="node.id">
+            <g
+              v-if="node.type !== 'client'"
+              :transform="`translate(${node.x}, ${node.y})`"
             >
-              {{ node.subtitle }}
-            </text>
+              <rect :width="nodeWidth" :height="node.height" class="node-box" />
 
-            <g v-for="(port, index) in node.ports" :key="`${node.id}-${port}`">
               <rect
-                x="0"
-                :y="headerHeight + index * rowHeight"
                 :width="nodeWidth"
-                :height="rowHeight"
-                :class="index % 2 === 0 ? 'row-light' : 'row-dark'"
+                :height="headerHeight"
+                class="node-header"
               />
 
-              <text
-                :x="getPortLabelX(node)"
-                :y="headerHeight + index * rowHeight + 18"
-                :text-anchor="getPortLabelAnchor(node)"
-                class="port-label"
-              >
-                {{ port }}
+              <text x="12" y="22" class="node-title">
+                {{ node.title }}
               </text>
 
-              <!-- task 3.1-3.3: slot note via foreignObject -->
+              <text
+                v-if="node.subtitle"
+                :x="nodeWidth - 12"
+                y="22"
+                text-anchor="end"
+                class="node-subtitle"
+              >
+                {{ node.subtitle }}
+              </text>
+
+              <g
+                v-for="(port, index) in node.ports"
+                :key="`${node.id}-${port}`"
+              >
+                <rect
+                  x="0"
+                  :y="headerHeight + index * rowHeight"
+                  :width="nodeWidth"
+                  :height="rowHeight"
+                  :class="index % 2 === 0 ? 'row-light' : 'row-dark'"
+                />
+
+                <text
+                  :x="getPortLabelX(node)"
+                  :y="headerHeight + index * rowHeight + 18"
+                  :text-anchor="getPortLabelAnchor(node)"
+                  class="port-label"
+                >
+                  {{ getPortText(node, port) }}
+                </text>
+
+                <!-- task 3.1-3.3: slot note via foreignObject -->
+                <foreignObject
+                  v-if="node.slotLabelMap?.[port]"
+                  :x="40"
+                  :y="headerHeight + index * rowHeight"
+                  :width="nodeWidth - 80"
+                  :height="rowHeight"
+                >
+                  <div
+                    xmlns="http://www.w3.org/1999/xhtml"
+                    :style="{
+                      wordBreak: 'break-word',
+                      overflow: 'hidden',
+                      fontSize: '11px',
+                      lineHeight: '1.2',
+                      maxHeight: rowHeight + 'px',
+                      color: '#444444',
+                      textAlign: 'center',
+                      padding: '4px 2px 0',
+                    }"
+                  >
+                    {{ node.slotLabelMap[port] }}
+                  </div>
+                </foreignObject>
+              </g>
+
+              <!-- task 4.2-4.3: navigation button for cable nodes with nextAp -->
               <foreignObject
-                v-if="node.slotLabelMap?.[port]"
-                :x="40"
-                :y="headerHeight + index * rowHeight"
-                :width="nodeWidth - 80"
-                :height="rowHeight"
+                v-if="node.nextAp?.id"
+                x="0"
+                :y="node.height - navButtonHeight"
+                :width="nodeWidth"
+                :height="navButtonHeight"
               >
                 <div
                   xmlns="http://www.w3.org/1999/xhtml"
-                  :style="{
-                    wordBreak: 'break-word',
-                    overflow: 'hidden',
-                    fontSize: '11px',
-                    lineHeight: '1.2',
-                    maxHeight: rowHeight + 'px',
-                    color: '#444444',
-                    textAlign: 'center',
-                    padding: '4px 2px 0',
-                  }"
+                  style="
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    height: 100%;
+                    padding: 2px 4px;
+                  "
                 >
-                  {{ node.slotLabelMap[port] }}
+                  <button
+                    class="nav-ap-btn"
+                    @click="navigateToAp(node.nextAp.id, node.nextAp.name)"
+                  >
+                    → {{ node.nextAp.name }}
+                  </button>
                 </div>
               </foreignObject>
             </g>
 
-            <!-- task 4.2-4.3: navigation button for cable nodes with nextAp -->
-            <foreignObject
-              v-if="node.nextAp?.id"
-              x="0"
-              :y="node.height - navButtonHeight"
-              :width="nodeWidth"
-              :height="navButtonHeight"
-            >
-              <div
-                xmlns="http://www.w3.org/1999/xhtml"
-                style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 2px 4px;"
-              >
-                <button
-                  class="nav-ap-btn"
-                  @click="navigateToAp(node.nextAp.id, node.nextAp.name)"
-                >
-                  → {{ node.nextAp.name }}
-                </button>
-              </div>
-            </foreignObject>
-          </g>
-
-          <g v-else :transform="`translate(${node.x}, ${node.y})`">
-            <rect
-              :width="clientBoxSize"
-              :height="clientBoxSize"
-              class="client-box"
-            />
-          </g>
-        </template>
-      </g>
-    </svg>
+            <g v-else :transform="`translate(${node.x}, ${node.y})`">
+              <rect
+                :width="clientBoxSize"
+                :height="clientBoxSize"
+                class="client-box"
+              />
+            </g>
+          </template>
+        </g>
+      </svg>
     </div>
   </div>
 </template>
@@ -262,7 +271,8 @@ const navigateToAp = async (apId, apName) => {
     navHistory.value.push({ apId, apName, connections: response.data });
     currentIndex.value++;
   } catch (e) {
-    errorMsg.value = e?.response?.data?.message || e.message || "Erro ao carregar diagrama";
+    errorMsg.value =
+      e?.response?.data?.message || e.message || "Erro ao carregar diagrama";
   } finally {
     isLoading.value = false;
   }
@@ -409,6 +419,11 @@ const getPortLabelX = (node) => {
 
 const getPortLabelAnchor = (node) => {
   return node.anchorSide === "right" ? "end" : "start";
+};
+
+const getPortText = (node, port) => {
+  const percentage = node.splitterPortPercentages?.[port];
+  return percentage ? `${port} (${percentage})` : port;
 };
 
 defineExpose({

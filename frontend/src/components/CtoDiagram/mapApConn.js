@@ -159,6 +159,35 @@ const getSlotLabelMap = (conn) => {
   return map;
 };
 
+const getSplitterPortPercentages = (conn) => {
+  if (conn.splitter_id == null || !conn.splitter) return {};
+
+  const outFieldByPort = {
+    1: "out_one",
+    2: "out_two",
+    3: "out_three",
+    4: "out_four",
+    5: "out_five",
+    6: "out_six",
+    7: "out_seven",
+    8: "out_eight",
+  };
+
+  const portsNumber = Number(conn.splitter?.ports_number || 0);
+  const result = {};
+
+  for (let port = 1; port <= portsNumber; port += 1) {
+    const field = outFieldByPort[port];
+    const value = field ? Number(conn.splitter[field]) : NaN;
+
+    if (Number.isFinite(value)) {
+      result[port] = `${value}%`;
+    }
+  }
+
+  return result;
+};
+
 const getNodeHeight = (node) => {
   if (node.type === "client") return CLIENT_BOX_SIZE;
   const base = HEADER_HEIGHT + node.ports.length * ROW_HEIGHT;
@@ -273,6 +302,7 @@ const buildNodes = (connections) => {
       subtitle: getNodeSubtitle(conn),
       ports: getNodePorts(conn),
       slotLabelMap: getSlotLabelMap(conn),
+      splitterPortPercentages: getSplitterPortPercentages(conn),
       nextAp: conn.cable_id != null ? parseNextAp(conn.next_ap) : null,
       x: 0,
       y: 0,
