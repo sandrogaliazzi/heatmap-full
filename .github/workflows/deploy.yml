@@ -105,8 +105,8 @@ jobs:
 
           cd "$APP_DIR"
 
-          echo "==> Baixando nova imagem do backend"
-          docker-compose pull node-api
+          echo "==> Baixando novas imagens"
+          docker-compose pull redis node-api
 
           echo "==> Subindo Redis e backend"
           docker-compose up -d redis node-api
