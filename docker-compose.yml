@@ -22,7 +22,7 @@ services:
     depends_on:
       - redis
     volumes:
-      - ./backend/assets/images:/app/images
+      - ./backend/assets/images:/app/assets/images
     networks:
       - app-network
 
