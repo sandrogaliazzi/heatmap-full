@@ -372,10 +372,11 @@ const buildLinkPath = (link) => {
 
   // MESMO LADO
   if (sourceSide === targetSide) {
+    const bendOffset = link.bendOffset ?? 48;
     const bendX =
       sourceSide === "left"
-        ? Math.max(start.x, end.x) + 48
-        : Math.min(start.x, end.x) - 48;
+        ? Math.max(start.x, end.x) + bendOffset
+        : Math.min(start.x, end.x) - bendOffset;
 
     const bendMid = { x: bendX, y: (start.y + end.y) / 2 };
 

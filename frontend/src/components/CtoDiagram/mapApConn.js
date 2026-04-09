@@ -27,7 +27,11 @@ const SIDE_X = {
 const BASE_Y = 80;
 const BOTTOM_GAP = 42;
 
-const getFiberColor = (fiber) => FIBER_COLORS[fiber] || "#2563eb";
+const getFiberColor = (fiber, totalFibers = 12) => {
+  const cycle = totalFibers <= 12 ? 12 : totalFibers <= 24 ? 6 : 12;
+  const mapped = ((fiber - 1) % cycle) + 1;
+  return FIBER_COLORS[mapped] || "#2563eb";
+};
 
 const getConnType = (conn) => {
   if (conn.client_id != null) return "client";
@@ -419,13 +423,14 @@ const buildLinks = (rawConnections, allConnections, nodesById) => {
     const isClientLink =
       sourceNode.type === "client" || targetNode.type === "client";
 
-    const colorIn = getFiberColor(fusion.fiber_in);
-    const colorOut = getFiberColor(fusion.fiber_out);
+    const colorIn = getFiberColor(fusion.fiber_in, sourceNode.ports.length);
+    const colorOut = getFiberColor(fusion.fiber_out, targetNode.ports.length);
 
     if (!isClientLink && colorIn !== colorOut) {
       // Bicolor: split into two half-path links
       links.push({
         id: `fusion-${fusion.id}-first`,
+        fusionId: fusion.id,
         sourceId: sourceNode.id,
         targetId: targetNode.id,
         sourcePort: fusion.fiber_in,
@@ -438,6 +443,7 @@ const buildLinks = (rawConnections, allConnections, nodesById) => {
       });
       links.push({
         id: `fusion-${fusion.id}-second`,
+        fusionId: fusion.id,
         sourceId: sourceNode.id,
         targetId: targetNode.id,
         sourcePort: fusion.fiber_in,
@@ -451,6 +457,7 @@ const buildLinks = (rawConnections, allConnections, nodesById) => {
     } else {
       links.push({
         id: `fusion-${fusion.id}`,
+        fusionId: fusion.id,
         sourceId: sourceNode.id,
         targetId: targetNode.id,
         sourcePort: fusion.fiber_in,
@@ -462,6 +469,28 @@ const buildLinks = (rawConnections, allConnections, nodesById) => {
       });
     }
   }
+
+  // Assign unique bendOffset to same-side links to prevent overlap.
+  // Sort by y-span so shorter links get smaller offset (nested look).
+  const sameSideMap = new Map(); // fusionId -> { links, span }
+  for (const link of links) {
+    const src = nodesById.get(link.sourceId);
+    const tgt = nodesById.get(link.targetId);
+    if (!src || !tgt) continue;
+    if (src.side !== tgt.side) continue;
+    if (src.type === "client" || tgt.type === "client") continue;
+    if (!sameSideMap.has(link.fusionId)) {
+      const span = Math.abs(src.y - tgt.y);
+      sameSideMap.set(link.fusionId, { links: [], span });
+    }
+    sameSideMap.get(link.fusionId).links.push(link);
+  }
+  [...sameSideMap.values()]
+    .sort((a, b) => a.span - b.span)
+    .forEach((group, index) => {
+      const bendOffset = 48 + index * 40;
+      for (const link of group.links) link.bendOffset = bendOffset;
+    });
 
   return links;
 };
