@@ -203,7 +203,7 @@ const { width } = useWindowSize();
 const zoomScale = ref(width.value < 600 ? 0.6 : 1);
 
 const zoomOut = () => {
-  zoomScale.value = Math.max(0.5, zoomScale.value - 0.1);
+  zoomScale.value = Math.max(0.2, zoomScale.value - 0.1);
 };
 
 const zoomIn = () => {
