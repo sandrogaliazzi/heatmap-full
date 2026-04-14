@@ -3,6 +3,7 @@ import { ref, computed } from "vue";
 import fetchApi from "@/api";
 import signalChart from "../RamalModalDialog/signalChart.vue";
 import { useNotificationStore } from "@/stores/notification";
+import { getApiErrorMessage } from "@/utils/apiError";
 
 const notification = useNotificationStore();
 
@@ -24,52 +25,61 @@ const awatingApi = ref(false);
 
 const checkOnuSignal = async (onus) => {
   isLoadingSignal.value = true;
+  try {
+    const fiberhomeOnus = onus.filter((onu) => onu.onuNumber);
+    const parksOnus = onus.filter((onu) => !onu.onuNumber);
+    let signal, parksSignal, fiberhomeSignal;
 
-  const fiberhomeOnus = onus.filter((onu) => onu.onuNumber);
-  const parksOnus = onus.filter((onu) => !onu.onuNumber);
-  let signal, parksSignal, fiberhomeSignal;
+    if (parksOnus.length > 0) {
+      parksSignal = await Promise.all(
+        parksOnus.map(async (onu) => {
+          const response = await fetchApi.post(
+            "verificar-onu-completo",
+            {
+              oltIp: onu.oltIp,
+              onuAlias: onu.name,
+            },
+            {
+              headers: {
+                "Cache-Control": "no-cache",
+                Pragma: "no-cache",
+                Expires: "0",
+              },
+              params: {
+                t: new Date().getTime(),
+              },
+            },
+          );
+          return response.data;
+        }),
+      );
+    }
 
-  if (parksOnus.length > 0) {
-    parksSignal = await Promise.all(
-      parksOnus.map(async (onu) => {
-        const response = await fetchApi.post(
-          "verificar-onu-completo",
-          {
-            oltIp: onu.oltIp,
-            onuAlias: onu.name,
-          },
-          {
-            headers: {
-              "Cache-Control": "no-cache",
-              Pragma: "no-cache",
-              Expires: "0",
-            },
-            params: {
-              t: new Date().getTime(),
-            },
-          },
-        );
-        return response.data;
-      }),
+    if (fiberhomeOnus.length > 0) {
+      const response = await fetchApi.post("verificar-onu-fiberhome", {
+        onus: fiberhomeOnus,
+      });
+
+      fiberhomeSignal = response.data;
+    }
+
+    signal = [...(parksSignal || []), ...(fiberhomeSignal || [])];
+
+    signalList.value = signal.reduce(
+      (acc, val) => ({ ...acc, [val.mac || val.Serial]: val }),
+      {},
     );
-  }
-
-  if (fiberhomeOnus.length > 0) {
-    const response = await fetchApi.post("verificar-onu-fiberhome", {
-      onus: fiberhomeOnus,
+  } catch (error) {
+    notification.setNotification({
+      status: "error",
+      msg: getApiErrorMessage(
+        error,
+        "Nao foi possivel consultar o sinal das ONUs.",
+      ),
     });
-
-    fiberhomeSignal = response.data;
+  } finally {
+    isLoadingSignal.value = false;
   }
-
-  signal = [...(parksSignal || []), ...(fiberhomeSignal || [])];
-
-  signalList.value = signal.reduce(
-    (acc, val) => ({ ...acc, [val.mac || val.Serial]: val }),
-    {},
-  );
-
-  isLoadingSignal.value = false;
 };
 
 const signalCalc = computed(() => {
@@ -138,9 +148,8 @@ const deleteOnuParks = async (onu) => {
   } catch (error) {
     notification.setNotification({
       status: "error",
-      msg: "Erro ao desautorizar onu",
+      msg: getApiErrorMessage(error, "Nao foi possivel desautorizar a ONU."),
     });
-    console.log("erro ao desautorizar onu", error.message);
   }
 };
 
@@ -161,10 +170,9 @@ const deleteOnuFiberHome = async (onu) => {
       emit("deleteOnu", onu);
     }
   } catch (error) {
-    console.log("erro ao desautorizar onu", error.message);
     notification.setNotification({
       status: "error",
-      msg: "Erro ao desautorizar onu",
+      msg: getApiErrorMessage(error, "Nao foi possivel desautorizar a ONU."),
     });
   }
 };
@@ -217,7 +225,10 @@ const updateAlias = async (onu, newAlias) => {
       emit("updateAlias", { ...onu, newAlias: newAlias });
     }
   } catch (error) {
-    console.log("erro ao atualizar alias", error.message);
+    notification.setNotification({
+      status: "error",
+      msg: getApiErrorMessage(error, "Nao foi possivel atualizar o alias."),
+    });
   }
 };
 
@@ -244,8 +255,13 @@ const showClientSignalHistory = async (client) => {
     }
   } catch (error) {
     isLoadingClientHistory.value = false;
-    alert("erro ao obter dados");
-    console.log(error);
+    notification.setNotification({
+      status: "error",
+      msg: getApiErrorMessage(
+        error,
+        "Nao foi possivel carregar o historico de sinal do cliente.",
+      ),
+    });
   }
 };
 

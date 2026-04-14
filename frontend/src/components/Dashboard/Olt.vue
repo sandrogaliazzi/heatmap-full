@@ -3,6 +3,7 @@ import { ref } from "vue";
 const { olt, enableForm } = defineProps(["olt", "enableForm"]);
 import fetchApi from "@/api";
 import { useNotificationStore } from "@/stores/notification";
+import { getApiErrorMessage } from "@/utils/apiError";
 
 const notification = useNotificationStore();
 
@@ -66,10 +67,9 @@ const updateOlt = async () => {
       });
     }
   } catch (error) {
-    console.log(error);
     notification.setNotification({
       status: "error",
-      msg: "Erro ao atualizar olt",
+      msg: getApiErrorMessage(error, "Nao foi possivel atualizar a OLT."),
     });
   }
 };

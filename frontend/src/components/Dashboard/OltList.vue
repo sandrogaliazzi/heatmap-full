@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from "vue";
 import fetchApi from "@/api";
 import hubApi from "@/api/hubsoftApi";
 import { useNotificationStore } from "@/stores/notification";
+import { getApiErrorMessage } from "@/utils/apiError";
 import Olt from "./Olt.vue";
 
 const oltList = ref([]);
@@ -20,8 +21,17 @@ const fetchOltList = async () => {
         equip.nome.startsWith("OLT"),
       );
     }
+    throw new Error("Resposta invalida ao carregar equipamentos.");
   } catch (error) {
-    console.log("erro ao buscar equipamentos", error.message);
+    const message = getApiErrorMessage(
+      error,
+      "Nao foi possivel carregar os equipamentos do Hubsoft.",
+    );
+    notification.setNotification({
+      status: "error",
+      msg: message,
+    });
+    return [];
   }
 };
 
@@ -32,7 +42,11 @@ const getHeatmapOltList = async () => {
     const response = await fetchApi.get("listar-olt");
     heatmapOlts.value = response.data;
   } catch (error) {
-    console.log("erro ao buscar equipamentos", error.message);
+    notification.setNotification({
+      status: "error",
+      msg: getApiErrorMessage(error, "Nao foi possivel carregar as OLTs."),
+    });
+    heatmapOlts.value = [];
   }
 };
 
@@ -52,7 +66,9 @@ const addOlt = async (olt) => {
       interfaces: olt.interfaces,
     });
   } catch (error) {
-    console.log("erro ao adicionar olt", error.message);
+    throw new Error(
+      getApiErrorMessage(error, `Nao foi possivel adicionar a OLT ${olt.nome}.`),
+    );
   }
 };
 
@@ -68,7 +84,12 @@ const updateOlt = async (olt) => {
       interfaces: olt.interfaces,
     });
   } catch (error) {
-    console.log("erro ao atualizar olt", error.message);
+    throw new Error(
+      getApiErrorMessage(
+        error,
+        `Nao foi possivel atualizar a OLT ${olt.nome}.`,
+      ),
+    );
   }
 };
 
@@ -105,10 +126,9 @@ const syncWithHub = async () => {
 
     syncWithHubLoading.value = false;
   } catch (error) {
-    console.log("erro ao sincronizar olts", error.message);
     notification.setNotification({
       status: "error",
-      msg: "Erro ao sincronizar olts",
+      msg: getApiErrorMessage(error, "Nao foi possivel sincronizar as OLTs."),
     });
     syncWithHubLoading.value = false;
   } finally {
@@ -137,10 +157,12 @@ const changeOltActiveStatus = async (status, olt) => {
       getHeatmapOltList();
     }
   } catch (error) {
-    console.log("erro ao alterar status", error.message);
     notification.setNotification({
       status: "error",
-      msg: "Erro ao alterar status",
+      msg: getApiErrorMessage(
+        error,
+        "Nao foi possivel alterar o status da OLT.",
+      ),
     });
   }
 };
