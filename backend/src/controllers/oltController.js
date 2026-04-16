@@ -6,7 +6,155 @@ import OnuClient from "../models/onuClient.js";
 import Auditoria from "../models/auditoriaModel.js";
 dotenv.config();
 
+const SSH_READY_TIMEOUT_MS = 8000;
+const SSH_OPERATION_TIMEOUT_MS = 15000;
+
 class oltController {
+  static #buildErrorPayload = (
+    message,
+    code = "OLT_OPERATION_ERROR",
+    details,
+  ) => ({
+    message,
+    code,
+    ...(details ? { details } : {}),
+  });
+
+  static #getMissingFields = (payload, fields) =>
+    fields.filter((field) => {
+      const value = payload?.[field];
+      return value === undefined || value === null || value === "";
+    });
+
+  static #validateRequiredFields = (res, payload, fields) => {
+    const missingFields = oltController.#getMissingFields(payload, fields);
+
+    if (missingFields.length === 0) return false;
+
+    res.status(400).json(
+      oltController.#buildErrorPayload(
+        `Parametros obrigatorios ausentes: ${missingFields.join(", ")}`,
+        "VALIDATION_ERROR",
+      ),
+    );
+
+    return true;
+  };
+
+  static #runSshCommandSequence = ({
+    host,
+    commands,
+    operationName,
+    onData,
+    onClose,
+    exitDelayMs = 0,
+  }) =>
+    new Promise((resolve, reject) => {
+      const username = process.env.PARKS_USERNAME;
+      const password = `#${process.env.PARKS_PASSWORD}`;
+      const conn = new Client();
+      let timeoutId;
+      let finished = false;
+
+      const finish = (error, result) => {
+        if (finished) return;
+        finished = true;
+
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+
+        try {
+          conn.end();
+        } catch (closeError) {
+          console.error(
+            "Erro ao encerrar conexao SSH:",
+            closeError?.message || closeError,
+          );
+        }
+
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve(result);
+      };
+
+      timeoutId = setTimeout(() => {
+        const timeoutError = new Error(
+          `Timeout ao executar operacao de OLT: ${operationName}`,
+        );
+        timeoutError.code = "OLT_TIMEOUT";
+        finish(timeoutError);
+      }, SSH_OPERATION_TIMEOUT_MS);
+
+      conn
+        .on("ready", () => {
+          conn.shell((err, stream) => {
+            if (err) {
+              const shellError = new Error("Erro ao abrir shell SSH");
+              shellError.code = "OLT_SHELL_ERROR";
+              shellError.cause = err;
+              finish(shellError);
+              return;
+            }
+
+            stream
+              .on("data", (data) => {
+                try {
+                  onData?.(data.toString(), stream);
+                } catch (processingError) {
+                  finish(processingError);
+                }
+              })
+              .on("close", () => {
+                try {
+                  finish(null, onClose?.());
+                } catch (closeError) {
+                  finish(closeError);
+                }
+              });
+
+            if (stream.stderr) {
+              stream.stderr.on("data", (data) => {
+                console.error("STDERR:", data.toString());
+              });
+            }
+
+            commands.forEach((command, index) => {
+              setTimeout(() => {
+                if (!finished) {
+                  stream.write(`${command}\n`);
+                }
+              }, index * 300);
+            });
+
+            const lastCommandDelay = commands.length * 300;
+            const exitDelay = exitDelayMs ? lastCommandDelay + exitDelayMs : lastCommandDelay;
+
+            setTimeout(() => {
+              if (!finished) {
+                stream.write("exit\n");
+              }
+            }, exitDelay);
+          });
+        })
+        .on("error", (err) => {
+          const connectionError = new Error("Erro ao conectar na OLT");
+          connectionError.code = "OLT_CONNECTION_ERROR";
+          connectionError.cause = err;
+          finish(connectionError);
+        })
+        .connect({
+          host,
+          port: 22,
+          username,
+          password,
+          readyTimeout: SSH_READY_TIMEOUT_MS,
+        });
+    });
+
   static ListarRamais = (req, res) => {
     ramaisModel
       .find((err, ramal) => {
@@ -139,279 +287,234 @@ class oltController {
 
   static VerificarPerfisGpon = (req, res) => {
     const host = req.body.oltIp;
-    const username = process.env.PARKS_USERNAME;
-    const password = `#${process.env.PARKS_PASSWORD}`;
-    const conn = new Client();
 
-    conn
-      .on("ready", () => {
-        conn.shell((err, stream) => {
-          if (err) {
-            console.error(err);
-            res.status(500).json({ error: "Erro ao conectar na OLT" });
-            return;
+    if (oltController.#validateRequiredFields(res, req.body, ["oltIp"])) {
+      return;
+    }
+
+    let dataBuffer = "";
+    const perfis = [];
+    let currentPerfil = null;
+
+    const processDataBuffer = (buffer) => {
+      const lines = buffer.split("\n");
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+
+        if (
+          !trimmed ||
+          trimmed.startsWith("Index") ||
+          trimmed.startsWith("----") ||
+          trimmed.includes("show") ||
+          trimmed.includes("exit") ||
+          trimmed.includes("terminal length")
+        ) {
+          continue;
+        }
+
+        if (
+          !trimmed.includes("|") &&
+          !/^\d+$/.test(trimmed) &&
+          trimmed !== "-"
+        ) {
+          if (currentPerfil && currentPerfil.entries.length > 0) {
+            perfis.push(currentPerfil);
           }
 
-          let dataBuffer = "";
-          let perfis = [];
-          let currentPerfil = null;
-
-          stream
-            .on("close", () => {
-              // Processa qualquer dado restante no buffer
-              if (dataBuffer.trim()) {
-                processDataBuffer(dataBuffer);
-              }
-              // Adiciona o último perfil se existir
-              if (currentPerfil) {
-                perfis.push(currentPerfil);
-              }
-
-              res.status(200).json(perfis);
-              conn.end();
-            })
-            .on("data", (data) => {
-              dataBuffer += data.toString();
-
-              const lines = dataBuffer.split("\n");
-
-              // Mantém a última linha incompleta no buffer
-              dataBuffer = lines.pop();
-
-              for (const line of lines) {
-                processDataBuffer(line + "\n");
-              }
-            });
-
-          const processDataBuffer = (buffer) => {
-            const lines = buffer.split("\n");
-
-            for (const line of lines) {
-              const trimmed = line.trim();
-
-              // Ignora linhas de cabeçalho e comandos
-              if (
-                !trimmed ||
-                trimmed.startsWith("Index") ||
-                trimmed.startsWith("----") ||
-                trimmed.includes("show") ||
-                trimmed.includes("exit") ||
-                trimmed.includes("terminal length")
-              ) {
-                continue;
-              }
-
-              // Detecta início de um novo perfil (linha sem "|" e que não é numérica)
-              if (
-                trimmed &&
-                !trimmed.includes("|") &&
-                !/^\d+$/.test(trimmed) &&
-                trimmed !== "-"
-              ) {
-                // Salva o perfil anterior se existir
-                if (currentPerfil && currentPerfil.entries.length > 0) {
-                  perfis.push(currentPerfil);
-                }
-
-                currentPerfil = {
-                  name: trimmed,
-                  entries: [],
-                };
-                continue;
-              }
-
-              // Processa linhas de dados da tabela
-              if (trimmed.includes("|") && currentPerfil) {
-                const values = trimmed
-                  .split("|")
-                  .map((v) => v.trim())
-                  .filter((v) => v !== "");
-
-                // Valida se é uma linha de dados válida (tem pelo menos 8 campos e o primeiro é número)
-                if (values.length >= 8 && !isNaN(parseInt(values[0]))) {
-                  // Para linhas com 8 campos (sem PBMP Ports), adiciona um campo vazio
-                  const normalizedValues =
-                    values.length === 8 ? [...values, ""] : values;
-
-                  const [
-                    index,
-                    type,
-                    vlan,
-                    cos,
-                    encryption,
-                    downstream,
-                    bandwidthName,
-                    shared,
-                    pbmpPorts,
-                  ] = normalizedValues;
-
-                  currentPerfil.entries.push({
-                    index: parseInt(index),
-                    type,
-                    vlan: vlan !== "-" ? parseInt(vlan) : vlan,
-                    cos: cos !== "-" ? cos : null,
-                    encryption,
-                    downstream: parseInt(downstream),
-                    bandwidthName,
-                    shared: shared === "Yes",
-                    pbmpPorts: pbmpPorts || "", // Garante que não seja undefined
-                  });
-                }
-              }
-            }
+          currentPerfil = {
+            name: trimmed,
+            entries: [],
           };
+          continue;
+        }
 
-          stream.write("terminal length 0\n");
-          stream.write("sh gpon profile flow\n");
-          // Aguarda um tempo para o comando executar antes de sair
-          new Promise((resolve) => setTimeout(resolve, 300)).then(() =>
-            stream.write("exit\n"),
-          );
-        });
-      })
-      .on("error", (err) => {
-        console.error(err);
-        res.status(500).json({ error: "Erro ao conectar à OLT" });
-      })
-      .connect({
+        if (trimmed.includes("|") && currentPerfil) {
+          const values = trimmed
+            .split("|")
+            .map((v) => v.trim())
+            .filter((v) => v !== "");
+
+          if (values.length >= 8 && !isNaN(parseInt(values[0], 10))) {
+            const normalizedValues =
+              values.length === 8 ? [...values, ""] : values;
+
+            const [
+              index,
+              type,
+              vlan,
+              cos,
+              encryption,
+              downstream,
+              bandwidthName,
+              shared,
+              pbmpPorts,
+            ] = normalizedValues;
+
+            currentPerfil.entries.push({
+              index: parseInt(index, 10),
+              type,
+              vlan: vlan !== "-" ? parseInt(vlan, 10) : vlan,
+              cos: cos !== "-" ? cos : null,
+              encryption,
+              downstream: parseInt(downstream, 10),
+              bandwidthName,
+              shared: shared === "Yes",
+              pbmpPorts: pbmpPorts || "",
+            });
+          }
+        }
+      }
+    };
+
+    oltController
+      .#runSshCommandSequence({
         host,
-        port: 22,
-        username,
-        password,
+        commands: ["terminal length 0", "sh gpon profile flow"],
+        exitDelayMs: 300,
+        operationName: "listar perfis GPON",
+        onData: (chunk) => {
+          dataBuffer += chunk;
+
+          const lines = dataBuffer.split("\n");
+          dataBuffer = lines.pop() ?? "";
+
+          for (const line of lines) {
+            processDataBuffer(`${line}\n`);
+          }
+        },
+        onClose: () => {
+          if (dataBuffer.trim()) {
+            processDataBuffer(dataBuffer);
+          }
+
+          if (currentPerfil) {
+            perfis.push(currentPerfil);
+          }
+
+          return perfis;
+        },
+      })
+      .then((profiles) => {
+        res.status(200).json(profiles);
+      })
+      .catch((error) => {
+        console.error("Erro ao listar perfis GPON:", error);
+        const status = error.code === "OLT_TIMEOUT" ? 504 : 500;
+        res.status(status).json(
+          oltController.#buildErrorPayload(
+            "Nao foi possivel carregar os perfis GPON da OLT.",
+            error.code || "OLT_PROFILE_ERROR",
+            error.message,
+          ),
+        );
       });
   };
 
   static VerificarVlanTranslation = (req, res) => {
     const host = req.body.oltIp;
-    const username = process.env.PARKS_USERNAME;
-    const password = `#${process.env.PARKS_PASSWORD}`;
-    const conn = new Client();
 
-    conn
-      .on("ready", () => {
-        conn.shell((err, stream) => {
-          if (err) {
-            console.error(err);
-            res.status(500).json({ error: "Erro ao conectar na OLT" });
-            return;
+    if (oltController.#validateRequiredFields(res, req.body, ["oltIp"])) {
+      return;
+    }
+
+    let dataBuffer = "";
+    const translations = [];
+    let currentTranslation = null;
+
+    const processDataBuffer = (buffer) => {
+      const lines = buffer.split("\n");
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+
+        if (
+          !trimmed ||
+          trimmed.startsWith("Index") ||
+          trimmed.startsWith("----") ||
+          trimmed.includes("show") ||
+          trimmed.includes("exit") ||
+          trimmed.includes("terminal length")
+        ) {
+          continue;
+        }
+
+        if (trimmed.startsWith("_") && trimmed.includes(":")) {
+          if (currentTranslation && currentTranslation.entries.length > 0) {
+            translations.push(currentTranslation);
           }
 
-          let dataBuffer = "";
-          let translations = [];
-          let currentTranslation = null;
-
-          stream
-            .on("close", () => {
-              // Processa qualquer dado restante no buffer
-              if (dataBuffer.trim()) {
-                processDataBuffer(dataBuffer);
-              }
-              // Adiciona a última tradução se existir
-              if (currentTranslation) {
-                translations.push(currentTranslation);
-              }
-
-              res.status(200).json(translations);
-              conn.end();
-            })
-            .on("data", (data) => {
-              dataBuffer += data.toString();
-
-              processDataBuffer(dataBuffer);
-              dataBuffer = "";
-            });
-
-          const processDataBuffer = (buffer) => {
-            const lines = buffer.split("\n");
-
-            for (const line of lines) {
-              const trimmed = line.trim();
-
-              // Ignora linhas de cabeçalho e comandos
-              if (
-                !trimmed ||
-                trimmed.startsWith("Index") ||
-                trimmed.startsWith("----") ||
-                trimmed.includes("show") ||
-                trimmed.includes("exit") ||
-                trimmed.includes("terminal length")
-              ) {
-                continue;
-              }
-
-              // Detecta início de um novo perfil de VLAN translation (começa com _)
-              if (trimmed && trimmed.startsWith("_") && trimmed.includes(":")) {
-                // Salva a tradução anterior se existir
-                if (
-                  currentTranslation &&
-                  currentTranslation.entries.length > 0
-                ) {
-                  translations.push(currentTranslation);
-                }
-
-                // Extrai o nome do perfil (remove o : no final)
-                const profileName = trimmed.replace(":", "").trim();
-
-                currentTranslation = {
-                  name: profileName,
-                  entries: [],
-                };
-                continue;
-              }
-
-              // Processa linhas de dados da tabela
-              if (trimmed.includes("|") && currentTranslation) {
-                const values = trimmed
-                  .split("|")
-                  .map((v) => v.trim())
-                  .filter((v) => v !== "");
-
-                // Valida se é uma linha de dados válida (tem pelo menos 6 campos e o primeiro é número)
-                if (values.length >= 6 && !isNaN(parseInt(values[0]))) {
-                  const [
-                    index,
-                    mode,
-                    vlanX,
-                    vlanC,
-                    filterPrio,
-                    vlanPrio,
-                    // O último campo pode ser "F->X-F" ou similar
-                  ] = values;
-
-                  // Pega o último campo que pode ser a direção da tradução
-                  const direction = values[6] || "";
-
-                  currentTranslation.entries.push({
-                    index: parseInt(index),
-                    mode,
-                    vlanX: vlanX !== "-" ? parseInt(vlanX) : vlanX,
-                    vlanC: vlanC !== "-" ? parseInt(vlanC) : vlanC,
-                    filterPrio: filterPrio !== "-" ? filterPrio : null,
-                    vlanPrio: vlanPrio !== "-" ? parseInt(vlanPrio) : vlanPrio,
-                    direction: direction,
-                  });
-                }
-              }
-            }
+          currentTranslation = {
+            name: trimmed.replace(":", "").trim(),
+            entries: [],
           };
+          continue;
+        }
 
-          stream.write("terminal length 0\n");
-          stream.write("sh gpon profile vlan-translation\n");
-          // Aguarda um tempo para o comando executar antes de sair
-          new Promise((resolve) => setTimeout(resolve, 300)).then(() =>
-            stream.write("exit\n"),
-          );
-        });
-      })
-      .on("error", (err) => {
-        console.error(err);
-        res.status(500).json({ error: "Erro ao conectar à OLT" });
-      })
-      .connect({
+        if (trimmed.includes("|") && currentTranslation) {
+          const values = trimmed
+            .split("|")
+            .map((v) => v.trim())
+            .filter((v) => v !== "");
+
+          if (values.length >= 6 && !isNaN(parseInt(values[0], 10))) {
+            const [index, mode, vlanX, vlanC, filterPrio, vlanPrio] = values;
+            const direction = values[6] || "";
+
+            currentTranslation.entries.push({
+              index: parseInt(index, 10),
+              mode,
+              vlanX: vlanX !== "-" ? parseInt(vlanX, 10) : vlanX,
+              vlanC: vlanC !== "-" ? parseInt(vlanC, 10) : vlanC,
+              filterPrio: filterPrio !== "-" ? filterPrio : null,
+              vlanPrio: vlanPrio !== "-" ? parseInt(vlanPrio, 10) : vlanPrio,
+              direction,
+            });
+          }
+        }
+      }
+    };
+
+    oltController
+      .#runSshCommandSequence({
         host,
-        port: 22,
-        username,
-        password,
+        commands: ["terminal length 0", "sh gpon profile vlan-translation"],
+        exitDelayMs: 300,
+        operationName: "listar vlan translations",
+        onData: (chunk) => {
+          dataBuffer += chunk;
+          const lines = dataBuffer.split("\n");
+          dataBuffer = lines.pop() ?? "";
+
+          for (const line of lines) {
+            processDataBuffer(`${line}\n`);
+          }
+        },
+        onClose: () => {
+          if (dataBuffer.trim()) {
+            processDataBuffer(dataBuffer);
+          }
+
+          if (currentTranslation) {
+            translations.push(currentTranslation);
+          }
+
+          return translations;
+        },
+      })
+      .then((result) => {
+        res.status(200).json(result);
+      })
+      .catch((error) => {
+        console.error("Erro ao listar VLAN translations:", error);
+        const status = error.code === "OLT_TIMEOUT" ? 504 : 500;
+        res.status(status).json(
+          oltController.#buildErrorPayload(
+            "Nao foi possivel carregar as configuracoes de VLAN da OLT.",
+            error.code || "OLT_VLAN_TRANSLATION_ERROR",
+            error.message,
+          ),
+        );
       });
   };
 
@@ -490,70 +593,60 @@ class oltController {
   static VerificarOnuSummary = (req, res) => {
     const host = req.body.oltIp;
     const onuAlias = req.body.onuAlias;
-    const username = process.env.PARKS_USERNAME;
-    const password = `#${process.env.PARKS_PASSWORD}`;
 
-    if (!host || !onuAlias) {
-      return res.status(400).json({ error: "Parâmetros inválidos" });
+    if (
+      oltController.#validateRequiredFields(res, req.body, ["oltIp", "onuAlias"])
+    ) {
+      return;
     }
 
-    const conn = new Client();
-    let responded = false; // 🔒 trava de resposta
+    let dataBuffer = "";
+    const jsonOutput = {};
 
-    const safeRespond = (status, payload) => {
-      if (responded) return;
-      responded = true;
-      res.status(status).json(payload);
-    };
+    oltController
+      .#runSshCommandSequence({
+        host,
+        commands: [`show gpon onu ${onuAlias} summary`],
+        operationName: "consultar resumo da ONU",
+        onData: (chunk) => {
+          dataBuffer += chunk;
 
-    conn
-      .on("ready", () => {
-        conn.shell((err, stream) => {
-          if (err) {
-            safeRespond(500, { error: "Erro ao abrir shell SSH" });
-            conn.end();
+          if (!dataBuffer.includes("\n")) {
             return;
           }
 
-          let dataBuffer = "";
-          const jsonOutput = {};
+          const lines = dataBuffer.split("\n");
+          dataBuffer = lines.pop() ?? "";
 
-          stream
-            .on("data", (data) => {
-              dataBuffer += data.toString();
+          for (const line of lines) {
+            if (!line.includes(":")) continue;
 
-              if (!dataBuffer.includes("\n")) return;
+            const [key, ...values] = line.split(":");
+            jsonOutput[key.trim()] = values.join(":").trim();
+          }
+        },
+        onClose: () => {
+          if (dataBuffer.includes(":")) {
+            const [key, ...values] = dataBuffer.split(":");
+            jsonOutput[key.trim()] = values.join(":").trim();
+          }
 
-              const lines = dataBuffer.split("\n");
-              dataBuffer = lines.pop();
-
-              for (const line of lines) {
-                if (!line.includes(":")) continue;
-
-                const [key, ...values] = line.split(":");
-                jsonOutput[key.trim()] = values.join(":").trim();
-              }
-            })
-            .on("close", () => {
-              safeRespond(200, jsonOutput);
-              conn.end();
-            });
-
-          stream.write(`show gpon onu ${onuAlias} summary\n`);
-          stream.write("exit\n");
-        });
+          return jsonOutput;
+        },
       })
-      .on("error", (err) => {
-        console.error("SSH error:", err.message);
-        safeRespond(500, { error: "Erro ao conectar na OLT" });
-        conn.end();
+      .then((summary) => {
+        res.status(200).json(summary);
       })
-      .connect({
-        host,
-        port: 22,
-        username,
-        password,
-        readyTimeout: 8000, // 👈 evita travar
+      .catch((error) => {
+        console.error("Erro ao consultar resumo da ONU:", error);
+        const status = error.code === "OLT_TIMEOUT" ? 504 : 500;
+        res.status(status).json(
+          oltController.#buildErrorPayload(
+            "Nao foi possivel consultar o resumo da ONU na OLT.",
+            error.code || "OLT_ONU_SUMMARY_ERROR",
+            error.message,
+          ),
+        );
       });
   };
 
@@ -598,7 +691,7 @@ class oltController {
                 for (let i = 0; i < lines.length; i++) {
                   const trimmedLine = lines[i]?.trim(); // Usando o operador de encadeamento opcional
 
-                  // Verificar se a linha realmente existe e não está vazia
+                  // Verificar se a linha realmente existe e nÃ£o estÃ¡ vazia
                   if (trimmedLine && !isNaN(parseInt(trimmedLine.charAt(0)))) {
                     const alias = trimmedLine.split(" ")[0];
                     const statusLine = lines[i + 1]?.trim();
@@ -714,7 +807,7 @@ class oltController {
                 let alias = null;
                 let mac = null;
 
-                // Caso tenha alias + mac entre parênteses
+                // Caso tenha alias + mac entre parÃªnteses
                 // Ex: ANTONIO-WISSINHESKI (prks00dc219b)
                 const aliasMacMatch = rawValue.match(/^(.*?)\s*\(([^)]+)\)$/);
 
@@ -729,7 +822,7 @@ class oltController {
                   alias = null;
                 }
 
-                // Se quiser normalizar o mac/serial em maiúsculo
+                // Se quiser normalizar o mac/serial em maiÃºsculo
                 if (mac) {
                   mac = mac.toUpperCase();
                 }
@@ -872,7 +965,7 @@ class oltController {
 
           let dataBuffer = "";
           let jsonOutput = [];
-          let currentGpon = ""; // 👈 variável que armazena a interface atual
+          let currentGpon = ""; // ðŸ‘ˆ variÃ¡vel que armazena a interface atual
 
           stream
             .on("close", () => {
@@ -889,7 +982,7 @@ class oltController {
                 for (const line of lines) {
                   const trimmedLine = line.trim();
 
-                  // 👇 Detecta a interface atual (ex: "Interface gpon1/1")
+                  // ðŸ‘‡ Detecta a interface atual (ex: "Interface gpon1/1")
                   const interfaceMatch =
                     trimmedLine.match(/^Interface\s+(\S+)/);
                   if (interfaceMatch) {
@@ -897,7 +990,7 @@ class oltController {
                     continue;
                   }
 
-                  // 👇 Detecta início de uma nova ONU
+                  // ðŸ‘‡ Detecta inÃ­cio de uma nova ONU
                   const onuAliasMatch = trimmedLine.match(
                     /^(\d+)-([\w-]+)\s+\(([\w-]+)\):/,
                   );
@@ -907,7 +1000,7 @@ class oltController {
                     }
                     onuData = {
                       oltIp: host,
-                      oltGpon: currentGpon, // 👈 adiciona aqui
+                      oltGpon: currentGpon, // ðŸ‘ˆ adiciona aqui
                       name: onuAliasMatch[2],
                       mac: onuAliasMatch[3],
                     };
@@ -964,69 +1057,73 @@ class oltController {
   };
 
   static listarOnu = (req, res) => {
-    let host = req.body.oltIp;
-    const username = process.env.PARKS_USERNAME;
-    const password = `#${process.env.PARKS_PASSWORD}`;
-    const conn = new Client();
+    const host = req.body.oltIp;
 
-    conn
-      .on("ready", () => {
-        conn.shell((err, stream) => {
-          if (err) {
-            console.error(err);
-            res.status(500).json({ error: "Error connecting to the OLT" });
+    if (oltController.#validateRequiredFields(res, req.body, ["oltIp"])) {
+      return;
+    }
+
+    let dataBuffer = "";
+    const onus = [];
+
+    oltController
+      .#runSshCommandSequence({
+        host,
+        commands: ["show gpon onu unconfigured"],
+        operationName: "listar ONUs nao autorizadas",
+        onData: (chunk) => {
+          dataBuffer += chunk;
+          if (!dataBuffer.includes("\n")) {
             return;
           }
 
-          let dataBuffer = "";
-          let onus = [];
+          const lines = dataBuffer.split("\n");
+          dataBuffer = lines.pop() ?? "";
 
-          stream
-            .on("close", () => {
-              res.json(onus);
-              conn.end();
-            })
-            .on("data", (data) => {
-              dataBuffer += data.toString();
-              if (dataBuffer.includes("\n")) {
-                const lines = dataBuffer.split("\n");
-                dataBuffer = lines.pop();
-                for (const line of lines) {
-                  if (line.includes("|") && !line.includes("Interface")) {
-                    const values = line.split("|").map((value) => value.trim());
-                    const [gpon, onuMac, onuModel] = values;
+          for (const line of lines) {
+            if (line.includes("|") && !line.includes("Interface")) {
+              const values = line.split("|").map((value) => value.trim());
+              const [gpon, onuMac, onuModel] = values;
 
-                    onus.push({
-                      onuMac,
-                      gpon,
-                      onuModel,
-                    });
-                  }
-                }
-              }
-            });
-          stream.write("show gpon onu unconfigured\n");
-          stream.write("exit\n");
-        });
+              onus.push({
+                onuMac,
+                gpon,
+                onuModel,
+              });
+            }
+          }
+        },
+        onClose: () => onus,
       })
-      .on("error", (err) => {
-        console.error(err);
-        res.status(500).json({ error: "Error connecting to the OLT" });
+      .then((result) => {
+        res.status(200).json(result);
       })
-      .connect({
-        host: host,
-        port: 22,
-        username: username,
-        password: password,
+      .catch((error) => {
+        console.error("Erro ao listar ONUs:", error);
+        const status = error.code === "OLT_TIMEOUT" ? 504 : 500;
+        res.status(status).json(
+          oltController.#buildErrorPayload(
+            "Nao foi possivel listar as ONUs nao autorizadas da OLT.",
+            error.code || "OLT_UNAUTHORIZED_ONU_LIST_ERROR",
+            error.message,
+          ),
+        );
       });
   };
 
   static EditarOnu = (req, res) => {
     const { oltGpon, newAlias, mac, oltIp } = req.body;
-    const conn = new Client();
-    const host = oltIp;
-    const username = process.env.PARKS_USERNAME;
-    const password = `#${process.env.PARKS_PASSWORD}`;
+
+    if (
+      oltController.#validateRequiredFields(res, req.body, [
+        "oltGpon",
+        "newAlias",
+        "mac",
+        "oltIp",
+      ])
+    ) {
+      return;
+    }
 
     const auditoriaEntry = new Auditoria({
       user: req.user.name,
@@ -1037,63 +1134,38 @@ class oltController {
       ipAddress: req.clientIP,
     });
 
-    auditoriaEntry.save();
+    auditoriaEntry.save().catch((error) => {
+      console.error("Erro ao salvar auditoria de edicao da ONU:", error);
+    });
 
-    conn
-      .on("ready", () => {
-        console.log("Conectado à OLT:", oltIp);
-
-        conn.shell((err, stream) => {
-          if (err) {
-            console.error("Erro ao iniciar shell:", err);
-            return res.status(500).json({ status: "ERROR", msg: err.message });
-          }
-
-          stream
-            .on("close", () => {
-              console.log("Sessão SSH encerrada.");
-              conn.end();
-              res
-                .status(200)
-                .json({ status: "OK", msg: "Onu editada com sucesso" });
-            })
-            .on("data", (data) => {
-              console.log(data.toString()); // apenas loga o output
-            })
-            .stderr.on("data", (data) => {
-              console.error("STDERR:", data.toString());
-            });
-
-          const comandos = [
-            "configure terminal",
-            `interface ${oltGpon}`,
-            `onu ${mac} alias ${newAlias}`,
-            "end",
-            "copy r s",
-            "exit", // garante fechamento do shell
-          ];
-
-          console.log("Enviando script para OLT...");
-          let i = 0;
-
-          const enviarComando = () => {
-            if (i < comandos.length) {
-              const cmd = comandos[i];
-              stream.write(cmd + "\n");
-              console.log("➡️  " + cmd);
-              i++;
-              setTimeout(enviarComando, 300);
-            }
-          };
-
-          enviarComando();
+    oltController
+      .#runSshCommandSequence({
+        host: oltIp,
+        commands: [
+          "configure terminal",
+          `interface ${oltGpon}`,
+          `onu ${mac} alias ${newAlias}`,
+          "end",
+          "copy r s",
+        ],
+        operationName: "editar alias da ONU",
+      })
+      .then(() => {
+        res.status(200).json({
+          status: "OK",
+          message: "Onu editada com sucesso",
         });
       })
-      .connect({
-        host,
-        port: 22,
-        username,
-        password,
+      .catch((error) => {
+        console.error("Erro ao editar ONU:", error);
+        const status = error.code === "OLT_TIMEOUT" ? 504 : 500;
+        res.status(status).json(
+          oltController.#buildErrorPayload(
+            "Nao foi possivel atualizar o alias da ONU na OLT.",
+            error.code || "OLT_EDIT_ONU_ERROR",
+            error.message,
+          ),
+        );
       });
   };
 
@@ -1221,19 +1293,32 @@ class oltController {
   };
 
   static liberarOnu = async (req, res) => {
-    let oltIp = req.body.oltIp;
-    let oltPon = req.body.oltPon;
-    let onuVlan = req.body.onuVlan;
-    let cto = req.body.cto;
-    let tecnico = req.body.tecnico;
-    let onuSerial = req.body.onuSerial;
-    let onuAlias = req.body.onuAlias;
-    let user = req.body.user;
-    let useVeipService = req.body.useVeipService;
-    let gpon = oltPon;
-    let sinalTX = req.body.sinalTX;
-    let sinalRX = req.body.sinalRX;
-    let date_time = new Date().toLocaleString("PT-br");
+    const {
+      oltIp,
+      oltPon,
+      onuVlan,
+      cto,
+      tecnico,
+      onuSerial,
+      onuAlias,
+      user,
+      useVeipService,
+      sinalTX,
+      sinalRX,
+    } = req.body;
+    const date_time = new Date().toLocaleString("PT-br");
+
+    if (
+      oltController.#validateRequiredFields(res, req.body, [
+        "oltIp",
+        "oltPon",
+        "onuVlan",
+        "onuSerial",
+        "onuAlias",
+      ])
+    ) {
+      return;
+    }
 
     let flowProfile = "";
     try {
@@ -1243,18 +1328,28 @@ class oltController {
         onuVlan,
         useVeipService,
       );
-    } catch (err) {
-      console.error("Erro ao buscar perfis gpon:", err);
-      return res
-        .status(500)
-        .json({ error: "Erro ao buscar perfis GPON da OLT" });
+    } catch (error) {
+      console.error("Erro ao buscar perfis GPON:", error);
+      const status = error.code === "OLT_TIMEOUT" ? 504 : 500;
+      return res.status(status).json(
+        oltController.#buildErrorPayload(
+          "Nao foi possivel carregar os perfis GPON necessarios para provisionar a ONU.",
+          error.code || "OLT_PROFILE_FETCH_ERROR",
+          error.message,
+        ),
+      );
     }
 
     if (!flowProfile) {
-      return res.status(400).json({ error: "Perfil de fluxo não encontrado" });
+      return res.status(400).json(
+        oltController.#buildErrorPayload(
+          "Perfil de fluxo nao encontrado para a VLAN informada.",
+          "OLT_FLOW_PROFILE_NOT_FOUND",
+        ),
+      );
     }
 
-    let clienteDb = {
+    const clienteDb = {
       date_time,
       oltIp,
       oltPon,
@@ -1267,254 +1362,216 @@ class oltController {
       sinalRX,
       sinalTX,
     };
-    let onuRegister = new OnuClient(clienteDb);
-    onuRegister.save(console.log(`Onu salva no banco: ${clienteDb}`));
 
-    const auditoriaEntry = new Auditoria({
-      user: req.user.name,
-      status: "cadastrado",
-      message: `cpe ${onuSerial} provisionada na olt ${oltIp} | interface ${gpon}. sinal TX: ${sinalTX} | sinal RX: ${sinalRX} | cto: ${cto} | tecnico: ${tecnico}`,
-      type: "cpe",
-      client: onuAlias,
-      ipAddress: req.clientIP,
-    });
+    const commands = !useVeipService
+      ? [
+          "configure terminal",
+          `interface ${oltPon}`,
+          `onu add serial-number ${onuSerial}`,
+          `onu ${onuSerial} alias ${onuAlias}`,
+          `onu ${onuSerial} flow ${flowProfile}`,
+          `onu ${onuSerial} vlan-translation-profile _${onuVlan} uni-port 1`,
+          `onu ${onuSerial} ethernet-profile auto-on uni-port 1`,
+          "end",
+          "copy r s",
+          `show gpon onu ${onuSerial} status`,
+        ]
+      : [
+          "configure terminal",
+          `interface ${oltPon}`,
+          `onu add serial-number ${onuSerial}`,
+          `onu ${onuSerial} ethernet-profile auto-on uni-port 1-2`,
+          `onu ${onuSerial} alias ${onuAlias}`,
+          `onu ${onuSerial} flow ${flowProfile}`,
+          "end",
+          "copy r s",
+          `show gpon onu ${onuSerial} status`,
+        ];
 
-    auditoriaEntry.save();
+    let dataBuffer = "";
+    const jsonOutput = {};
 
-    const host = oltIp;
-    const username = process.env.PARKS_USERNAME;
-    const password = `#${process.env.PARKS_PASSWORD}`;
-    const conn = new Client();
-
-    conn
-      .on("ready", () => {
-        conn.shell((err, stream) => {
-          if (err) throw err;
-          let dataBuffer = "";
-          let jsonOutput = {};
-
-          stream
-            .on("close", () => {
-              res.status(200).json(jsonOutput);
-              conn.end();
-            })
-            .on("data", (data) => {
-              dataBuffer += data.toString();
-              if (dataBuffer.includes("\n")) {
-                const lines = dataBuffer.split("\n");
-                dataBuffer = lines.pop();
-                for (const line of lines) {
-                  if (line.includes(":")) {
-                    const [key, value] = line.split(":");
-                    const trimmedKey = key.trim();
-                    const trimmedValue = value.trim();
-
-                    if (trimmedKey === "Status") {
-                      jsonOutput[onuSerial] = { Status: trimmedValue };
-                    } else if (
-                      trimmedKey === "Power Level" ||
-                      trimmedKey === "RSSI"
-                    ) {
-                      if (jsonOutput[onuSerial]) {
-                        jsonOutput[onuSerial][trimmedKey] = trimmedValue;
-                      }
-                    }
-                  }
-                }
-              }
-            });
-
-          if (!useVeipService) {
-            stream.write("configure terminal\n");
-            stream.write(`interface ${gpon}\n`);
-            stream.write(`onu add serial-number ${onuSerial}\n`);
-            stream.write(`onu ${onuSerial} alias ${onuAlias}\n`);
-            stream.write(`onu ${onuSerial} flow ${flowProfile}\n`);
-            stream.write(
-              `onu ${onuSerial} vlan-translation-profile _${onuVlan} uni-port 1\n`,
-            );
-            stream.write(
-              `onu ${onuSerial} ethernet-profile auto-on uni-port 1\n`,
-            );
-            stream.write("end\n");
-            stream.write("copy r s\n");
-            stream.write(`show gpon onu ${onuSerial} status\n`);
-            stream.write("exit\n");
-          } else {
-            stream.write("configure terminal\n");
-            stream.write(`interface ${gpon}\n`);
-            stream.write(`onu add serial-number ${onuSerial}\n`);
-            stream.write(
-              `onu ${onuSerial} ethernet-profile auto-on uni-port 1-2\n`,
-            );
-            stream.write(`onu ${onuSerial} alias ${onuAlias}\n`);
-            stream.write(`onu ${onuSerial} flow ${flowProfile}\n`);
-            stream.write("end\n");
-            stream.write("copy r s\n");
-            stream.write(`show gpon onu ${onuSerial} status\n`);
-            stream.write("exit\n");
+    oltController
+      .#runSshCommandSequence({
+        host: oltIp,
+        commands,
+        operationName: "provisionar ONU",
+        onData: (chunk) => {
+          dataBuffer += chunk;
+          if (!dataBuffer.includes("\n")) {
+            return;
           }
-        });
+
+          const lines = dataBuffer.split("\n");
+          dataBuffer = lines.pop() ?? "";
+
+          for (const line of lines) {
+            if (!line.includes(":")) {
+              continue;
+            }
+
+            const [key, value] = line.split(":");
+            const trimmedKey = key.trim();
+            const trimmedValue = value.trim();
+
+            if (trimmedKey === "Status") {
+              jsonOutput[onuSerial] = { Status: trimmedValue };
+            } else if (
+              (trimmedKey === "Power Level" || trimmedKey === "RSSI") &&
+              jsonOutput[onuSerial]
+            ) {
+              jsonOutput[onuSerial][trimmedKey] = trimmedValue;
+            }
+          }
+        },
+        onClose: () => jsonOutput,
       })
-      .connect({
-        host: host,
-        port: 22,
-        username: username,
-        password: password,
+      .then(async (result) => {
+        try {
+          await new OnuClient(clienteDb).save();
+        } catch (error) {
+          console.error("Erro ao salvar ONU provisionada no banco:", error);
+        }
+
+        try {
+          await new Auditoria({
+            user: req.user.name,
+            status: "cadastrado",
+            message: `cpe ${onuSerial} provisionada na olt ${oltIp} | interface ${oltPon}. sinal TX: ${sinalTX} | sinal RX: ${sinalRX} | cto: ${cto} | tecnico: ${tecnico}`,
+            type: "cpe",
+            client: onuAlias,
+            ipAddress: req.clientIP,
+          }).save();
+        } catch (error) {
+          console.error("Erro ao salvar auditoria de provisionamento:", error);
+        }
+
+        res.status(200).json(result);
+      })
+      .catch((error) => {
+        console.error("Erro ao provisionar ONU:", error);
+        const status = error.code === "OLT_TIMEOUT" ? 504 : 500;
+        res.status(status).json(
+          oltController.#buildErrorPayload(
+            "Nao foi possivel provisionar a ONU na OLT.",
+            error.code || "OLT_PROVISION_ERROR",
+            error.message,
+          ),
+        );
       });
   };
 
   static deleteOnu = (req, res) => {
     const { oltIp, mac, oltGpon, alias } = req.body;
 
-    const conn = new Client();
-    const host = oltIp;
-    const username = process.env.PARKS_USERNAME;
-    const password = `#${process.env.PARKS_PASSWORD}`;
+    if (
+      oltController.#validateRequiredFields(res, req.body, [
+        "oltIp",
+        "mac",
+        "oltGpon",
+      ])
+    ) {
+      return;
+    }
 
-    const auditoriaEntry = new Auditoria({
+    new Auditoria({
       user: req.user.name,
       status: "deletado",
       message: `cpe ${mac} desprovisionada na olt ${oltIp} | interface ${oltGpon}.`,
       type: "cpe",
       client: alias,
       ipAddress: req.clientIP,
-    });
+    })
+      .save()
+      .catch((error) => {
+        console.error("Erro ao salvar auditoria de remocao da ONU:", error);
+      });
 
-    auditoriaEntry.save();
-
-    conn
-      .on("ready", () => {
-        console.log("Conectado à OLT:", oltIp);
-
-        conn.shell((err, stream) => {
-          if (err) {
-            console.error("Erro ao iniciar shell:", err);
-            return res.status(500).json({ status: "ERROR", msg: err.message });
-          }
-
-          stream
-            .on("close", () => {
-              console.log("Sessão SSH encerrada.");
-              conn.end();
-              res
-                .status(200)
-                .json({ status: "OK", msg: "Onu desautorizada com sucesso" });
-            })
-            .on("data", (data) => {
-              console.log(data.toString()); // apenas loga o output
-            })
-            .stderr.on("data", (data) => {
-              console.error("STDERR:", data.toString());
-            });
-
-          const comandos = [
-            "configure terminal",
-            `interface ${oltGpon}`,
-            `no onu ${mac}`,
-            "end",
-            "copy r s",
-            "exit", // garante fechamento do shell
-          ];
-
-          console.log("Enviando script para OLT...");
-          let i = 0;
-
-          const enviarComando = () => {
-            if (i < comandos.length) {
-              const cmd = comandos[i];
-              stream.write(cmd + "\n");
-              console.log("➡️  " + cmd);
-              i++;
-              setTimeout(enviarComando, 300);
-            }
-          };
-
-          enviarComando();
+    oltController
+      .#runSshCommandSequence({
+        host: oltIp,
+        commands: [
+          "configure terminal",
+          `interface ${oltGpon}`,
+          `no onu ${mac}`,
+          "end",
+          "copy r s",
+        ],
+        operationName: "remover ONU",
+      })
+      .then(() => {
+        res.status(200).json({
+          status: "OK",
+          message: "Onu desautorizada com sucesso",
         });
       })
-      .connect({
-        host,
-        port: 22,
-        username,
-        password,
+      .catch((error) => {
+        console.error("Erro ao remover ONU:", error);
+        const status = error.code === "OLT_TIMEOUT" ? 504 : 500;
+        res.status(status).json(
+          oltController.#buildErrorPayload(
+            "Nao foi possivel desautorizar a ONU na OLT.",
+            error.code || "OLT_DELETE_ONU_ERROR",
+            error.message,
+          ),
+        );
       });
   };
 
   static liberarOnuAvulsa = (req, res) => {
     const { oltIp, oltPon, script, onuAlias } = req.body;
 
-    const conn = new Client();
-    const host = oltIp;
-    const username = process.env.PARKS_USERNAME;
-    const password = `#${process.env.PARKS_PASSWORD}`;
+    if (
+      oltController.#validateRequiredFields(res, req.body, [
+        "oltIp",
+        "oltPon",
+        "script",
+      ])
+    ) {
+      return;
+    }
 
-    const auditoriaEntry = new Auditoria({
+    new Auditoria({
       user: req.user.name,
       status: "cadastrado",
       message: `cpe provisionada na olt ${oltIp} | interface ${oltPon}. script: ${script}`,
       type: "cpe",
       client: onuAlias,
       ipAddress: req.clientIP,
-    });
+    })
+      .save()
+      .catch((error) => {
+        console.error("Erro ao salvar auditoria de provisionamento avulso:", error);
+      });
 
-    auditoriaEntry.save();
-
-    conn
-      .on("ready", () => {
-        console.log("Conectado à OLT:", oltIp);
-
-        conn.shell((err, stream) => {
-          if (err) {
-            console.error("Erro ao iniciar shell:", err);
-            return res.status(500).json({ status: "ERROR", msg: err.message });
-          }
-
-          stream
-            .on("close", () => {
-              console.log("Sessão SSH encerrada.");
-              conn.end();
-              res
-                .status(200)
-                .json({ status: "OK", msg: "Script executado com sucesso" });
-            })
-            .on("data", (data) => {
-              console.log(data.toString()); // apenas loga o output
-            })
-            .stderr.on("data", (data) => {
-              console.error("STDERR:", data.toString());
-            });
-
-          const comandos = [
-            "configure terminal",
-            `interface ${oltPon}`,
-            ...script.split("\n"),
-            "end",
-            "copy r s",
-            "exit", // garante fechamento do shell
-          ];
-
-          console.log("Enviando script para OLT...");
-          let i = 0;
-
-          const enviarComando = () => {
-            if (i < comandos.length) {
-              const cmd = comandos[i];
-              stream.write(cmd + "\n");
-              console.log("➡️  " + cmd);
-              i++;
-              setTimeout(enviarComando, 300);
-            }
-          };
-
-          enviarComando();
+    oltController
+      .#runSshCommandSequence({
+        host: oltIp,
+        commands: [
+          "configure terminal",
+          `interface ${oltPon}`,
+          ...script.split("\n"),
+          "end",
+          "copy r s",
+        ],
+        operationName: "executar script avulso na OLT",
+      })
+      .then(() => {
+        res.status(200).json({
+          status: "OK",
+          message: "Script executado com sucesso",
         });
       })
-      .connect({
-        host,
-        port: 22,
-        username,
-        password,
+      .catch((error) => {
+        console.error("Erro ao executar script avulso:", error);
+        const status = error.code === "OLT_TIMEOUT" ? 504 : 500;
+        res.status(status).json(
+          oltController.#buildErrorPayload(
+            "Nao foi possivel executar o script na OLT.",
+            error.code || "OLT_SCRIPT_EXECUTION_ERROR",
+            error.message,
+          ),
+        );
       });
   };
 
@@ -1534,31 +1591,46 @@ class oltController {
   static listOlts = (req, res) => {
     oltModel.find((err, olt) => {
       if (err) {
-        res
-          .status(500)
-          .send({ message: `${err.message} - falha ao buscar OLT.` });
-      } else {
-        res.status(200).send(olt);
+        return res.status(500).send(
+          oltController.#buildErrorPayload(
+            `${err.message} - falha ao buscar OLT.`,
+            "OLT_LIST_ERROR",
+          ),
+        );
       }
+
+      res.status(200).send(olt);
     });
   };
 
   static updateOlt = (req, res) => {
     const hubsoftId = req.body.hubsoft_id;
 
+    if (oltController.#validateRequiredFields(res, req.body, ["hubsoft_id"])) {
+      return;
+    }
+
     oltModel.findOneAndUpdate(
-      { hubsoft_id: hubsoftId }, // filtro
-      { $set: req.body }, // dados para atualizar
-      { new: true }, // retorna o documento atualizado
+      { hubsoft_id: hubsoftId },
+      { $set: req.body },
+      { new: true },
       (err, oltAtualizada) => {
         if (err) {
-          return res
-            .status(500)
-            .send({ message: `${err.message} - falha ao atualizar OLT.` });
+          return res.status(500).send(
+            oltController.#buildErrorPayload(
+              `${err.message} - falha ao atualizar OLT.`,
+              "OLT_UPDATE_ERROR",
+            ),
+          );
         }
 
         if (!oltAtualizada) {
-          return res.status(404).send({ message: "OLT não encontrada." });
+          return res.status(404).send(
+            oltController.#buildErrorPayload(
+              "OLT nao encontrada.",
+              "OLT_NOT_FOUND",
+            ),
+          );
         }
 
         res.status(200).send({
@@ -1584,25 +1656,47 @@ class oltController {
 
   static toggleOltActiveStatus = (req, res) => {
     const { id, status } = req.body;
+
+    if (oltController.#validateRequiredFields(res, req.body, ["id", "status"])) {
+      return;
+    }
+
     oltModel.findOne({ hubsoft_id: id }, (err, olt) => {
       if (err) {
-        res
-          .status(500)
-          .send({ message: `${err.message} - falha ao buscar OLT.` });
-      } else {
-        olt.active = status;
-        olt.save((err) => {
-          if (err) {
-            res
-              .status(500)
-              .send({ message: `${err.message} - falha ao atualizar OLT.` });
-          } else {
-            res.status(200).send(olt.toJSON());
-          }
-        });
+        return res.status(500).send(
+          oltController.#buildErrorPayload(
+            `${err.message} - falha ao buscar OLT.`,
+            "OLT_STATUS_LOOKUP_ERROR",
+          ),
+        );
       }
+
+      if (!olt) {
+        return res.status(404).send(
+          oltController.#buildErrorPayload(
+            "OLT nao encontrada.",
+            "OLT_NOT_FOUND",
+          ),
+        );
+      }
+
+      olt.active = status;
+      olt.save((saveError) => {
+        if (saveError) {
+          return res.status(500).send(
+            oltController.#buildErrorPayload(
+              `${saveError.message} - falha ao atualizar OLT.`,
+              "OLT_STATUS_UPDATE_ERROR",
+            ),
+          );
+        }
+
+        res.status(200).send(olt.toJSON());
+      });
     });
   };
 }
 
 export default oltController;
+
+

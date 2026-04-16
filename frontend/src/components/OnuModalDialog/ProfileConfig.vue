@@ -8,6 +8,7 @@ import { useUserStore } from "@/stores/user";
 import hubApi from "@/api/hubsoftApi";
 import FiberhomeOnuConfig from "./FiberhomeOnuConfig.vue";
 import { getClientNameByMAC } from "./util";
+import { getApiErrorMessage } from "@/utils/apiError";
 
 const notification = useNotificationStore();
 
@@ -75,7 +76,11 @@ const getOltList = async () => {
     const response = await fetchApi.get("listar-olt");
     return response.data.filter((olt) => olt.active);
   } catch (error) {
-    console.log("erro ao buscar equipamentos", error.message);
+    triggerNotification(
+      getApiErrorMessage(error, "Nao foi possivel carregar as OLTs."),
+      "error",
+    );
+    return [];
   }
 };
 
@@ -95,7 +100,12 @@ const configClientAuth = async () => {
     );
     return response;
   } catch (error) {
-    console.log("erro ao configurar cliente", error.message);
+    throw new Error(
+      getApiErrorMessage(
+        error,
+        "Nao foi possivel vincular o cliente ao servico selecionado.",
+      ),
+    );
   }
 };
 
@@ -108,7 +118,11 @@ const getGponProfiles = async () => {
       gponProfiles.value = response.data;
     }
   } catch (error) {
-    console.log("erro ao buscar perfis gpon", error.message);
+    gponProfiles.value = [];
+    triggerNotification(
+      getApiErrorMessage(error, "Nao foi possivel carregar os perfis GPON."),
+      "error",
+    );
   }
 };
 
@@ -125,8 +139,14 @@ const getUnauthorizedOnuInfoFromFiberhome = async () => {
     );
     return response.data;
   } catch (error) {
-    console.log("erro ao consultar olts fiberhome", error.message);
-    loadingApi.value = false;
+    triggerNotification(
+      getApiErrorMessage(
+        error,
+        "Nao foi possivel consultar as ONUs nao autorizadas da FiberHome.",
+      ),
+      "error",
+    );
+    return [];
   }
 };
 
@@ -138,7 +158,14 @@ const getUnauthorizedOnuFromParks = async () => {
 
     return response.data;
   } catch (error) {
-    console.log("erro ao consultar olts", error.message);
+    triggerNotification(
+      getApiErrorMessage(
+        error,
+        "Nao foi possivel consultar as ONUs nao autorizadas da OLT.",
+      ),
+      "error",
+    );
+    return [];
   }
 };
 
@@ -183,7 +210,14 @@ const getVlanTranslations = async () => {
       vlanTranslations.value = response.data;
     }
   } catch (error) {
-    console.log("erro ao buscar vlan translations", error.message);
+    vlanTranslations.value = [];
+    triggerNotification(
+      getApiErrorMessage(
+        error,
+        "Nao foi possivel carregar as configuracoes de VLAN da OLT.",
+      ),
+      "error",
+    );
   }
 };
 
@@ -272,7 +306,15 @@ const provisionOnu = async () => {
     onProvision.value = false;
     return;
   } else if (hasClientBinding.value && id_cliente_servico.value) {
-    const response = await configClientAuth();
+    let response;
+
+    try {
+      response = await configClientAuth();
+    } catch (error) {
+      triggerNotification(error.message, "error");
+      onProvision.value = false;
+      return;
+    }
 
     if (response.data.status !== "success") {
       triggerNotification(
@@ -295,8 +337,10 @@ const provisionOnu = async () => {
       triggerNotification("ONU provisionada com sucesso!", "success");
     }
   } catch (error) {
-    console.log("erro ao provisionar onu", error.message);
-    triggerNotification("Erro ao provisionar ONU!", "error");
+    triggerNotification(
+      getApiErrorMessage(error, "Nao foi possivel provisionar a ONU."),
+      "error",
+    );
   }
   await new Promise((resolve) => setTimeout(resolve, 2000));
 

@@ -12,6 +12,7 @@ const fetchApi = axios.create({
   baseURL: BASE_URL,
   headers: headersConfig,
   withCredentials: true,
+  timeout: 20000,
 });
 
 const getTokenWithRefreshToken = async () => {

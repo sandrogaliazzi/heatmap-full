@@ -1,14 +1,23 @@
 <script setup>
 import { ref, watch, onMounted } from "vue";
 import { useUserStore } from "@/stores/user";
+import { useNotificationStore } from "@/stores/notification";
 import fetchApi from "@/api";
 import hubApi from "@/api/hubsoftApi";
+import { getApiErrorMessage } from "@/utils/apiError";
 
 const { formData, hubsoftData } = defineProps(["formData", "hubsoftData"]);
 const emit = defineEmits([
   "update:windowNumber",
   "update:onuRegisterWithSuccess",
 ]);
+const notification = useNotificationStore();
+const triggerError = (message) => {
+  notification.setNotification({
+    status: "error",
+    msg: message,
+  });
+};
 
 const formRef = ref(null);
 const cto = ref(hubsoftData?.cto);
@@ -46,7 +55,12 @@ const loadInterfaces = async () => {
         .flat();
     }
   } catch (error) {
-    console.log("erro ao buscar interfaces", error.message);
+    triggerError(
+      getApiErrorMessage(
+        error,
+        "Nao foi possivel carregar as interfaces disponiveis.",
+      ),
+    );
   }
 };
 
@@ -77,7 +91,9 @@ const searchClientByName = debounce(async (alias) => {
       console.log("clientes encontrados", clientsFound.value);
     }
   } catch (error) {
-    console.log("erro ao buscar cliente", error.message);
+    triggerError(
+      getApiErrorMessage(error, "Nao foi possivel buscar o cliente informado."),
+    );
   } finally {
     loadingClients.value = false;
   }
@@ -103,7 +119,12 @@ const configClientAuth = async () => {
       },
     );
   } catch (error) {
-    console.log("erro ao configurar cliente", error.message);
+    throw new Error(
+      getApiErrorMessage(
+        error,
+        "Nao foi possivel configurar a autenticacao do cliente.",
+      ),
+    );
   }
 };
 
@@ -122,7 +143,10 @@ const provisionOnuParks = async (requestBody) => {
       });
     }
   } catch (error) {
-    console.log("erro ao adicionar onu", error.message);
+    loadingSubmit.value = false;
+    triggerError(
+      getApiErrorMessage(error, "Nao foi possivel provisionar a ONU."),
+    );
   }
 };
 
@@ -157,7 +181,13 @@ const provisionOnuFiberhome = async (requestBody) => {
       });
     }
   } catch (error) {
-    console.log("erro ao adicionar onu fiberhome", error.message);
+    loadingSubmit.value = false;
+    triggerError(
+      getApiErrorMessage(
+        error,
+        "Nao foi possivel provisionar a ONU FiberHome.",
+      ),
+    );
   }
 };
 const handleSubmit = async () => {
@@ -186,7 +216,13 @@ const handleSubmit = async () => {
       useVeipService: useVeipService.value,
     };
 
-    await configClientAuth();
+    try {
+      await configClientAuth();
+    } catch (error) {
+      loadingSubmit.value = false;
+      triggerError(error.message);
+      return;
+    }
 
     if (formData.oltName.includes("FIBERHOME")) {
       await provisionOnuFiberhome(requestBody);

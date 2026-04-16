@@ -214,10 +214,6 @@ class UserController {
           return res.status(404).json({ message: "Usuario não encontrado." });
         }
 
-        if (usuario.refreshToken !== refreshToken) {
-          return res.status(403).send("refresh Token inválido.");
-        }
-
         const accessToken = jwt.sign(
           { user_id: userData._id, name: userData.name },
           process.env.TOKEN_KEY,
