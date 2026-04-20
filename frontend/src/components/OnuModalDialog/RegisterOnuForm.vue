@@ -32,6 +32,8 @@ const selectedService = ref(hubsoftData?.selectedService);
 const interfaces = ref([]);
 const selectedInterface = ref(hubsoftData?.selectedInterface);
 const useVeipService = ref(false);
+const ssid = ref("");
+const wifiPassword = ref("");
 
 const inputRules = [
   (value) => {
@@ -80,7 +82,6 @@ const loadingClients = ref(false);
 
 const searchClientByName = debounce(async (alias) => {
   if (alias.length < 3) return;
-  console.log("buscando cliente", alias);
   loadingClients.value = true;
   try {
     const response = await hubApi.get(
@@ -88,7 +89,6 @@ const searchClientByName = debounce(async (alias) => {
     );
     if (response.status === 200) {
       clientsFound.value = response.data.clientes;
-      console.log("clientes encontrados", clientsFound.value);
     }
   } catch (error) {
     triggerError(
@@ -190,6 +190,28 @@ const provisionOnuFiberhome = async (requestBody) => {
     );
   }
 };
+
+const getClientPasswordsFromHubsoft = async () => {
+  try {
+    const response = await hubApi.get(
+      `api/v1/integracao/cliente/cliente_servico/${selectedService.value.id_cliente_servico}/senhas`,
+    );
+    if (response.status === 200) {
+      const clientPasswords = response.data.cliente_servico_senha;                                                                              
+      const {usuario, senha} = clientPasswords.find(senha => senha.descricao == "SSID_E_SENHA_WIFI") || {};
+      ssid.value = usuario;
+      wifiPassword.value = senha;
+    }
+  } catch (error) {
+    triggerError(
+      getApiErrorMessage(
+        error,
+        "Nao foi possivel obter as senhas do cliente no HubSoft.",
+      ),
+    );
+  }
+};
+
 const handleSubmit = async () => {
   const { valid } = await formRef.value.validate();
 
@@ -234,7 +256,7 @@ const handleSubmit = async () => {
 
 onMounted(() => {
   loadInterfaces();
-  console.log("onu", formData);
+  getClientPasswordsFromHubsoft();
 });
 </script>
 
@@ -302,7 +324,7 @@ onMounted(() => {
       "
       :item-value="(item) => item"
       :rules="inputRules"
-      prepend-inner-icon="mdi-wifi"
+      prepend-inner-icon="mdi-cog"
       v-model="selectedService"
     ></v-select>
 
@@ -317,6 +339,27 @@ onMounted(() => {
       prepend-inner-icon="mdi-hdmi-port"
       placeholder="Selecione a interface"
     ></v-autocomplete>
+
+    <v-row>
+      <v-col col-md="6">
+        <v-text-field
+        v-model="ssid"
+        label="ssid"
+        prepend-inner-icon="mdi-wifi"
+        >
+
+        </v-text-field>
+      </v-col>
+      <v-col col-md="6">
+        <v-text-field
+        v-model="wifiPassword"
+        label="senha wifi"
+        prepend-inner-icon="mdi-lock"
+        >
+
+        </v-text-field>
+      </v-col>
+    </v-row>
 
     <v-text-field
       v-model="tecnico"
