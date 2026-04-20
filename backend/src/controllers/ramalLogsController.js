@@ -24,11 +24,41 @@ class RamalLogsController {
     }
 
     try {
+      const searchTerms = [alias, mac].filter(Boolean);
+
       const results = await ramalLogs.aggregate([
         { $unwind: "$gpon_data" },
         {
           $addFields: {
-            gponAliasParts: { $split: ["$gpon_data.alias", "-"] },
+            gponAliasRaw: {
+              $convert: {
+                input: "$gpon_data.alias",
+                to: "string",
+                onError: "",
+                onNull: "",
+              },
+            },
+            gponNameRaw: {
+              $convert: {
+                input: "$gpon_data.name",
+                to: "string",
+                onError: "",
+                onNull: "",
+              },
+            },
+            gponMacRaw: {
+              $convert: {
+                input: "$gpon_data.mac",
+                to: "string",
+                onError: "",
+                onNull: "",
+              },
+            },
+          },
+        },
+        {
+          $addFields: {
+            gponAliasParts: { $split: ["$gponAliasRaw", "-"] },
           },
         },
         {
@@ -55,14 +85,18 @@ class RamalLogsController {
                     },
                   },
                 },
-                else: "$gpon_data.alias", // fallback se não tiver "-"
+                else: "$gponAliasRaw", // fallback se não tiver "-"
               },
             },
           },
         },
         {
           $match: {
-            $or: [{ gponAlias: alias }, { gponAlias: mac }],
+            $or: [
+              { gponAlias: { $in: searchTerms } },
+              { gponNameRaw: { $in: searchTerms } },
+              { gponMacRaw: { $in: searchTerms } },
+            ],
           },
         },
         {

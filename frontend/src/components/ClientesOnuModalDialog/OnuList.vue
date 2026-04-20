@@ -19,6 +19,7 @@ const labels = ref(null);
 const ramal = ref("");
 const showChart = ref(false);
 const isLoadingClientHistory = ref(false);
+const clientHistoryLoadingKey = ref(null);
 const apiDataLoaded = ref(false);
 const chartKey = ref(0);
 const awatingApi = ref(false);
@@ -122,8 +123,22 @@ const signalCalc = computed(() => {
 });
 
 const formatSigal = (signal) => {
-  return signal.split(" ")[0];
+  return signal?.split(" ")[0];
 };
+
+const getSignalValue = (signal) => {
+  if (typeof signal === "number") return signal;
+  if (typeof signal !== "string" || signal === "NO SIGNAL") return null;
+
+  const value = Number.parseFloat(signal.split("dBm")[0].trim());
+  return Number.isNaN(value) ? null : value;
+};
+
+const getHistoryTx = (data) =>
+  data.gpon_data.tx ?? getSignalValue(data.gpon_data["Power Level"]);
+
+const getHistoryRx = (data) =>
+  data.gpon_data.rx ?? getSignalValue(data.gpon_data.RSSI);
 
 const formatVlan = (vlan) => {
   return vlan?.split("_").pop();
@@ -233,28 +248,28 @@ const updateAlias = async (onu, newAlias) => {
 };
 
 const showClientSignalHistory = async (client) => {
-  isLoadingClientHistory.value = true;
+  awatingApi.value = true;
   try {
-    const response = await fetchApi(
-      `find-client-signal-logs?alias=${client.name}&mac=${client.mac}`,
-    );
+    const response = await fetchApi.get("find-client-signal-logs", {
+      params: {
+        alias: client.name,
+        mac: client.mac,
+      },
+    });
     if (response.status === 200) {
-      avgRxList.value = response.data.map((data) => data.gpon_data.rx);
-      avgTxList.value = response.data.map((data) => data.gpon_data.tx);
+      avgRxList.value = response.data.map(getHistoryRx);
+      avgTxList.value = response.data.map(getHistoryTx);
       labels.value = response.data.map((data) => data.date);
       ramal.value = client.name;
       showChart.value = true;
-      isLoadingClientHistory.value = false;
       apiDataLoaded.value = true;
       chartKey.value++;
     }
 
     if (response.status === 404) {
       alert("Histórico não encontrado");
-      isLoadingClientHistory.value = false;
     }
   } catch (error) {
-    isLoadingClientHistory.value = false;
     notification.setNotification({
       status: "error",
       msg: getApiErrorMessage(
@@ -262,6 +277,8 @@ const showClientSignalHistory = async (client) => {
         "Nao foi possivel carregar o historico de sinal do cliente.",
       ),
     });
+  } finally {
+    awatingApi.value = false;
   }
 };
 
@@ -364,7 +381,7 @@ const copyToClipboard = (text) => {
                 >TX: {{ formatSigal(signalList[item.mac]["Power Level"]) }} RX:
                 {{ formatSigal(signalList[item.mac]["RSSI"]) }}</v-chip
               >
-              <div class="d-flex flex-column ga-2">
+              <div class="d-flex flex-column flex-sm-row align-sm-center ga-2">
                 <v-btn
                   append-icon="mdi-menu-down"
                   variant="tonal"
@@ -386,7 +403,6 @@ const copyToClipboard = (text) => {
                         <v-btn
                           prepend-icon="mdi-history"
                           size="small"
-                          :disabled="item.hasOwnProperty('onuNumber')"
                           @click="showClientSignalHistory(item)"
                           >Histórico sinal</v-btn
                         >
