@@ -34,6 +34,7 @@ const selectedInterface = ref(hubsoftData?.selectedInterface);
 const useVeipService = ref(false);
 const ssid = ref("");
 const wifiPassword = ref("");
+const idClientPassword = ref(null);
 
 const inputRules = [
   (value) => {
@@ -103,7 +104,7 @@ watch(search, searchClientByName);
 
 const configClientAuth = async () => {
   try {
-    const response = await hubApi.post(
+    await hubApi.post(
       "/api/v1/integracao/cliente/configurar_autenticacao",
       {
         id_cliente_servico: selectedService.value.id_cliente_servico,
@@ -115,7 +116,7 @@ const configClientAuth = async () => {
           tecnico.value,
         )}, CTO: ${toParksTextFormat(
           cto.value,
-        )} - data ${new Date().toLocaleString()}`,
+        )} - data ${new Date().toLocaleString()} - VLAN: ${formData.ponVlan}`,
       },
     );
   } catch (error) {
@@ -198,15 +199,52 @@ const getClientPasswordsFromHubsoft = async () => {
     );
     if (response.status === 200) {
       const clientPasswords = response.data.cliente_servico_senha;                                                                              
-      const {usuario, senha} = clientPasswords.find(senha => senha.descricao == "SSID_E_SENHA_WIFI") || {};
+      const {usuario, senha, id_cliente_servico_senha} = clientPasswords.find(senha => senha.descricao == "SSID_E_SENHA_WIFI") || {};
       ssid.value = usuario;
       wifiPassword.value = senha;
+      idClientPassword.value = id_cliente_servico_senha;
     }
   } catch (error) {
     triggerError(
       getApiErrorMessage(
         error,
         "Nao foi possivel obter as senhas do cliente no HubSoft.",
+      ),
+    );
+  }
+};
+
+const setClientPasswordInHubsoft = async () => {
+  try {
+    const response = idClientPassword.value
+      ? await hubApi.put(
+          `/api/v1/integracao/cliente/cliente_servico/senhas/${idClientPassword.value}`,
+          {
+            usuario: ssid.value,
+            senha: wifiPassword.value
+          }
+        )
+      : await hubApi.post(
+          `/api/v1/integracao/cliente/cliente_servico/senhas`,
+          {
+            id_cliente_servico: selectedService.value.id_cliente_servico,
+            descricao: "SSID_E_SENHA_WIFI",
+            usuario: ssid.value,
+            senha: wifiPassword.value
+          }
+        );
+
+    if(response.status === 200) {
+      notification.setNotification({
+        status: "success",
+        msg: "Senha wifi do cliente configurada no HubSoft com sucesso.",
+      });
+    }
+  } catch (error) {
+    triggerError(
+      getApiErrorMessage(
+        error,
+        "Nao foi possivel configurar a senha wifi do cliente no HubSoft.",
       ),
     );
   }
@@ -240,6 +278,7 @@ const handleSubmit = async () => {
 
     try {
       await configClientAuth();
+      await setClientPasswordInHubsoft();
     } catch (error) {
       loadingSubmit.value = false;
       triggerError(error.message);
@@ -343,6 +382,7 @@ onMounted(() => {
     <v-row>
       <v-col col-md="6">
         <v-text-field
+        :rules="inputRules"
         v-model="ssid"
         label="ssid"
         prepend-inner-icon="mdi-wifi"
@@ -352,8 +392,9 @@ onMounted(() => {
       </v-col>
       <v-col col-md="6">
         <v-text-field
+        :rules="inputRules"
         v-model="wifiPassword"
-        label="senha wifi"
+        label="Senha WiFi"
         prepend-inner-icon="mdi-lock"
         >
 
