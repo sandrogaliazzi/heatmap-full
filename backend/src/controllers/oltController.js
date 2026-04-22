@@ -8,6 +8,7 @@ dotenv.config();
 
 const SSH_READY_TIMEOUT_MS = 8000;
 const SSH_OPERATION_TIMEOUT_MS = 15000;
+const SSH_COMMAND_IDLE_TIMEOUT_MS = 2000;
 
 class oltController {
   static #buildErrorPayload = (
@@ -41,6 +42,49 @@ class oltController {
     return true;
   };
 
+  static #openSshShell = ({ host, shellOptions, onShell, onError }) => {
+    const username = process.env.PARKS_USERNAME;
+    const password = `#${process.env.PARKS_PASSWORD}`;
+    const conn = new Client();
+
+    const handleShell = (err, stream) => {
+      if (err) {
+        const shellError = new Error("Erro ao abrir shell SSH");
+        shellError.code = "OLT_SHELL_ERROR";
+        shellError.cause = err;
+        onError(shellError);
+        return;
+      }
+
+      onShell(stream);
+    };
+
+    conn
+      .on("ready", () => {
+        if (shellOptions) {
+          conn.shell(shellOptions, handleShell);
+          return;
+        }
+
+        conn.shell(handleShell);
+      })
+      .on("error", (err) => {
+        const connectionError = new Error("Erro ao conectar na OLT");
+        connectionError.code = "OLT_CONNECTION_ERROR";
+        connectionError.cause = err;
+        onError(connectionError);
+      })
+      .connect({
+        host,
+        port: 22,
+        username,
+        password,
+        readyTimeout: SSH_READY_TIMEOUT_MS,
+      });
+
+    return conn;
+  };
+
   static #runSshCommandSequence = ({
     host,
     commands,
@@ -50,9 +94,7 @@ class oltController {
     exitDelayMs = 0,
   }) =>
     new Promise((resolve, reject) => {
-      const username = process.env.PARKS_USERNAME;
-      const password = `#${process.env.PARKS_PASSWORD}`;
-      const conn = new Client();
+      let conn;
       let timeoutId;
       let finished = false;
 
@@ -89,70 +131,222 @@ class oltController {
         finish(timeoutError);
       }, SSH_OPERATION_TIMEOUT_MS);
 
-      conn
-        .on("ready", () => {
-          conn.shell((err, stream) => {
-            if (err) {
-              const shellError = new Error("Erro ao abrir shell SSH");
-              shellError.code = "OLT_SHELL_ERROR";
-              shellError.cause = err;
-              finish(shellError);
-              return;
-            }
-
-            stream
-              .on("data", (data) => {
-                try {
-                  onData?.(data.toString(), stream);
-                } catch (processingError) {
-                  finish(processingError);
-                }
-              })
-              .on("close", () => {
-                try {
-                  finish(null, onClose?.());
-                } catch (closeError) {
-                  finish(closeError);
-                }
-              });
-
-            if (stream.stderr) {
-              stream.stderr.on("data", (data) => {
-                console.error("STDERR:", data.toString());
-              });
-            }
-
-            commands.forEach((command, index) => {
-              setTimeout(() => {
-                if (!finished) {
-                  stream.write(`${command}\n`);
-                }
-              }, index * 300);
+      conn = oltController.#openSshShell({
+        host,
+        onError: finish,
+        onShell: (stream) => {
+          stream
+            .on("data", (data) => {
+              try {
+                onData?.(data.toString(), stream);
+              } catch (processingError) {
+                finish(processingError);
+              }
+            })
+            .on("close", () => {
+              try {
+                finish(null, onClose?.());
+              } catch (closeError) {
+                finish(closeError);
+              }
             });
 
-            const lastCommandDelay = commands.length * 300;
-            const exitDelay = exitDelayMs ? lastCommandDelay + exitDelayMs : lastCommandDelay;
+          if (stream.stderr) {
+            stream.stderr.on("data", (data) => {
+              console.error("STDERR:", data.toString());
+            });
+          }
 
+          commands.forEach((command, index) => {
             setTimeout(() => {
               if (!finished) {
-                stream.write("exit\n");
+                stream.write(`${command}\n`);
               }
-            }, exitDelay);
+            }, index * 300);
           });
-        })
-        .on("error", (err) => {
-          const connectionError = new Error("Erro ao conectar na OLT");
-          connectionError.code = "OLT_CONNECTION_ERROR";
-          connectionError.cause = err;
-          finish(connectionError);
-        })
-        .connect({
-          host,
-          port: 22,
-          username,
-          password,
-          readyTimeout: SSH_READY_TIMEOUT_MS,
+
+          const lastCommandDelay = commands.length * 300;
+          const exitDelay = exitDelayMs
+            ? lastCommandDelay + exitDelayMs
+            : lastCommandDelay;
+
+          setTimeout(() => {
+            if (!finished) {
+              stream.write("exit\n");
+            }
+          }, exitDelay);
+        },
+      });
+    });
+
+  static #normalizeSshOutput = (output) =>
+    output
+      .replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "")
+      .replace(/\r/g, "\n")
+      .replace(/\u0008/g, "");
+
+  static #hasOltPrompt = (output) => {
+    const normalizedOutput = oltController.#normalizeSshOutput(output);
+    const lines = normalizedOutput
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
+    const lastLine = lines.at(-1);
+
+    return Boolean(
+      lastLine && lastLine.length <= 120 && /[#>]\s*$/.test(lastLine),
+    );
+  };
+
+  static #hasMorePrompt = (output) =>
+    /(?:--More--|---- More ----|Press any key|More:)/i.test(
+      oltController.#normalizeSshOutput(output),
+    );
+
+  static #runSshCommandsWaitingPrompt = ({
+    host,
+    commands,
+    operationName,
+    timeoutMs = 60000,
+    commandIdleTimeoutMs = SSH_COMMAND_IDLE_TIMEOUT_MS,
+  }) =>
+    new Promise((resolve, reject) => {
+      let conn;
+      let timeoutId;
+      let commandIdleTimeoutId;
+      let finished = false;
+      let streamRef = null;
+      let commandIndex = -1;
+      let currentOutput = "";
+      const outputs = [];
+
+      const finish = (error, result) => {
+        if (finished) return;
+        finished = true;
+
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+
+        if (commandIdleTimeoutId) {
+          clearTimeout(commandIdleTimeoutId);
+        }
+
+        try {
+          conn.end();
+        } catch (closeError) {
+          console.error(
+            "Erro ao encerrar conexao SSH:",
+            closeError?.message || closeError,
+          );
+        }
+
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve(result);
+      };
+
+      const completeCurrentCommand = () => {
+        if (finished || commandIndex < 0) return;
+
+        if (commandIdleTimeoutId) {
+          clearTimeout(commandIdleTimeoutId);
+          commandIdleTimeoutId = null;
+        }
+
+        outputs.push({
+          command: commands[commandIndex],
+          output: currentOutput,
         });
+        sendNextCommand();
+      };
+
+      const scheduleIdleCompletion = () => {
+        if (commandIndex < 0 || !currentOutput.trim()) return;
+
+        if (commandIdleTimeoutId) {
+          clearTimeout(commandIdleTimeoutId);
+        }
+
+        commandIdleTimeoutId = setTimeout(() => {
+          completeCurrentCommand();
+        }, commandIdleTimeoutMs);
+      };
+
+      const sendNextCommand = () => {
+        if (finished || !streamRef) return;
+
+        commandIndex += 1;
+
+        if (commandIndex >= commands.length) {
+          streamRef.write("exit\n");
+          return;
+        }
+
+        currentOutput = "";
+        if (commandIdleTimeoutId) {
+          clearTimeout(commandIdleTimeoutId);
+          commandIdleTimeoutId = null;
+        }
+        streamRef.write(`${commands[commandIndex]}\n`);
+      };
+
+      timeoutId = setTimeout(() => {
+        const timeoutError = new Error(
+          `Timeout ao executar operacao de OLT: ${operationName}`,
+        );
+        timeoutError.code = "OLT_TIMEOUT";
+        finish(timeoutError);
+      }, timeoutMs);
+
+      conn = oltController.#openSshShell({
+        host,
+        shellOptions: { term: "vt100", rows: 1000, cols: 200 },
+        onError: finish,
+        onShell: (stream) => {
+          streamRef = stream;
+
+          stream
+            .on("data", (data) => {
+              const chunk = data.toString();
+              currentOutput += chunk;
+
+              if (commandIndex < 0) {
+                return;
+              }
+
+              if (oltController.#hasMorePrompt(chunk)) {
+                stream.write(" ");
+                scheduleIdleCompletion();
+                return;
+              }
+
+              if (oltController.#hasOltPrompt(currentOutput)) {
+                completeCurrentCommand();
+                return;
+              }
+
+              scheduleIdleCompletion();
+            })
+            .on("close", () => {
+              finish(null, {
+                outputs,
+                rawOutput: outputs.map(({ output }) => output).join(""),
+              });
+            });
+
+          if (stream.stderr) {
+            stream.stderr.on("data", (data) => {
+              console.error("STDERR:", data.toString());
+            });
+          }
+
+          setTimeout(sendNextCommand, 200);
+        },
+      });
     });
 
   static ListarRamais = (req, res) => {
@@ -644,6 +838,83 @@ class oltController {
           oltController.#buildErrorPayload(
             "Nao foi possivel consultar o resumo da ONU na OLT.",
             error.code || "OLT_ONU_SUMMARY_ERROR",
+            error.message,
+          ),
+        );
+      });
+  };
+
+  static VerificarOnuInfoRaw = (req, res) => {
+    const { oltIp, mac } = req.body;
+
+    if (oltController.#validateRequiredFields(res, req.body, ["oltIp", "mac"])) {
+      return;
+    }
+
+    if (/[\r\n]/.test(mac)) {
+      return res.status(400).json(
+        oltController.#buildErrorPayload(
+          "MAC/serial da ONU invalido.",
+          "VALIDATION_ERROR",
+        ),
+      );
+    }
+
+    oltController
+      .#runSshCommandsWaitingPrompt({
+        host: oltIp,
+        commands: [
+          `sh running-config | include ${mac}`,
+          `sh gpon onu ${mac} summary`,
+          `sh gpon onu ${mac} information`,
+        ],
+        operationName: "consultar informacoes brutas da ONU",
+        timeoutMs: SSH_OPERATION_TIMEOUT_MS,
+      })
+      .then(({ outputs, rawOutput }) => {
+        const runningConfigCommand = `sh running-config | include ${mac}`;
+        const summaryCommand = `sh gpon onu ${mac} summary`;
+        const informationCommand = `sh gpon onu ${mac} information`;
+        const getCommandOutput = (command) =>
+          outputs.find((item) => item.command === command)?.output ?? "";
+        const runningConfigOutput = getCommandOutput(runningConfigCommand);
+        const summaryOutput = getCommandOutput(summaryCommand);
+        const informationOutput = getCommandOutput(informationCommand);
+
+        const configLines = runningConfigOutput
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(
+            (line) =>
+              line &&
+              !line.includes(runningConfigCommand) &&
+              !line.includes("Building configuration") &&
+              !line.includes("Current configuration") &&
+              line !== "!",
+          );
+
+        const exists = configLines.some((line) => line.includes(mac));
+
+        res.status(200).json({
+          exists,
+          rawOutput,
+          runningConfig: runningConfigOutput,
+          summary: summaryOutput,
+          information: informationOutput,
+          commands: {
+            runningConfig: runningConfigCommand,
+            summary: summaryCommand,
+            information: informationCommand,
+          },
+        });
+      })
+      .catch((error) => {
+        console.error("Erro ao consultar informacoes brutas da ONU:", error);
+        const status = error.code === "OLT_TIMEOUT" ? 504 : 500;
+        res.status(status).json(
+          oltController.#buildErrorPayload(
+            "Nao foi possivel consultar as informacoes da ONU na OLT.",
+            error.code || "OLT_ONU_RAW_INFO_ERROR",
             error.message,
           ),
         );

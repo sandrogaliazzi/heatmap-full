@@ -2,6 +2,9 @@
 import { ref, computed } from "vue";
 import fetchApi from "@/api";
 import signalChart from "../RamalModalDialog/signalChart.vue";
+import OnuInfoModal from "./OnuInfoModal.vue";
+import DialogBox from "@/components/Dialog/Dialog.vue";
+import OnuVlanForm from "./OnuVlanForm.vue";
 import { useNotificationStore } from "@/stores/notification";
 import { getApiErrorMessage } from "@/utils/apiError";
 
@@ -18,8 +21,6 @@ const avgTxList = ref(null);
 const labels = ref(null);
 const ramal = ref("");
 const showChart = ref(false);
-const isLoadingClientHistory = ref(false);
-const clientHistoryLoadingKey = ref(null);
 const apiDataLoaded = ref(false);
 const chartKey = ref(0);
 const awatingApi = ref(false);
@@ -298,6 +299,10 @@ const copyToClipboard = (text) => {
     },
   );
 };
+
+const showOnuConfig = ref(false);
+const showOnuVlanConfig = ref(false);
+const selectedOnu = ref(null);
 </script>
 
 <template>
@@ -311,6 +316,16 @@ const copyToClipboard = (text) => {
     :loaded="apiDataLoaded"
     :key="chartKey"
   />
+  <DialogBox :isOpen="showOnuConfig" @update:modalValue="showOnuConfig = false">
+    <OnuInfoModal :onu="selectedOnu" />
+  </DialogBox>
+  <DialogBox
+    :isOpen="showOnuVlanConfig"
+    max-width="600px"
+    @update:modalValue="showOnuVlanConfig = false"
+  >
+    <OnuVlanForm :onu="selectedOnu" />
+  </DialogBox>
   <v-list lines="two">
     <v-list-subheader>
       <div class="d-flex flex-column flex-md-row ga-2">
@@ -423,6 +438,30 @@ const copyToClipboard = (text) => {
                           @click="setAlias(item)"
                           >Editar alias</v-btn
                         >
+                      </v-list-item>
+                      <v-list-item>
+                        <v-btn
+                          prepend-icon="mdi-cog"
+                          size="small"
+                          :disabled="item.hasOwnProperty('onuNumber')"
+                          @click="
+                            selectedOnu = item;
+                            showOnuConfig = true;
+                          "
+                          >onu config</v-btn
+                        >
+                      </v-list-item>
+                      <v-list-item>
+                        <v-btn
+                          prepend-icon="mdi-ethernet"
+                          size="small"
+                          :disabled="item.hasOwnProperty('onuNumber')"
+                          @click="
+                            showOnuVlanConfig = true;
+                            selectedOnu = item;
+                          "
+                          >Vlan config
+                        </v-btn>
                       </v-list-item>
                     </v-list>
                   </v-menu>
