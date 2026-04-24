@@ -2,94 +2,31 @@
 import { ref, computed, watch, inject, onMounted } from "vue";
 
 import CtoMap from "./CtoMap.vue";
-import CtoClientsList from "./CtoClientsList.vue";
-import AddClientForm from "./AddClientForm.vue";
+import CtoCardHeader from "./CtoCardHeader.vue";
+import CtoCardSummary from "./CtoCardSummary.vue";
+import CtoDiagramDialog from "./CtoDiagramDialog.vue";
+import CtoCardWindow from "./CtoCardWindow.vue";
 import ClientesOnuCard from "../ClientesOnuModalDialog/ClientesOnuCard.vue";
 import fetchApi from "@/api";
-import CtoNotes from "./CtoNotes.vue";
-import ShowApConnDiagram from "../CtoDiagram/ShowApConnDiagram.vue";
-import ClientMap from "./ClientMap.vue";
-import CtoHistory from "./CtoHistory.vue";
 import { useNotificationStore } from "@/stores/notification";
 
 const notification = useNotificationStore();
 
 const { cto } = defineProps(["cto"]);
-const emit = defineEmits(["setCtoFromChild"]);
+defineEmits(["setCtoFromChild"]);
 
-const ctoNotes = ref([]);
 const apConnList = ref([]);
 const clientsWithLocation = ref([]);
 const loading = ref({
   connections: true,
   locations: true,
   freePorts: true,
-  notes: true,
-  tomodatNotesSync: false,
 });
 const loadRequestId = ref(0);
 const slideNumber = ref(1);
 const showDiagram = ref(false);
-const diagram = ref(null);
 
 const isCurrentLoad = (requestId) => requestId === loadRequestId.value;
-
-const saveNote = async (note) => {
-  try {
-    const response = await fetchApi.post("/notes", note);
-
-    const savedNote = response.data;
-    return savedNote;
-  } catch (error) {
-    console.error("Erro ao salvar nota:", error);
-    throw error;
-  }
-};
-
-const processAndSaveTomodatNotes = async (tomodatData) => {
-  const notes = tomodatData
-    .map((d) => d.connection_slot_notes)
-    .filter((note) => note?.length > 0);
-
-  if (notes.length > 0) {
-    const documents = notes.flat().map((n) => {
-      const { id, note, slot_number } = n;
-      return {
-        id,
-        note,
-        slot_number,
-        access_point_id: cto.id,
-      };
-    });
-
-    await Promise.all(
-      documents.map((note) => {
-        return saveNote(note);
-      }),
-    );
-  }
-};
-
-const fetchNotes = async () => {
-  try {
-    const notes = await fetchApi("notes/access-point/" + cto.id);
-
-    return notes.data;
-  } catch (error) {
-    console.error("Erro ao buscar notas");
-    return [];
-  }
-};
-
-const notesKey = ref(1);
-
-const onNotesReload = async () => {
-  loading.value.notes = true;
-  ctoNotes.value = await fetchNotes();
-  loading.value.notes = false;
-
-  notesKey.value++;
-};
 
 const clients = ref([]);
 
@@ -137,22 +74,6 @@ const calcFreePorts = async () => {
   }
 };
 
-const syncTomodatNotes = async (connections, requestId) => {
-  if (!connections.length || !isCurrentLoad(requestId)) return;
-
-  loading.value.tomodatNotesSync = true;
-  try {
-    await processAndSaveTomodatNotes(connections);
-    if (!isCurrentLoad(requestId)) return;
-    ctoNotes.value = await fetchNotes();
-    notesKey.value++;
-  } catch (error) {
-    console.error("Erro ao sincronizar notas do Tomodat:", error);
-  } finally {
-    if (isCurrentLoad(requestId)) loading.value.tomodatNotesSync = false;
-  }
-};
-
 const loadConnections = async (requestId) => {
   loading.value.connections = true;
   try {
@@ -161,7 +82,6 @@ const loadConnections = async (requestId) => {
 
     clients.value = mapClients(response.data);
     apConnList.value = response.data;
-    syncTomodatNotes(response.data, requestId);
   } catch (error) {
     console.error("Erro ao buscar conexoes:", error);
     if (isCurrentLoad(requestId)) {
@@ -200,19 +120,6 @@ const loadFreePorts = async (requestId) => {
   }
 };
 
-const loadNotes = async (requestId) => {
-  loading.value.notes = true;
-  try {
-    const notes = await fetchNotes();
-    if (!isCurrentLoad(requestId)) return;
-
-    ctoNotes.value = notes;
-    notesKey.value++;
-  } finally {
-    if (isCurrentLoad(requestId)) loading.value.notes = false;
-  }
-};
-
 const loadCtoData = ({ goBackAfterLoad = false } = {}) => {
   const requestId = loadRequestId.value + 1;
   loadRequestId.value = requestId;
@@ -226,7 +133,6 @@ const loadCtoData = ({ goBackAfterLoad = false } = {}) => {
     loadConnections(requestId),
     loadClientsWithLocation(requestId),
     loadFreePorts(requestId),
-    loadNotes(requestId),
   ]);
 };
 
@@ -339,79 +245,26 @@ const serviceLocation = ref("teste");
 
 <template>
   <v-card>
-    <!-- Header -->
-    <v-card-title
-      class="d-flex flex-column flex-md-row justify-space-between align-center border-b"
-      :class="cto.color === '#00ff00' ? 'bg-green' : 'bg-orange'"
-    >
-      <p style="cursor: pointer" @click="openNewGMapTab(cto.coord)">
-        {{ cto.color === "#00ff00" ? "$" : "#" }}{{ cto.name }}
-      </p>
-      <div>
-        <v-btn icon="mdi-sitemap" variant="text" @click="showDiagram = true">
-        </v-btn>
-        <v-btn
-          icon="mdi-map-marker"
-          :color="userLocation ? 'red' : ''"
-          variant="text"
-          @click="handleUserLocation"
-          size="small"
-        />
-        <v-btn variant="plain" icon="mdi-history" @click="setViewMode" />
-        <v-btn
-          v-if="slideNumber < 2"
-          icon="mdi-account-plus"
-          variant="plain"
-          @click="slideNumber++"
-        />
-        <v-btn
-          v-else
-          icon="mdi-chevron-left"
-          variant="plain"
-          @click="slideNumber = 1"
-        />
-        <v-btn
-          v-if="slideNumber < 2"
-          variant="plain"
-          :icon="`${isMapVisible ? 'mdi-eye' : 'mdi-eye-off'}`"
-          @click="isMapVisible = !isMapVisible"
-        />
-        <v-btn variant="plain" icon="mdi-close" @click="closeDialog" />
-      </div>
-    </v-card-title>
-    <!-- número de vagas e anotacoes -->
-    <v-card-subtitle
-      class="mt-3 font-weight-bold d-flex flex-wrap ga-2 justify-space-between align-center"
-    >
-      <div>
-        {{ cto.city == "ZCLIENTES NÃO VERIFICADOS" ? "ARARICA" : cto.city }}
-        |
-        <span
-          :class="
-            !loading.freePorts && freePorts.freePorts <= 0
-              ? 'text-error'
-              : 'text-success'
-          "
-        >
-          <template v-if="loading.freePorts">PORTAS ...</template>
-          <template v-else>
-            PORTAS {{ freePorts.totalPorts }} VAGAS
-            {{ freePorts.freePorts < 0 ? 0 : freePorts.freePorts }}
-          </template>
-        </span>
-      </div>
-
-      <v-chip append-icon="mdi-note-text" link>
-        ver anotações
-        <CtoNotes
-          :notes="ctoNotes"
-          :ctoId="cto.id"
-          :loading="loading.notes || loading.tomodatNotesSync"
-          @reload-notes="onNotesReload"
-          :key="notesKey"
-        />
-      </v-chip>
-    </v-card-subtitle>
+    <CtoCardHeader
+      :cto="cto"
+      :slide-number="slideNumber"
+      :is-map-visible="isMapVisible"
+      :user-location="userLocation"
+      @open-location="openNewGMapTab"
+      @open-diagram="showDiagram = true"
+      @toggle-user-location="handleUserLocation"
+      @toggle-history="setViewMode"
+      @go-add-client="slideNumber++"
+      @go-back="slideNumber = 1"
+      @toggle-map="isMapVisible = !isMapVisible"
+      @close="closeDialog"
+    />
+    <CtoCardSummary
+      :cto="cto"
+      :free-ports="freePorts"
+      :loading="loading"
+      :connections="apConnList"
+    />
     <!-- mini mapa cto -->
     <CtoMap
       :center="mapCenter"
@@ -425,123 +278,33 @@ const serviceLocation = ref("teste");
       @clientRemoved="loadCtoData"
     />
     <!-- digrana de fusoes -->
-    <v-dialog v-model="showDiagram" :fullscreen="true" scrollable>
-      <v-toolbar color="orange">
-        <v-toolbar-title>{{ cto.name }}</v-toolbar-title>
-        <v-spacer></v-spacer>
-        <v-btn
-          icon="mdi-magnify-plus"
-          variant="text"
-          @click="diagram?.zoomIn()"
-        />
-        <v-btn
-          icon="mdi-magnify-minus"
-          variant="text"
-          @click="diagram?.zoomOut()"
-        />
-        <v-btn icon="mdi-close" variant="text" @click="showDiagram = false" />
-      </v-toolbar>
-      <ShowApConnDiagram
-        v-if="!loading.connections"
-        :connections="apConnList"
-        ref="diagram"
-      />
-      <v-sheet
-        v-else
-        :height="400"
-        class="d-flex justify-center align-center"
-      >
-        <v-progress-circular
-          color="orange"
-          indeterminate
-          :size="96"
-          :width="6"
-        />
-      </v-sheet>
-    </v-dialog>
+    <CtoDiagramDialog
+      v-model="showDiagram"
+      :cto-name="cto.name"
+      :loading-connections="loading.connections"
+      :connections="apConnList"
+    />
 
-    <v-window v-model="slideNumber" class="overflow-auto">
-      <!-- clientes -->
-      <v-window-item :value="1">
-        <v-card-text style="padding-bottom: 0">
-          <template v-if="!loading.connections">
-            <template v-if="!showOnuCard">
-              <CtoClientsList
-                v-if="clients.length > 0"
-                v-model="clients"
-                :cto="cto"
-                :clients-with-location="clientsWithLocation"
-                @adduser:location="(client) => addUserLocation(client)"
-                @delete-user="loadCtoData"
-                @open:location="(location) => openNewGMapTab(location)"
-              />
-              <v-sheet
-                :height="400"
-                v-else
-                class="d-flex flex-column justify-center align-center"
-              >
-                <v-icon size="200px">mdi-account-group</v-icon>
-                <p class="text-button">Nenhum cliente cadastrado</p>
-              </v-sheet>
-            </template>
-          </template>
-          <v-sheet
-            v-else
-            :height="400"
-            class="d-flex justify-center align-center"
-          >
-            <v-progress-circular
-              color="orange"
-              indeterminate
-              :size="128"
-              :width="6"
-            ></v-progress-circular>
-          </v-sheet>
-        </v-card-text>
-      </v-window-item>
-
-      <!-- form add cliente -->
-      <v-window-item :value="2">
-        <v-card-text>
-          <AddClientForm
-            :clientPosition="positionClicked"
-            :cto="cto"
-            :clients="clients"
-            :clients-with-location="clientsWithLocation"
-            @update-cto-clietns="loadCtoData({ goBackAfterLoad: true })"
-            @update-service-location="serviceLocation = $event"
-          />
-        </v-card-text>
-
-        <v-card-actions class="d-flex justify-space-between mt-4 px-6">
-          <v-btn
-            color="blue"
-            prepend-icon="mdi-chevron-left"
-            variant="tonal"
-            class="mb-2"
-            @click="slideNumber--"
-            >Voltar</v-btn
-          >
-        </v-card-actions>
-      </v-window-item>
-
-      <!-- histórico -->
-      <v-window-item :value="3">
-        <CtoHistory :ctoId="cto.id" />
-      </v-window-item>
-
-      <!-- localização dos clietnes -->
-      <v-window-item :value="4" v-if="clientLocation">
-        <ClientMap
-          :client-location="clientLocation"
-          @update:clientLocation="loadCtoData"
-          @delete:clientLocation="
-            loadCtoData();
-            slideNumber = 1;
-          "
-        />
-      </v-window-item>
-    </v-window>
+    <CtoCardWindow
+      v-model:slide-number="slideNumber"
+      :loading="loading"
+      :clients="clients"
+      :cto="cto"
+      :clients-with-location="clientsWithLocation"
+      :position-clicked="positionClicked"
+      :client-location="clientLocation"
+      :show-onu-card="showOnuCard"
+      @add-user-location="addUserLocation"
+      @delete-user="loadCtoData"
+      @open-location="openNewGMapTab"
+      @reload-cto="loadCtoData"
+      @reload-cto-and-go-back="loadCtoData({ goBackAfterLoad: true })"
+      @update-service-location="serviceLocation = $event"
+      @delete-client-location="
+        loadCtoData();
+        slideNumber = 1;
+      "
+    />
 
     <!-- card verificar sinal -->
     <v-card-text>
