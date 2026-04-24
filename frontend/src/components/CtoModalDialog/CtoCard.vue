@@ -17,13 +17,22 @@ const notification = useNotificationStore();
 const { cto } = defineProps(["cto"]);
 const emit = defineEmits(["setCtoFromChild"]);
 
-const ctoNotes = ref(false);
+const ctoNotes = ref([]);
 const apConnList = ref([]);
 const clientsWithLocation = ref([]);
-const isDataLoading = ref(true);
+const loading = ref({
+  connections: true,
+  locations: true,
+  freePorts: true,
+  notes: true,
+  tomodatNotesSync: false,
+});
+const loadRequestId = ref(0);
 const slideNumber = ref(1);
 const showDiagram = ref(false);
 const diagram = ref(null);
+
+const isCurrentLoad = (requestId) => requestId === loadRequestId.value;
 
 const saveNote = async (note) => {
   try {
@@ -40,7 +49,7 @@ const saveNote = async (note) => {
 const processAndSaveTomodatNotes = async (tomodatData) => {
   const notes = tomodatData
     .map((d) => d.connection_slot_notes)
-    .filter((note) => note.length > 0);
+    .filter((note) => note?.length > 0);
 
   if (notes.length > 0) {
     const documents = notes.flat().map((n) => {
@@ -65,16 +74,19 @@ const fetchNotes = async () => {
   try {
     const notes = await fetchApi("notes/access-point/" + cto.id);
 
-    return notes.data.length > 0 ? notes.data : false;
+    return notes.data;
   } catch (error) {
     console.error("Erro ao buscar notas");
+    return [];
   }
 };
 
 const notesKey = ref(1);
 
 const onNotesReload = async () => {
+  loading.value.notes = true;
   ctoNotes.value = await fetchNotes();
+  loading.value.notes = false;
 
   notesKey.value++;
 };
@@ -93,7 +105,7 @@ const mapClients = (connections) => {
 };
 
 const mapKey = ref(1);
-const freePorts = ref({});
+const freePorts = ref({ totalPorts: null, freePorts: null });
 
 const calcFreePorts = async () => {
   const { lat, lng } = cto.coord;
@@ -125,33 +137,101 @@ const calcFreePorts = async () => {
   }
 };
 
-const loadCtoData = async (slide) => {
-  clientsWithLocation.value = await getClientsWithLocation();
+const syncTomodatNotes = async (connections, requestId) => {
+  if (!connections.length || !isCurrentLoad(requestId)) return;
 
-  const response = await fetchApi("connections/" + cto.id);
-
-  console.log(response.data);
-
-  clients.value = mapClients(response.data);
-
-  freePorts.value = await calcFreePorts();
-
-  apConnList.value = response.data;
-
-  await processAndSaveTomodatNotes(response.data);
-
-  ctoNotes.value = await fetchNotes();
-
-  isDataLoading.value = false;
-
-  if (slide) {
-    slideNumber.value--;
-    mapKey.value++;
+  loading.value.tomodatNotesSync = true;
+  try {
+    await processAndSaveTomodatNotes(connections);
+    if (!isCurrentLoad(requestId)) return;
+    ctoNotes.value = await fetchNotes();
+    notesKey.value++;
+  } catch (error) {
+    console.error("Erro ao sincronizar notas do Tomodat:", error);
+  } finally {
+    if (isCurrentLoad(requestId)) loading.value.tomodatNotesSync = false;
   }
 };
 
-onMounted(async () => {
-  await loadCtoData();
+const loadConnections = async (requestId) => {
+  loading.value.connections = true;
+  try {
+    const response = await fetchApi("connections/" + cto.id);
+    if (!isCurrentLoad(requestId)) return;
+
+    clients.value = mapClients(response.data);
+    apConnList.value = response.data;
+    syncTomodatNotes(response.data, requestId);
+  } catch (error) {
+    console.error("Erro ao buscar conexoes:", error);
+    if (isCurrentLoad(requestId)) {
+      clients.value = [];
+      apConnList.value = [];
+    }
+  } finally {
+    if (isCurrentLoad(requestId)) loading.value.connections = false;
+  }
+};
+
+const loadClientsWithLocation = async (requestId) => {
+  loading.value.locations = true;
+  try {
+    const locations = await getClientsWithLocation();
+    if (!isCurrentLoad(requestId)) return;
+
+    clientsWithLocation.value = locations;
+  } catch (error) {
+    console.error("Erro ao buscar localizacoes de clientes:", error);
+    if (isCurrentLoad(requestId)) clientsWithLocation.value = [];
+  } finally {
+    if (isCurrentLoad(requestId)) loading.value.locations = false;
+  }
+};
+
+const loadFreePorts = async (requestId) => {
+  loading.value.freePorts = true;
+  try {
+    const ports = await calcFreePorts();
+    if (!isCurrentLoad(requestId)) return;
+
+    freePorts.value = ports;
+  } finally {
+    if (isCurrentLoad(requestId)) loading.value.freePorts = false;
+  }
+};
+
+const loadNotes = async (requestId) => {
+  loading.value.notes = true;
+  try {
+    const notes = await fetchNotes();
+    if (!isCurrentLoad(requestId)) return;
+
+    ctoNotes.value = notes;
+    notesKey.value++;
+  } finally {
+    if (isCurrentLoad(requestId)) loading.value.notes = false;
+  }
+};
+
+const loadCtoData = ({ goBackAfterLoad = false } = {}) => {
+  const requestId = loadRequestId.value + 1;
+  loadRequestId.value = requestId;
+
+  if (goBackAfterLoad) {
+    slideNumber.value--;
+    mapKey.value++;
+  }
+
+  return Promise.allSettled([
+    loadConnections(requestId),
+    loadClientsWithLocation(requestId),
+    loadFreePorts(requestId),
+    loadNotes(requestId),
+  ]);
+};
+
+onMounted(() => {
+  loadCtoData();
 });
 
 const closeDialog = inject("closeDialog");
@@ -229,7 +309,7 @@ const addUserLocation = async (client) => {
         status: "success",
         msg: "Localizacao salva com sucesso",
       });
-      await loadCtoData();
+      loadCtoData();
       clientLocation.value = locationSaved.data;
       slideNumber.value = 4;
     }
@@ -306,9 +386,18 @@ const serviceLocation = ref("teste");
       <div>
         {{ cto.city == "ZCLIENTES NÃO VERIFICADOS" ? "ARARICA" : cto.city }}
         |
-        <span :class="freePorts.freePorts <= 0 ? 'text-error' : 'text-success'">
-          PORTAS {{ freePorts.totalPorts }} VAGAS
-          {{ freePorts.freePorts < 0 ? 0 : freePorts.freePorts }}
+        <span
+          :class="
+            !loading.freePorts && freePorts.freePorts <= 0
+              ? 'text-error'
+              : 'text-success'
+          "
+        >
+          <template v-if="loading.freePorts">PORTAS ...</template>
+          <template v-else>
+            PORTAS {{ freePorts.totalPorts }} VAGAS
+            {{ freePorts.freePorts < 0 ? 0 : freePorts.freePorts }}
+          </template>
         </span>
       </div>
 
@@ -317,6 +406,7 @@ const serviceLocation = ref("teste");
         <CtoNotes
           :notes="ctoNotes"
           :ctoId="cto.id"
+          :loading="loading.notes || loading.tomodatNotesSync"
           @reload-notes="onNotesReload"
           :key="notesKey"
         />
@@ -352,17 +442,29 @@ const serviceLocation = ref("teste");
         <v-btn icon="mdi-close" variant="text" @click="showDiagram = false" />
       </v-toolbar>
       <ShowApConnDiagram
+        v-if="!loading.connections"
         :connections="apConnList"
-        v-if="apConnList"
         ref="diagram"
       />
+      <v-sheet
+        v-else
+        :height="400"
+        class="d-flex justify-center align-center"
+      >
+        <v-progress-circular
+          color="orange"
+          indeterminate
+          :size="96"
+          :width="6"
+        />
+      </v-sheet>
     </v-dialog>
 
     <v-window v-model="slideNumber" class="overflow-auto">
       <!-- clientes -->
       <v-window-item :value="1">
         <v-card-text style="padding-bottom: 0">
-          <template v-if="!isDataLoading">
+          <template v-if="!loading.connections">
             <template v-if="!showOnuCard">
               <CtoClientsList
                 v-if="clients.length > 0"
@@ -406,7 +508,7 @@ const serviceLocation = ref("teste");
             :cto="cto"
             :clients="clients"
             :clients-with-location="clientsWithLocation"
-            @update-cto-clietns="loadCtoData({ slide: true })"
+            @update-cto-clietns="loadCtoData({ goBackAfterLoad: true })"
             @update-service-location="serviceLocation = $event"
           />
         </v-card-text>

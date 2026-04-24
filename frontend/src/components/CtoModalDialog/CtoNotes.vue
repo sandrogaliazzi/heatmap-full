@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from "vue";
 
-const { notes, ctoId } = defineProps(["notes", "ctoId"]);
+const props = defineProps(["notes", "ctoId", "loading"]);
 const emit = defineEmits(["reloadNotes", "selectNote"]);
 
 const showForm = ref(false);
@@ -23,18 +23,23 @@ const onSelectedNote = (n) => {
     <template #default="{ isActive }">
       <v-card>
         <v-card-text>
+          <v-progress-linear
+            v-if="props.loading"
+            indeterminate
+            color="orange"
+            class="mb-4"
+          />
           <Noteslist
-            :notes="notes"
-            :cto-id="ctoId"
+            :notes="props.notes"
+            :cto-id="props.ctoId"
             @select-note="onSelectedNote"
             @reload-notes="() => emit('reloadNotes')"
-            v-if="notes"
           />
           <NotesForm
             v-model:show-form="showForm"
             v-model:selected-id="selectedId"
             v-model:note="note"
-            :cto-id="ctoId"
+            :cto-id="props.ctoId"
             @reload-notes="() => emit('reloadNotes')"
           />
         </v-card-text>
