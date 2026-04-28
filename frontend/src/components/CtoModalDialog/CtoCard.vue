@@ -31,6 +31,8 @@ const isCurrentLoad = (requestId) => requestId === loadRequestId.value;
 const clients = ref([]);
 
 const mapClients = (connections) => {
+  if (!Array.isArray(connections)) return [];
+
   return connections
     .filter((conn) => conn.client)
     .map((client) => {
@@ -39,6 +41,17 @@ const mapClients = (connections) => {
         name: client.client.name,
       };
     });
+};
+
+const getClientsFromCto = () => {
+  if (!Array.isArray(cto.clients)) return [];
+
+  return cto.clients
+    .filter((client) => client?.id && client?.name)
+    .map((client) => ({
+      id: client.id,
+      name: client.name,
+    }));
 };
 
 const mapKey = ref(1);
@@ -80,12 +93,15 @@ const loadConnections = async (requestId) => {
     const response = await fetchApi("connections/" + cto.id);
     if (!isCurrentLoad(requestId)) return;
 
-    clients.value = mapClients(response.data);
-    apConnList.value = response.data;
+    const connections = Array.isArray(response.data) ? response.data : [];
+    const mappedClients = mapClients(connections);
+
+    clients.value = mappedClients.length ? mappedClients : getClientsFromCto();
+    apConnList.value = connections;
   } catch (error) {
     console.error("Erro ao buscar conexoes:", error);
     if (isCurrentLoad(requestId)) {
-      clients.value = [];
+      clients.value = getClientsFromCto();
       apConnList.value = [];
     }
   } finally {
