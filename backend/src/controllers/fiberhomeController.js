@@ -390,6 +390,8 @@ class FiberHomeController {
       })),
     );
 
+    const removeSlot5 = slotAndPonList.filter((item) => item.slot != 5);
+
     return new Promise((resolve) => {
       const USER = process.env.UNM_USERNAME;
       const PASS = process.env.UNM_PASSWORD;
@@ -403,7 +405,7 @@ class FiberHomeController {
       let loggedIn = false;
       let responded = false;
 
-      let queue = [...slotAndPonList];
+      let queue = [...removeSlot5];
       let results = [];
       let current = null;
 
