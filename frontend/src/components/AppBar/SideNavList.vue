@@ -211,7 +211,15 @@ const onCloseDialog = (value) => {
     </v-list>
   </v-list>
   <DialogBox :isOpen="openDialog" @update:modalValue="onCloseDialog">
-    <SearchCard class="mt-4" />
+    <SearchCard class="mt-4" :isDesktop="true">
+      <template #header>
+        <v-toolbar color="orange" title="Pesquisa Avançada">
+          <v-btn icon @click="openDialog = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-toolbar>
+      </template>
+    </SearchCard>
   </DialogBox>
   <DialogBox :isOpen="openCameraDialog" @update:modalValue="onCloseDialog">
     <CameraForm />
