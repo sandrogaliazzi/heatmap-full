@@ -1,7 +1,7 @@
 <script setup>
 import ListItem from "./ListItem.vue";
 
-defineProps(["results", "query"]);
+defineProps(["results", "query", "isDesktop"]);
 </script>
 
 <template>
@@ -9,7 +9,11 @@ defineProps(["results", "query"]);
     <v-list-subheader class="mb-3">
       Resultados para: {{ query }}
     </v-list-subheader>
-    <v-virtual-scroll height="600" :items="results">
+    <v-virtual-scroll
+      :items="results"
+      class="overflow-y-auto"
+      :max-height="isDesktop ? '500px' : '300px'"
+    >
       <template #="{ item }">
         <ListItem :source="item" />
       </template>

@@ -1,5 +1,12 @@
 <script setup>
-import { ref, watch, onMounted, computed } from "vue";
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from "vue";
 import { useTomodatStore } from "@/stores/tomodat.js";
 import { useHeatMapStore } from "@/stores/heatmap";
 import { useUserStore } from "@/stores/user.js";
@@ -18,6 +25,9 @@ import Cables from "./Cables.vue";
 import CtoViability from "../CtoModalDialog/CtoViability.vue";
 import EditAlert from "./EditAlert.vue";
 import PolyLine from "./PolyLine.vue";
+import { useWindowSize } from "vue-window-size";
+
+const { width, height } = useWindowSize();
 
 const store = useTomodatStore();
 const {
@@ -54,6 +64,7 @@ const eventWindowLocation = ref(null);
 const eventAction = ref("");
 const events = ref([]);
 const selectedEvent = ref({});
+
 //side bar
 const sideBar = ref(false);
 const sideBarCtoList = ref([]);
@@ -63,6 +74,11 @@ const areaCoordinates = ref([]);
 const nextPoint = ref(0);
 
 const openClientSignalModal = ref(false);
+const heatMapLayoutRef = ref(null);
+const searchBarRef = ref(null);
+const bottomNavHeight = ref(0);
+const searchBarHeight = ref(0);
+const availableViewportHeight = ref(240);
 
 const showSideBar = async (ctoList) => {
   if (!ctoList.length) {
@@ -112,12 +128,6 @@ const showViability = (val) => {
   dot.value = val;
   viabilityModal.value = true;
 };
-
-// const changeCto = (newCtoData) => {
-//   const ctoData = JSON.parse(newCtoData);
-//   cto.value = getCto(ctoData.id);
-//   ctoKey.value++;
-// };
 
 const getCeById = async (id) => {
   const response = await fetchApi("connections/" + id);
@@ -222,6 +232,26 @@ const copyPosition = () => {
   alert("Copiado coordenadas!");
 };
 
+const updateLayoutMetrics = async () => {
+  await nextTick();
+
+  const topOffset = heatMapLayoutRef.value?.getBoundingClientRect().top ?? 0;
+  const bottomNav = width.value < 600
+    ? document.querySelector(".v-bottom-navigation")
+    : null;
+
+  bottomNavHeight.value = bottomNav?.offsetHeight || 0;
+  searchBarHeight.value = searchBarRef.value?.offsetHeight || 0;
+  availableViewportHeight.value = Math.max(
+    height.value - topOffset - bottomNavHeight.value,
+    240,
+  );
+};
+
+const mapHeight = computed(() =>
+  Math.max(availableViewportHeight.value - searchBarHeight.value, 180),
+);
+
 watch(mapRef, (googleMap) => {
   if (googleMap) {
     googleMap.$mapPromise.then((map) => {
@@ -287,10 +317,22 @@ const onReloadEvent = () => {
   loadEvents();
 };
 
+let eventsInterval = null;
+
 onMounted(async () => {
-  setInterval(() => {
+  await updateLayoutMetrics();
+  requestAnimationFrame(() => updateLayoutMetrics());
+  eventsInterval = setInterval(() => {
     loadEvents();
   }, 10000);
+});
+
+watch([width, height], () => {
+  updateLayoutMetrics();
+});
+
+onBeforeUnmount(() => {
+  if (eventsInterval) clearInterval(eventsInterval);
 });
 </script>
 
@@ -342,81 +384,111 @@ onMounted(async () => {
     v-model="sideBar"
     @clear-cto-list="sideBarCtoList = []"
   />
-  <GMapAutocomplete
-    :style="{ width: '100%', padding: '10px', backgroundColor: '#212121' }"
-    placeholder="Buscar Endereço"
-    @place_changed="setPlace"
+  <section
+    ref="heatMapLayoutRef"
+    class="heatmap-layout"
+    :style="{ height: `${availableViewportHeight}px` }"
   >
-  </GMapAutocomplete>
-
-  <GMapMap
-    :center="getSelectedUserPosition || getSelectedCtoPosition"
-    :zoom="mapZoom"
-    class="w-100"
-    style="height: 90vh"
-    ref="mapRef"
-  >
-    <GMapMarker
-      v-if="getSelectedUserPosition"
-      :animation="2"
-      title="Você está aqui"
-      @click="copyPosition"
-      :clickable="true"
-      :position="getSelectedUserPosition"
-    ></GMapMarker>
-
-    <GMapMarker
-      v-if="eventWindowLocation"
-      title="Adicionar Evento aqui"
-      :icon="warningIcon"
-      :position="eventWindowLocation"
-      @click="eventWindow = !eventWindow"
-    >
-      <GMapInfoWindow :opened="eventWindow">
-        <div class="d-flex flex-column ga-2">
-          <v-btn @click="openEventModal = true">Criar evento</v-btn>
-          <v-btn @click="eventWindowLocation = null">Cancelar</v-btn>
-        </div>
-      </GMapInfoWindow>
-    </GMapMarker>
-
-    <EventMarker
-      v-if="events.length && user.category !== 'convidado'"
-      :visible="isEventMarkerVisible"
-      :event-markers="events"
-      @update-event="(event) => onUpdateEvent(event)"
-    />
-
-    <Marker
-      :markers="getMarkersData"
-      @open:cto-dialog="getCtoById"
-      @open:side-bar="(cto) => showSideBar(cto)"
-      @open:ce-dialog="(id) => getCeById(id)"
-      @open:viability-dialog="(cto) => showViability(cto)"
-    />
-
-    <Cables
-      v-if="cableList.length > 0 && store.isCableVisible"
-      :cables="cableList"
-    />
-
-    <GMapPolygon
-      ref="polygonRef"
-      :paths="areaCoordinates"
-      :key="nextPoint"
-    ></GMapPolygon>
-
-    <PolyLine ref="polyLineRef" />
-
-    <div v-if="isHeatMapVisible">
-      <GMapHeatmap
-        :data="getHeatMapData"
-        :options="{
-          radius: heatMapRadius,
-        }"
-      />
+    <div ref="searchBarRef" class="heatmap-search">
+      <GMapAutocomplete
+        class="heatmap-autocomplete"
+        placeholder="Buscar Endereço"
+        @place_changed="setPlace"
+      >
+      </GMapAutocomplete>
     </div>
-  </GMapMap>
+
+    <GMapMap
+      :center="getSelectedUserPosition || getSelectedCtoPosition"
+      :zoom="mapZoom"
+      class="heatmap-map"
+      :style="{ height: `${mapHeight}px` }"
+      ref="mapRef"
+    >
+      <GMapMarker
+        v-if="getSelectedUserPosition"
+        :animation="2"
+        title="Você está aqui"
+        @click="copyPosition"
+        :clickable="true"
+        :position="getSelectedUserPosition"
+      ></GMapMarker>
+
+      <GMapMarker
+        v-if="eventWindowLocation"
+        title="Adicionar Evento aqui"
+        :icon="warningIcon"
+        :position="eventWindowLocation"
+        @click="eventWindow = !eventWindow"
+      >
+        <GMapInfoWindow :opened="eventWindow">
+          <div class="d-flex flex-column ga-2">
+            <v-btn @click="openEventModal = true">Criar evento</v-btn>
+            <v-btn @click="eventWindowLocation = null">Cancelar</v-btn>
+          </div>
+        </GMapInfoWindow>
+      </GMapMarker>
+
+      <EventMarker
+        v-if="events.length && user.category !== 'convidado'"
+        :visible="isEventMarkerVisible"
+        :event-markers="events"
+        @update-event="(event) => onUpdateEvent(event)"
+      />
+
+      <Marker
+        :markers="getMarkersData"
+        @open:cto-dialog="getCtoById"
+        @open:side-bar="(cto) => showSideBar(cto)"
+        @open:ce-dialog="(id) => getCeById(id)"
+        @open:viability-dialog="(cto) => showViability(cto)"
+      />
+
+      <Cables
+        v-if="cableList.length > 0 && store.isCableVisible"
+        :cables="cableList"
+      />
+
+      <GMapPolygon
+        ref="polygonRef"
+        :paths="areaCoordinates"
+        :key="nextPoint"
+      ></GMapPolygon>
+
+      <PolyLine ref="polyLineRef" />
+
+      <div v-if="isHeatMapVisible">
+        <GMapHeatmap
+          :data="getHeatMapData"
+          :options="{
+            radius: heatMapRadius,
+          }"
+        />
+      </div>
+    </GMapMap>
+  </section>
 </template>
 
-<style scoped></style>
+<style scoped>
+.heatmap-layout {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.heatmap-search {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 10px;
+  background: #212121;
+}
+
+.heatmap-autocomplete {
+  width: 100%;
+}
+
+.heatmap-map {
+  width: 100%;
+}
+</style>
