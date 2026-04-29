@@ -115,7 +115,7 @@ onMounted(async () => {
         v-else-if="!searchResults.length && !isDesktop"
         class="d-flex justify-center align-center text-center"
       >
-        <v-icon size="150px"> mdi-database-search </v-icon>
+        <v-icon size="250px"> mdi-database-search </v-icon>
       </div>
       <div v-else>
         <ListResult

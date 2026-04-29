@@ -79,6 +79,7 @@ const searchBarRef = ref(null);
 const bottomNavHeight = ref(0);
 const searchBarHeight = ref(0);
 const availableViewportHeight = ref(240);
+let cleanupViewportListeners = null;
 
 const showSideBar = async (ctoList) => {
   if (!ctoList.length) {
@@ -232,18 +233,23 @@ const copyPosition = () => {
   alert("Copiado coordenadas!");
 };
 
+const getViewportHeight = () =>
+  window.visualViewport?.height ?? height.value ?? window.innerHeight;
+
+const getBottomNavigationHeight = () =>
+  width.value < 600
+    ? document.querySelector(".v-bottom-navigation")?.offsetHeight || 0
+    : 0;
+
 const updateLayoutMetrics = async () => {
   await nextTick();
 
   const topOffset = heatMapLayoutRef.value?.getBoundingClientRect().top ?? 0;
-  const bottomNav = width.value < 600
-    ? document.querySelector(".v-bottom-navigation")
-    : null;
 
-  bottomNavHeight.value = bottomNav?.offsetHeight || 0;
+  bottomNavHeight.value = getBottomNavigationHeight();
   searchBarHeight.value = searchBarRef.value?.offsetHeight || 0;
   availableViewportHeight.value = Math.max(
-    height.value - topOffset - bottomNavHeight.value,
+    getViewportHeight() - topOffset - bottomNavHeight.value,
     240,
   );
 };
@@ -322,6 +328,28 @@ let eventsInterval = null;
 onMounted(async () => {
   await updateLayoutMetrics();
   requestAnimationFrame(() => updateLayoutMetrics());
+
+  const viewport = window.visualViewport;
+  const onViewportChange = () => {
+    updateLayoutMetrics();
+  };
+
+  if (viewport) {
+    viewport.addEventListener("resize", onViewportChange);
+    viewport.addEventListener("scroll", onViewportChange);
+    cleanupViewportListeners = () => {
+      viewport.removeEventListener("resize", onViewportChange);
+      viewport.removeEventListener("scroll", onViewportChange);
+    };
+  } else {
+    window.addEventListener("resize", onViewportChange);
+    window.addEventListener("orientationchange", onViewportChange);
+    cleanupViewportListeners = () => {
+      window.removeEventListener("resize", onViewportChange);
+      window.removeEventListener("orientationchange", onViewportChange);
+    };
+  }
+
   eventsInterval = setInterval(() => {
     loadEvents();
   }, 10000);
@@ -333,13 +361,14 @@ watch([width, height], () => {
 
 onBeforeUnmount(() => {
   if (eventsInterval) clearInterval(eventsInterval);
+  if (cleanupViewportListeners) cleanupViewportListeners();
 });
 </script>
 
 <template>
   <DialogBox :isOpen="loadingData" @update:modalValue="onCloseDialog">
     <div
-      style="height: 100vh"
+      style="height: 100%"
       class="d-flex flex-column ga-3 justify-center align-center"
     >
       <v-progress-circular
@@ -474,6 +503,9 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .heatmap-search {
@@ -482,6 +514,7 @@ onBeforeUnmount(() => {
   z-index: 10;
   padding: 10px;
   background: #212121;
+  flex-shrink: 0;
 }
 
 .heatmap-autocomplete {
@@ -490,5 +523,7 @@ onBeforeUnmount(() => {
 
 .heatmap-map {
   width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 </style>

@@ -3,7 +3,7 @@ import { storeToRefs } from "pinia";
 import { useAuthStore } from "@/stores/auth";
 import Notification from "@/components/Notification/Notification";
 
-import { provide, ref, watch } from "vue";
+import { computed, provide, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useRoute } from "vue-router";
 
@@ -11,6 +11,7 @@ const auth = useAuthStore();
 const router = useRouter();
 const route = useRoute();
 const isDarkTheme = ref(true);
+const isHeatMapRoute = computed(() => route.name === "HeatMap");
 
 const openLoginModal = ref(false);
 
@@ -40,7 +41,11 @@ const login = () => {
 </script>
 
 <template>
-  <v-app :theme="isDarkTheme ? 'dark' : 'light'" class="bg-grey-darken-4">
+  <v-app
+    :theme="isDarkTheme ? 'dark' : 'light'"
+    class="bg-grey-darken-4"
+    :class="{ 'heatmap-app': isHeatMapRoute }"
+  >
     <v-main>
       <router-view></router-view>
       <!-- <teste /> -->
@@ -88,6 +93,20 @@ const login = () => {
 </template>
 
 <style>
+html,
+body,
+#app {
+  height: 100%;
+}
+
+.heatmap-app {
+  overflow: hidden;
+}
+
+.heatmap-app .v-main {
+  overflow: hidden;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
 }
