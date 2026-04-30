@@ -4,13 +4,14 @@ import {
   getAccessPointConnections,
   checkViability,
   getAllAcessPointsByRange,
-  getAllClients,
+  getAllClients as fetchAllClients,
   addClient,
   getClientById,
 } from "../scripts/fetchApiTomodat.js";
 import tomodatcompleto16052023 from "../models/tomodatcompleto.js";
 import needle from "needle";
 import auditoriaModel from "../models/auditoriaModel.js";
+import { getOrSetCache } from "../config/redisClient.js";
 
 const baseApiUrl = "https://sp.tomodat.com.br/tomodat/api";
 
@@ -47,7 +48,7 @@ class TomodatController {
   };
 
   static getAllClients = (_, res) => {
-    getAllClients()
+    getOrSetCache("cache:tomodat:clients", 3600, fetchAllClients)
       .then((data) => {
         res.status(200).json(data);
       })

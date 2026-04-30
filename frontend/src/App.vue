@@ -2,8 +2,11 @@
 import { storeToRefs } from "pinia";
 import { useAuthStore } from "@/stores/auth";
 import Notification from "@/components/Notification/Notification";
+import LoginExpiredDialog from "@/components/Auth/LoginExpiredDialog.vue";
+import QueryCtoDialog from "@/components/Global/QueryCtoDialog.vue";
+import SearchCardDialog from "@/components/Global/SearchCardDialog.vue";
 
-import { computed, provide, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useRoute } from "vue-router";
 
@@ -14,6 +17,8 @@ const isDarkTheme = ref(true);
 const isHeatMapRoute = computed(() => route.name === "HeatMap");
 
 const openLoginModal = ref(false);
+const openQueryCtoModal = ref(false);
+const openSearchCardModal = ref(false);
 
 const setAppTheme = () => {
   isDarkTheme.value = !isDarkTheme.value;
@@ -28,6 +33,51 @@ watch(tokenExpired, (newValue) => {
     console.log("Token expirado, abrindo modal de login.");
     openLoginModal.value = true;
   }
+});
+
+const isTypingContext = (target) => {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  return Boolean(
+    target.closest("input, textarea, select, [contenteditable='true']"),
+  );
+};
+
+const handleGlobalKeydown = (event) => {
+  if (
+    event.defaultPrevented ||
+    event.repeat ||
+    event.metaKey ||
+    event.altKey
+  ) {
+    return;
+  }
+
+  if (event.key.toLowerCase() !== "f") {
+    return;
+  }
+
+  if (event.ctrlKey) {
+    event.preventDefault();
+    openSearchCardModal.value = true;
+    return;
+  }
+
+  if (isTypingContext(event.target)) {
+    return;
+  }
+
+  openQueryCtoModal.value = true;
+};
+
+onMounted(() => {
+  window.addEventListener("keydown", handleGlobalKeydown);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("keydown", handleGlobalKeydown);
 });
 
 const login = () => {
@@ -51,44 +101,12 @@ const login = () => {
       <!-- <teste /> -->
     </v-main>
     <Notification />
-    <v-dialog v-model="openLoginModal" persistent width="auto">
-      <v-sheet
-        class="pa-4 text-center mx-auto"
-        elevation="12"
-        max-width="600"
-        rounded="lg"
-        width="100%"
-      >
-        <v-icon
-          class="mb-5"
-          color="error"
-          icon="mdi-alert-circle"
-          size="112"
-        ></v-icon>
-
-        <h2 class="text-h5 mb-6">Seu Login expirou!</h2>
-
-        <p class="mb-4 text-medium-emphasis text-body-2">
-          É necessário fazer login novamente
-          <br />
-        </p>
-
-        <v-divider class="mb-4"></v-divider>
-
-        <div class="text-end">
-          <v-btn
-            class="text-none"
-            color="orange"
-            variant="flat"
-            rounded
-            to="/login"
-            @click="login"
-          >
-            Fazer Login
-          </v-btn>
-        </div>
-      </v-sheet>
-    </v-dialog>
+    <QueryCtoDialog v-model="openQueryCtoModal" />
+    <SearchCardDialog v-model="openSearchCardModal" @update:modelValue="openSearchCardModal = $event"                                                                  />
+    <LoginExpiredDialog
+      v-model="openLoginModal"
+      @login="login"
+    />
   </v-app>
 </template>
 
