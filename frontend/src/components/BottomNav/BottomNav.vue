@@ -27,7 +27,8 @@ const toggleCtoMarker = () => {
 
 <template>
   <BottomSearch v-model="isSearchOpen" :isDesktop="isDesktop" />
-  <!-- <SpeedDial v-model="isOpen" /> -->
+
+
   <v-bottom-navigation v-if="isMobile">
     <v-btn
       value="ruler"

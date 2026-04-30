@@ -26,6 +26,7 @@ import CtoViability from "../CtoModalDialog/CtoViability.vue";
 import EditAlert from "./EditAlert.vue";
 import PolyLine from "./PolyLine.vue";
 import { useWindowSize } from "vue-window-size";
+import { setupContainsLatLng } from "./is-point-within-polygon.js";
 
 const { width, height } = useWindowSize();
 
@@ -144,7 +145,6 @@ const onCloseMarker = () => {
   eventAction.value = "";
 };
 
-import { setupContainsLatLng } from "./is-point-within-polygon.js";
 const polygonRef = ref(null);
 
 watch(polygonRef, (polygon) => {
