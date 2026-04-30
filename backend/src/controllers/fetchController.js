@@ -4,7 +4,7 @@ import PppoeData from "../models/pppoeModel.js";
 import newFetch from "../models/newetchWithPppoe.js";
 import { getOrSetCache } from "../config/redisClient.js";
 
-const NEWFETCH_CACHE_KEY = "cache:newfetch:v2";
+const NEWFETCH_CACHE_KEY = "cache:newfetch:v3";
 
 class fetTomodatController {
   static CadastrarFetch = (req, res) => {
@@ -400,7 +400,7 @@ class fetTomodatController {
   static ListarFetchNew = async (_, res) => {
     try {
       const data = await getOrSetCache(NEWFETCH_CACHE_KEY, 9000, () =>
-        newFetch.find({}).exec()
+        newFetch.find({}, { clients: 0 }).exec()
       );
       res.status(200).json(data);
     } catch (err) {

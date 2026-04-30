@@ -51,12 +51,12 @@ watch(
       if (position) {
         handleLocationUpdate(
           { latitude: position.lat, longitude: position.lng },
-          false
+          false,
         );
         zoom.value = 18;
       }
     }
-  }
+  },
 );
 
 const handleRangeUpdate = (expand) => {
@@ -67,12 +67,12 @@ const handleRangeUpdate = (expand) => {
 const sortCtoListByDistance = (ctoList, userLocation) => {
   if (!google || !google.maps || !google.maps.geometry) {
     throw new Error(
-      "Biblioteca 'geometry' do Google Maps não carregada. Ative com &libraries=geometry."
+      "Biblioteca 'geometry' do Google Maps não carregada. Ative com &libraries=geometry.",
     );
   }
   const center = new google.maps.LatLng(
     userLocation.value.latitude,
-    userLocation.value.longitude
+    userLocation.value.longitude,
   );
 
   return ctoList
@@ -80,7 +80,7 @@ const sortCtoListByDistance = (ctoList, userLocation) => {
       ...cto,
       distance: google.maps.geometry.spherical.computeDistanceBetween(
         center,
-        new google.maps.LatLng(+cto.dot.lat, +cto.dot.lng)
+        new google.maps.LatLng(+cto.dot.lat, +cto.dot.lng),
       ),
     }))
     .sort((a, b) => a.distance - b.distance);
@@ -120,12 +120,12 @@ const copyCoords = (coords) => {
 const getCtosWithFreePorts = async (latitude, longitude, range) => {
   try {
     const response = await fetchApi.get(
-      `/viability/${latitude}/${longitude}/${range}`
+      `/viability/${latitude}/${longitude}/${range}`,
     );
     if (response.data.length > 0) {
       ctoList.value = sortCtoListByDistance(
         filterFreePorts(response.data),
-        userLocation
+        userLocation,
       );
       drawer.value = true;
     }
@@ -179,11 +179,13 @@ watch(mapRef, (googleMap) => {
   />
   <v-toolbar color="orange">
     <v-toolbar-title>
-      <div class="d-flex align-center ga-2">
-        <span>Consulta de Viabilidade</span>
-        <v-icon>mdi-account-question</v-icon>
+      <div class="d-flex align-center justify-center ga-2">
+        <span class="text-button">Consulta de Viabilidade</span>
       </div>
     </v-toolbar-title>
+    <v-btn prepend-icon="mdi-arrow-left" @click="$router.push('/')">
+      Voltar
+    </v-btn>
   </v-toolbar>
   <ControlSet
     @edit-location="isActive = true"

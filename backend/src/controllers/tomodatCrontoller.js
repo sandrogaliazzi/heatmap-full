@@ -12,8 +12,16 @@ import tomodatcompleto16052023 from "../models/tomodatcompleto.js";
 import needle from "needle";
 import auditoriaModel from "../models/auditoriaModel.js";
 import { getOrSetCache } from "../config/redisClient.js";
+import redis from "../config/redisClient.js";
 
 const baseApiUrl = "https://sp.tomodat.com.br/tomodat/api";
+const CLIENTS_CACHE_KEY = "cache:tomodat:clients:v2";
+const CLIENTS_CACHE_TTL = 600;
+
+const invalidateClientsCache = () =>
+  redis.del(CLIENTS_CACHE_KEY).catch((error) => {
+    console.error("[Redis] falha ao invalidar cache de clientes:", error.message);
+  });
 
 const reqConfig = {
   method: "DELETE",
@@ -47,15 +55,44 @@ class TomodatController {
       });
   };
 
-  static getAllClients = (_, res) => {
-    getOrSetCache("cache:tomodat:clients", 3600, fetchAllClients)
-      .then((data) => {
-        res.status(200).json(data);
-      })
-      .catch((error) => {
-        console.error(error);
-        res.status(500).json({ error: `Erro ao buscar clientes: ${error}` });
-      });
+  static getAllClients = async (req, res) => {
+    try {
+      const { q, cto_id, limit } = req.query;
+      const maxResults = Number.parseInt(limit, 10) || null;
+      const search = typeof q === "string" ? q.trim().toUpperCase() : "";
+      const ctoId = typeof cto_id === "string" ? cto_id.trim() : "";
+
+      const data = await getOrSetCache(
+        CLIENTS_CACHE_KEY,
+        CLIENTS_CACHE_TTL,
+        fetchAllClients
+      );
+
+      if (!Array.isArray(data)) {
+        throw new Error("Cache de clientes retornou um formato invalido");
+      }
+
+      let clients = data;
+
+      if (ctoId) {
+        clients = clients.filter((client) => String(client.ap_id_connected) === ctoId);
+      }
+
+      if (search) {
+        clients = clients.filter((client) =>
+          String(client.name ?? "").toUpperCase().includes(search)
+        );
+      }
+
+      if (maxResults && maxResults > 0) {
+        clients = clients.slice(0, maxResults);
+      }
+
+      res.status(200).json(clients);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: `Erro ao buscar clientes: ${error}` });
+    }
   };
 
   static ListarCtos = (req, res) => {
@@ -82,7 +119,7 @@ class TomodatController {
 
     await auditoriaEntry.save();
 
-    addClient(req, res);
+    addClient(req, res, invalidateClientsCache);
   };
 
   static CheckTomodatViability = (req, res) => {
@@ -137,14 +174,29 @@ class TomodatController {
         `${baseApiUrl}/clients/${id}`,
         null,
         reqConfig,
-        (err, response) => {
-          if (!err) {
-            res.status(200).json({
-              status: "success",
-              message: "Cliente deletado com sucesso",
-              data: response.body,
+        async (err, response, body) => {
+          if (err) {
+            return res.status(500).json({
+              status: "error",
+              message: `${err.message} - falha ao deletar cliente.`,
             });
           }
+
+          if (!response || response.statusCode < 200 || response.statusCode >= 300) {
+            return res.status(response?.statusCode || 502).json({
+              status: "error",
+              message: "Falha ao deletar cliente no Tomodat.",
+              data: body,
+            });
+          }
+
+          await invalidateClientsCache();
+
+          return res.status(200).json({
+            status: "success",
+            message: "Cliente deletado com sucesso",
+            data: response.body,
+          });
         },
       );
     } catch (error) {

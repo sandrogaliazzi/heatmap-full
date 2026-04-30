@@ -19,6 +19,7 @@ const apConnList = ref([]);
 const clientsWithLocation = ref([]);
 const loading = ref({
   connections: true,
+  clients: true,
   locations: true,
   freePorts: true,
 });
@@ -43,15 +44,18 @@ const mapClients = (connections) => {
     });
 };
 
+const mapTomodatClients = (tomodatClients) => {
+  if (!Array.isArray(tomodatClients)) return [];
+
+  return tomodatClients
+    .filter((client) => client?.id && client?.name)
+    .map((client) => ({ id: client.id, name: client.name }));
+};
+
 const getClientsFromCto = () => {
   if (!Array.isArray(cto.clients)) return [];
 
-  return cto.clients
-    .filter((client) => client?.id && client?.name)
-    .map((client) => ({
-      id: client.id,
-      name: client.name,
-    }));
+  return mapTomodatClients(cto.clients);
 };
 
 const mapKey = ref(1);
@@ -94,18 +98,41 @@ const loadConnections = async (requestId) => {
     if (!isCurrentLoad(requestId)) return;
 
     const connections = Array.isArray(response.data) ? response.data : [];
-    const mappedClients = mapClients(connections);
-
-    clients.value = mappedClients.length ? mappedClients : getClientsFromCto();
     apConnList.value = connections;
+    return connections;
   } catch (error) {
     console.error("Erro ao buscar conexoes:", error);
     if (isCurrentLoad(requestId)) {
-      clients.value = getClientsFromCto();
       apConnList.value = [];
     }
+    return [];
   } finally {
     if (isCurrentLoad(requestId)) loading.value.connections = false;
+  }
+};
+
+const loadClients = async (requestId, connectionsPromise) => {
+  loading.value.clients = true;
+  try {
+    const response = await fetchApi.get("/clients", {
+      params: { cto_id: cto.id },
+    });
+    if (!isCurrentLoad(requestId)) return;
+
+    clients.value = mapTomodatClients(response.data);
+  } catch (error) {
+    console.error("Erro ao buscar clientes da cto:", error);
+    if (isCurrentLoad(requestId)) {
+      const connections = connectionsPromise
+        ? await connectionsPromise
+        : apConnList.value;
+      if (!isCurrentLoad(requestId)) return;
+
+      const mappedClients = mapClients(connections);
+      clients.value = mappedClients.length ? mappedClients : getClientsFromCto();
+    }
+  } finally {
+    if (isCurrentLoad(requestId)) loading.value.clients = false;
   }
 };
 
@@ -145,8 +172,11 @@ const loadCtoData = ({ goBackAfterLoad = false } = {}) => {
     mapKey.value++;
   }
 
+  const connectionsPromise = loadConnections(requestId);
+
   return Promise.allSettled([
-    loadConnections(requestId),
+    connectionsPromise,
+    loadClients(requestId, connectionsPromise),
     loadClientsWithLocation(requestId),
     loadFreePorts(requestId),
   ]);

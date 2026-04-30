@@ -38,7 +38,7 @@ const currentSlide = computed({
     <!-- clientes -->
     <v-window-item :value="1">
       <v-card-text style="padding-bottom: 0">
-        <template v-if="!loading.connections">
+        <template v-if="!loading.clients">
           <template v-if="!showOnuCard">
             <CtoClientsList
               v-if="clients.length > 0"
