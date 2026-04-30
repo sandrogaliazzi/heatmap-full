@@ -1,4 +1,5 @@
 import { useTomodatStore } from "@/stores/tomodat";
+import fetchApi from "@/api";
 
 const mapClients = (clients) => {
   if (!Array.isArray(clients)) return [];
@@ -20,13 +21,25 @@ export const getClientes = async (marker) => {
   try {
     const tomodatStore = useTomodatStore();
     const cto = tomodatStore.getCto(marker.id);
+    const response = await fetchApi.get("/clients", {
+      params: { cto_id: marker.id },
+    });
 
-    const clients = marker?.clients ?? cto?.clients ?? [];
+    const clients = Array.isArray(response.data)
+      ? response.data
+      : marker?.clients ?? cto?.clients ?? [];
 
     return mapClients(clients);
   } catch (error) {
-    console.error(error);
-    alert("Ocorreu um erro ao buscar os clientes.");
-    return [];
+    try {
+      const tomodatStore = useTomodatStore();
+      const cto = tomodatStore.getCto(marker.id);
+      const clients = marker?.clients ?? cto?.clients ?? [];
+      return mapClients(clients);
+    } catch (fallbackError) {
+      console.error(error, fallbackError);
+      alert("Ocorreu um erro ao buscar os clientes.");
+      return [];
+    }
   }
 };

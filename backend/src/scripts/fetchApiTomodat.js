@@ -23,13 +23,19 @@ const reqConfig = {
 };
 
 export async function getAllClients() {
-  try {
-    let response = await fetch(`${baseURL}/clients/`, reqConfig);
-    let data = await response.json();
-    return data;
-  } catch (err) {
-    console.error("erro em getALLclients" + err);
+  const response = await fetch(`${baseURL}/clients/`, reqConfig);
+
+  if (!response.ok) {
+    throw new Error(`Erro ao buscar clientes. Status: ${response.status}`);
   }
+
+  const data = await response.json();
+
+  if (!Array.isArray(data)) {
+    throw new Error("Resposta invalida ao buscar clientes");
+  }
+
+  return data;
 }
 
 function getClientsByCto(users, id) {
@@ -106,19 +112,34 @@ export async function getClientById(id) {
   }
 }
 
-export function addClient(req, res) {
+export function addClient(req, res, onSuccess) {
   let client = req.body;
   needle.post(
     `${baseURL}/clients/auto_connect/`,
     client,
     reqConfig,
-    (err, resp, body) => {
+    async (err, resp, body) => {
       if (err) {
-        res
+        return res
           .status(500)
           .send({ message: `${err.message} - falha ao cadastrar user.` });
-      } else {
-        res.status(201).json(body);
+      }
+
+      if (!resp || resp.statusCode < 200 || resp.statusCode >= 300) {
+        return res.status(resp?.statusCode || 502).json({
+          message: "Falha ao cadastrar cliente no Tomodat.",
+          data: body,
+        });
+      }
+
+      try {
+        if (onSuccess) await onSuccess();
+        return res.status(201).json(body);
+      } catch (error) {
+        console.error("erro apos cadastrar cliente:", error.message);
+        return res.status(500).json({
+          message: "Cliente cadastrado, mas houve erro ao atualizar cache.",
+        });
       }
     },
   );
@@ -189,10 +210,9 @@ export async function deleteClientFromTomodat(id) {
 
 export async function newFetchTomodat() {
   try {
-    const [aplist, apListWithCity, users] = await Promise.all([
+    const [aplist, apListWithCity] = await Promise.all([
       getAllAcessPoints(),
       getAllAcessPointsByCity(),
-      getAllClients(),
     ]);
     let tomodat = aplist ? aplist : fetchAllAcessPoints;
     let ctoCeList = tomodat.filter(
@@ -206,7 +226,6 @@ export async function newFetchTomodat() {
         coord: cto.dot,
         category: cto.category,
         color: cto.color,
-        clients: getClientsByCto(users, cto.id),
         city:
           cto.category === 5
             ? getCtoCityById(apListWithCity, cto.id)[0]

@@ -50,7 +50,7 @@ export const useTomodatStore = defineStore("tomodat", () => {
     const clientList = [];
 
     ctoList.value.forEach((cto) => {
-      const clients = cto.clients;
+      const clients = Array.isArray(cto.clients) ? cto.clients : [];
 
       clientList.push(
         clients.map((client) => ({

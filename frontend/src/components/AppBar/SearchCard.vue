@@ -11,52 +11,64 @@ const tomodat = useTomodatStore();
 const { ctoList } = storeToRefs(tomodat);
 const query = ref(localStorage.getItem("lastQuery") || "");
 const searchResults = ref([]);
-const clients = ref([]);
 const isLoadingClients = ref(true);
-
-const fetchClients = async () => {
-  try {
-    const response = await fetchApi.get("/clients");
-    clients.value = response.data;
-    isLoadingClients.value = false;
-  } catch (error) {
-    console.error(error);
-    isLoadingClients.value = false;
-  }
-};
+const searchRequestId = ref(0);
 
 const getCtoByName = (name) => {
   return ctoList.value.filter((cto) => cto.name.includes(name.toUpperCase()));
 };
 
-const getClientsByName = (name) => {
-  return clients.value
-    .filter((client) => client.name.includes(name.toUpperCase()))
-    .map((client) => {
-      const cto = ctoList.value.find((cto) => cto.id == client.ap_id_connected);
-      return cto ? { ...client, ctoId: cto.id, ctoName: cto.name } : client;
-    });
+const getClientsByName = async (name, requestId) => {
+  const response = await fetchApi.get("/clients", {
+    params: { q: name, limit: 50 },
+  });
+
+  if (requestId !== searchRequestId.value) return [];
+
+  return response.data.map((client) => {
+    const cto = ctoList.value.find((cto) => cto.id == client.ap_id_connected);
+    return {
+      ...client,
+      ctoId: cto?.id ?? client.ap_id_connected,
+      ctoName: cto?.name ?? client.cto_name,
+    };
+  });
 };
 
-const findResults = () => {
-  if (query.value) {
-    if (query.value.split("").length > 3) {
-      const typeOfSearch = /^(R\d+-CA\d+|CE-\d+|CD-\d+)$/.test(
-        query.value.toUpperCase(),
-      )
-        ? "cto"
-        : "client";
+const findResults = async () => {
+  const searchText = query.value.trim();
+  const requestId = searchRequestId.value + 1;
+  searchRequestId.value = requestId;
 
-      switch (typeOfSearch) {
-        case "cto":
-          searchResults.value = getCtoByName(query.value);
-          break;
+  if (!searchText || searchText.length <= 3) {
+    searchResults.value = [];
+    isLoadingClients.value = false;
+    return;
+  }
 
-        case "client":
-          searchResults.value = getClientsByName(query.value);
-          break;
-      }
+  const typeOfSearch = /^(R\d+-CA\d+|CE-\d+|CD-\d+)$/.test(
+    searchText.toUpperCase(),
+  )
+    ? "cto"
+    : "client";
+
+  if (typeOfSearch === "cto") {
+    searchResults.value = getCtoByName(searchText);
+    isLoadingClients.value = false;
+    return;
+  }
+
+  isLoadingClients.value = true;
+  try {
+    const results = await getClientsByName(searchText, requestId);
+    if (requestId === searchRequestId.value) {
+      searchResults.value = results;
     }
+  } catch (error) {
+    console.error(error);
+    if (requestId === searchRequestId.value) searchResults.value = [];
+  } finally {
+    if (requestId === searchRequestId.value) isLoadingClients.value = false;
   }
 };
 
@@ -80,8 +92,7 @@ watch(query, () => {
 const myInput = ref(null);
 
 const loadInitialResults = async () => {
-  await fetchClients();
-  findResults();
+  await findResults();
 };
 
 provide("loadInitialResults", loadInitialResults);
